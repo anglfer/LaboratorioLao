@@ -1,0 +1,157 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model Area {
+  codigo String   @id @db.VarChar(50)
+  nombre String?  @db.VarChar(255)
+  subareas Subarea[]
+  obras    Obra[]
+  contadorObras ContadorObras[]
+}
+
+model Subarea {
+  id         Int      @id @default(autoincrement())
+  nombre     String?  @db.VarChar(255)
+  areaCodigo String?  @db.VarChar(50)
+  area       Area?    @relation(fields: [areaCodigo], references: [codigo])
+  conceptos  Concepto[]
+
+  @@index([areaCodigo], name: "idx_subareas_area_codigo")
+}
+
+model Concepto {
+  codigo      String   @id @db.VarChar(50)
+  subareaId   Int?
+  descripcion String?  @db.VarChar(1000)
+  unidad      String?  @db.VarChar(50)
+  p_u         Decimal? @db.Decimal(10,2)
+  subarea     Subarea? @relation(fields: [subareaId], references: [id])
+  detalles    PresupuestoDetalle[]
+
+  @@index([subareaId], name: "idx_conceptos_subarea_id")
+}
+
+model Cliente {
+  id             Int       @id @default(autoincrement())
+  nombre         String?   @db.VarChar(255)
+  direccion      String?   @db.VarChar(255)
+  fechaRegistro  DateTime? @db.DateTime @map("fecha_registro")
+  activo         Boolean?  @default(true)
+  telefonos      Telefono[]
+  correos        Correo[]
+  presupuestos   Presupuesto[]
+}
+
+model Telefono {
+  id         Int      @id @default(autoincrement())
+  clienteId  Int
+  telefono   String   @db.VarChar(255)
+  cliente    Cliente  @relation(fields: [clienteId], references: [id])
+
+  @@index([clienteId], name: "idx_telefonos_cliente_id")
+}
+
+model Correo {
+  id         Int      @id @default(autoincrement())
+  clienteId  Int
+  correo     String   @db.VarChar(255)
+  cliente    Cliente  @relation(fields: [clienteId], references: [id])
+
+  @@index([clienteId], name: "idx_correos_cliente_id")
+}
+
+model Obra {
+  clave        String   @id @db.VarChar(20)
+  areaCodigo   String   @db.VarChar(50)
+  contratista  String?  @db.VarChar(50)
+  estado       Int?     @db.TinyInt
+  area         Area     @relation(fields: [areaCodigo], references: [codigo])
+  presupuestos Presupuesto[]
+
+  @@index([areaCodigo], name: "idx_obra_area_codigo")
+}
+
+model ContadorObras {
+  areaCodigo String   @db.VarChar(50)
+  año        Int
+  contador   Int?     @default(0)
+  area       Area     @relation(fields: [areaCodigo], references: [codigo])
+
+  @@id([areaCodigo, año])
+}
+
+model Presupuesto {
+  id                Int                  @id @default(autoincrement())
+  claveObra         String?              @db.VarChar(20) @map("clave_obra")
+  clienteId         Int?
+  
+  // Datos del contratista
+  nombreContratista String?              @db.VarChar(255) @map("nombre_contratista")
+  
+  // Detalles de la obra
+  descripcionObra   String?              @db.Text @map("descripcion_obra")
+  tramo            String?              @db.VarChar(255)
+  colonia          String?              @db.VarChar(255)
+  calle            String?              @db.VarChar(255)
+  contactoResponsable String?           @db.VarChar(255) @map("contacto_responsable")
+  
+  // Totales
+  iva              Decimal?             @db.Decimal(5,4) @default(0.1600)
+  subtotal         Decimal?             @db.Decimal(12,2) @default(0)
+  ivaMonto         Decimal?             @db.Decimal(12,2) @default(0) @map("iva_monto")
+  total            Decimal?             @db.Decimal(12,2) @default(0)
+  
+  // Forma de pago
+  formaPago        String?              @db.VarChar(100) @map("forma_pago")
+  
+  // Estados y fechas
+  estado           PresupuestoEstado?   @default(borrador)
+  fechaSolicitud   DateTime?            @db.Timestamp(0) @default(now()) @map("fecha_solicitud")
+  fechaInicio      DateTime?            @db.Timestamp(0) @map("fecha_inicio")
+  
+  // Relaciones
+  cliente          Cliente?             @relation(fields: [clienteId], references: [id])
+  obra             Obra?                @relation(fields: [claveObra], references: [clave])
+  detalles         PresupuestoDetalle[]
+
+  @@index([claveObra], name: "idx_presupuestos_clave_obra")
+  @@index([clienteId], name: "idx_presupuestos_cliente_id")
+}
+
+enum PresupuestoEstado {
+  borrador
+  enviado
+  aprobado
+  rechazado
+  finalizado
+}
+
+model PresupuestoDetalle {
+  id              Int                @id @default(autoincrement())
+  presupuestoId   Int
+  conceptoCodigo  String             @db.VarChar(50)
+  cantidad        Decimal            @db.Decimal(10,2) @default(1)
+  precioUnitario  Decimal            @db.Decimal(10,2)
+  subtotal        Decimal?           @db.Decimal(12,2)
+  estado          DetalleEstado?     @default(en_proceso)
+  presupuesto     Presupuesto        @relation(fields: [presupuestoId], references: [id], onDelete: Cascade)
+  concepto        Concepto           @relation(fields: [conceptoCodigo], references: [codigo])
+
+  @@index([presupuestoId], name: "idx_presupuestodetalle_presupuesto_id")
+  @@index([conceptoCodigo], name: "idx_presupuestodetalle_concepto_codigo")
+}
+
+enum DetalleEstado {
+  en_proceso
+  hecho
+}

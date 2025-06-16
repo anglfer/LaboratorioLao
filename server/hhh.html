@@ -1,0 +1,525 @@
+
+    <!DOCTYPE html>
+    <html lang="es">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Presupuesto ${presupuesto.claveObra || presupuesto.id}</title>
+        <style>
+        @page {
+            size: A4;
+            margin: 15mm;
+        }
+        body {
+            font-family: 'Arial', sans-serif;
+            color: #000;
+            margin: 0;
+            padding: 0;
+            font-size: 10px;
+            line-height: 1.3;
+        }
+        
+        .header {
+            text-align: left;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #333;
+            padding-bottom: 10px;
+            background: none;
+        }
+        
+        .company-logo {
+            font-size: 16px;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 5px;
+            text-transform: none;
+            text-shadow: none;
+        }
+        
+        .company-info {
+            font-size: 10px;
+            color: #333;
+            margin-bottom: 5px;
+            line-height: 1.3;
+        }
+        
+        .document-title {
+            font-size: 14px;
+            font-weight: bold;
+            color: #000;
+            margin: 10px 0 8px;
+            text-transform: none;
+        }
+        
+        .budget-code {
+            font-size: 12px;
+            font-weight: bold;
+            color: #000;
+            margin-top: 5px;
+            padding: 5px 10px;
+            border: 1px solid #333;
+            background: none;
+            display: inline-block;
+        }
+        
+        .generation-date {
+            font-size: 9px;
+            color: #333;
+            margin-top: 8px;
+        }
+        
+        /* INFORMACIÓN DEL CLIENTE Y PROYECTO */
+        .client-project-section {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 20px;
+            border: 1px solid #ccc;
+            padding: 10px;
+            border-radius: 5px;
+            background: none;
+        }
+        
+        .section-title {
+            font-size: 12px;
+            font-weight: bold;
+            color: #000;
+            margin-bottom: 8px;
+            border-bottom: 1px solid #333;
+            padding-bottom: 5px;
+        }
+        
+        .info-item {
+            margin-bottom: 8px;
+            display: flex;
+            align-items: flex-start;
+            padding: 4px 0;
+        }
+        
+        .label {
+            font-weight: bold;
+            min-width: 80px;
+            color: #333;
+            font-size: 10px;
+        }
+        
+        .value {
+            color: #000;
+            flex: 1;
+            font-size: 10px;
+            line-height: 1.4;
+        }
+        
+        /* TABLA DE CONCEPTOS */
+        .concepts-section {
+            margin-bottom: 20px;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 10px 0;
+            font-size: 10px;
+            border: 1px solid #333;
+        }
+        
+        th {
+            background: #ddd;
+            color: #000;
+            padding: 8px;
+            text-align: center;
+            font-weight: bold;
+            border: 1px solid #333;
+        }
+        
+        td {
+            border: 1px solid #ccc;
+            padding: 8px;
+            text-align: left;
+        }
+        
+        .number-cell { text-align: center; font-weight: bold; }
+        .amount-cell { text-align: right; font-family: 'Courier New', monospace; }
+        
+        tr:nth-child(even) {
+            background-color: #f9fafb;
+        }
+        
+        tr:hover {
+            background-color: #f3f4f6;
+        }
+        
+        /* TOTALES */
+        .totals-section {
+            text-align: right;
+            margin: 20px 0;
+            border: 1px solid #ccc;
+            padding: 10px;
+            border-radius: 5px;
+            background: none;
+        }
+        
+        .total-row {
+            margin: 8px 0;
+            font-size: 12px;
+            display: flex;
+            justify-content: space-between;
+            padding: 6px 0;
+            border-bottom: 1px solid #ccc;
+        }
+        
+        .subtotal-row { 
+            border-bottom: 2px solid #333; 
+            font-weight: 600;
+        }
+        .iva-row { 
+            color: #7c2d12; 
+            font-weight: 500;
+        }
+        
+        .final-total {
+            font-size: 12px;
+            font-weight: bold;
+            margin-top: 10px;
+            padding: 10px;
+            border: 1px solid #333;
+            background: #eee;
+        }
+        
+        /* RESUMEN EJECUTIVO */
+        .executive-summary {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            background: none;
+        }
+        
+        .area-group {
+            margin-bottom: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            overflow: hidden;
+        }
+        
+        .area-header {
+            background: #f0f0f0;
+            color: #000;
+            padding: 8px 10px;
+            font-weight: bold;
+            font-size: 10px;
+        }
+        
+        .subarea-list {
+            padding: 8px 10px;
+            background: white;
+        }
+        
+        .subarea-item {
+            padding: 4px 0;
+            border-bottom: 1px solid #f1f5f9;
+        }
+        
+        .subarea-included {
+            color: #16a34a;
+            font-weight: bold;
+        }
+        
+        .subarea-not-included {
+            color: #64748b;
+        }
+        
+        /* TÉRMINOS Y CONDICIONES */
+        .terms-section {
+            margin: 30px 0;
+            padding: 20px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            background: none;
+        }
+        
+        .terms-list {
+            list-style: decimal;
+            padding-left: 25px;
+            margin: 10px 0;
+        }
+        
+        .terms-list li {
+            margin-bottom: 10px;
+            text-align: justify;
+            line-height: 1.4;
+            font-size: 10px;
+            color: #333;
+        }
+        
+        /* CLÁUSULA LEGAL */
+        .legal-clause {
+            background: #fff3f3;
+            border: 1px solid #dc2626;
+            padding: 15px;
+            margin: 25px 0;
+            border-radius: 5px;
+            text-align: center;
+            font-weight: bold;
+            color: #991b1b;
+            font-size: 10px;
+            line-height: 1.4;
+        }
+        
+        /* SECCIÓN DE FIRMAS */
+        .signatures-section {
+            margin-top: 30px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+        }
+        
+        .signature-box {
+            border: 1px solid #333;
+            padding: 20px;
+            text-align: center;
+            background: none;
+            border-radius: 5px;
+            min-height: 120px;
+        }
+        
+        .signature-title {
+            font-weight: bold;
+            font-size: 12px;
+            color: #000;
+            margin-bottom: 30px;
+            text-transform: none;
+        }
+        
+        .signature-line {
+            border-top: 1px solid #333;
+            margin: 15px 0 10px 0;
+            padding-top: 5px;
+            font-size: 10px;
+            color: #333;
+            font-weight: 500;
+        }
+        
+        .signature-space {
+            height: 60px;
+            margin: 15px 0;
+            border-bottom: 1px dashed #ccc;
+        }
+        
+        /* FOOTER */
+        .footer {
+            margin-top: 30px;
+            text-align: center;
+            font-size: 9px;
+            color: #333;
+            border-top: 1px solid #ccc;
+            padding-top: 10px;
+        }
+        </style>
+    </head>
+    <body>
+      <div class="header">
+        <img src="/server/versionPresupuesto.png" alt="Versión Presupuesto" style="height:40px; width:auto; margin-right:10px;" />
+        <div class="company-logo">${SYSTEM_CONSTANTS.COMPANY_INFO.name}</div>
+        <div class="company-info">
+            RFC: ${SYSTEM_CONSTANTS.COMPANY_INFO.fiscalId} | 
+            Tel: ${SYSTEM_CONSTANTS.COMPANY_INFO.phone} | 
+            Email: ${SYSTEM_CONSTANTS.COMPANY_INFO.email}<br>
+            ${SYSTEM_CONSTANTS.COMPANY_INFO.address}<br>
+            ${SYSTEM_CONSTANTS.COMPANY_INFO.website}
+        </div>
+        <div class="document-title">Presupuesto de Servicios de Laboratorio</div>            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 15px;">
+            <div class="budget-code">Clave de Obra: ${presupuesto.claveObra || 'N/A'}</div>
+            <div style="display: flex; gap: 15px; align-items: center;">
+            </div>
+        </div>
+        <div class="generation-date">Fecha de generación: ${fechaGeneracion}</div>
+      </div>
+
+      <!-- INFORMACIÓN DEL CLIENTE Y PROYECTO -->
+      <div class="client-project-section">
+          <div>
+              <div class="section-title">Datos del Cliente</div>                <div class="info-item">
+                  <span class="label">Dirigido a:</span>
+                  <span class="value">${presupuesto.cliente?.nombre ? presupuesto.cliente.nombre.replace(/"/g, '&quot;').replace(/'/g, '&#39;') : '<span style="color: #dc2626; font-style: italic;">Cliente no especificado</span>'}</span>
+              </div>
+              <div class="info-item">
+                  <span class="label">Dirección:</span>
+                  <span class="value">${presupuesto.cliente?.direccion ? presupuesto.cliente.direccion.replace(/"/g, '&quot;').replace(/'/g, '&#39;') : '<span style="color: #64748b; font-style: italic;">No especificada</span>'}</span>
+              </div>
+              <div class="info-item">
+                  <span class="label">Teléfonos:</span>
+                  <span class="value">${presupuesto.cliente?.telefonos?.length > 0 ? presupuesto.cliente.telefonos.map((t: any) => t.telefono).join(', ') : '<span style="color: #64748b; font-style: italic;">No registrados</span>'}</span>
+              </div>
+              <div class="info-item">
+                  <span class="label">Correos:</span>
+                  <span class="value">${presupuesto.cliente?.correos?.length > 0 ? presupuesto.cliente.correos.map((c: any) => c.correo).join(', ') : '<span style="color: #64748b; font-style: italic;">No registrados</span>'}</span>
+              </div>
+          </div>
+          <div>
+              <div class="section-title">Información del Proyecto</div>                <div class="info-item">
+                  <span class="label">Responsable:</span>
+                  <span class="value">${presupuesto.contactoResponsable ? presupuesto.contactoResponsable.replace(/"/g, '&quot;').replace(/'/g, '&#39;') : '<span style="color: #64748b; font-style: italic;">No especificado</span>'}</span>
+              </div>
+              <div class="info-item">
+                  <span class="label">Contratista:</span>
+                  <span class="value">${presupuesto.nombreContratista ? presupuesto.nombreContratista.replace(/"/g, '&quot;').replace(/'/g, '&#39;') : '<span style="color: #64748b; font-style: italic;">No especificado</span>'}</span>
+              </div>
+              <div class="info-item">
+                  <span class="label">Descripción:</span>
+                  <span class="value">${presupuesto.descripcionObra ? presupuesto.descripcionObra.replace(/"/g, '&quot;').replace(/'/g, '&#39;') : '<span style="color: #64748b; font-style: italic;">No especificada</span>'}</span>
+              </div>
+              <div class="info-item">
+                  <span class="label">Ubicación:</span>
+                  <span class="value">
+                      ${[presupuesto.tramo, presupuesto.colonia, presupuesto.calle].filter(Boolean).map(item => item.replace(/"/g, '&quot;').replace(/'/g, '&#39;')).join(', ') || '<span style="color: #64748b; font-style: italic;">No especificada</span>'}
+                  </span>
+              </div>
+              <div class="info-item">
+                  <span class="label">F. Solicitud:</span>
+                  <span class="value">${presupuesto.fechaSolicitud ? new Date(presupuesto.fechaSolicitud).toLocaleDateString('es-MX') : '<span style="color: #64748b; font-style: italic;">No registrada</span>'}</span>
+              </div>
+              <div class="info-item">
+                  <span class="label">F. Inicio:</span>
+                  <span class="value">${presupuesto.fechaInicio ? new Date(presupuesto.fechaInicio).toLocaleDateString('es-MX') : '<span style="color: #64748b; font-style: italic;">No programada</span>'}</span>
+              </div>
+          </div>
+      </div>
+
+      <!-- DESGLOSE DE SERVICIOS Y CONCEPTOS -->
+      <div class="concepts-section">
+          <div class="section-title">Desglose Detallado de Servicios</div>
+          <table>
+              <thead>
+                  <tr>
+                      <th style="width: 8%;">No.</th>
+                      <th style="width: 15%;">Código</th>
+                      <th style="width: 40%;">Descripción del Servicio</th>
+                      <th style="width: 10%;">Unidad</th>
+                      <th style="width: 8%;">Cantidad</th>
+                      <th style="width: 12%;">Precio Unitario</th>
+                      <th style="width: 12%;">Importe</th>
+                  </tr>
+              </thead>
+              <tbody>                    ${detalles.length === 0 ? `
+                      <tr>
+                          <td colspan="7" style="text-align: center; padding: 30px; color: #64748b; font-style: italic; background: #f8fafc;">
+                              <div style="padding: 20px;">
+                                  <strong style="color: #dc2626;">⚠️ No hay conceptos registrados para este presupuesto</strong><br>
+                                  <span style="font-size: 10px; margin-top: 10px; display: block;">
+                                      Es necesario agregar servicios para completar la cotización
+                                  </span>
+                              </div>
+                          </td>
+                      </tr>
+                  ` : detalles.map((detalle, index) => `
+                      <tr style="border-left: 4px solid ${index % 2 === 0 ? '#2563eb' : '#3b82f6'};">
+                          <td class="number-cell" style="background: #f8fafc; font-weight: bold;">${(index + 1).toString().padStart(2, '0')}</td>
+                          <td class="number-cell" style="font-family: 'Courier New', monospace; font-weight: bold; color: #2563eb;">
+                              ${detalle.conceptoCodigo}
+                          </td>
+                          <td style="line-height: 1.4;">${detalle.concepto?.descripcion ? detalle.concepto.descripcion.replace(/"/g, '&quot;').replace(/'/g, '&#39;') : '<span style="color: #dc2626; font-style: italic;">Descripción no disponible</span>'}</td>
+                          <td class="number-cell" style="font-weight: 600;">${detalle.concepto?.unidad || 'N/A'}</td>
+                          <td class="amount-cell" style="font-weight: 600;">${Number(detalle.cantidad || 1).toLocaleString('es-MX', { minimumFractionDigits: 2 })}</td>
+                          <td class="amount-cell" style="color: #059669; font-weight: bold;">$${Number(detalle.precioUnitario || 0).toLocaleString('es-MX', { minimumFractionDigits: 2 })}</td>
+                          <td class="amount-cell" style="background: #f0f9ff; color: #1e40af; font-weight: bold;">$${Number(detalle.subtotal || detalle.precioUnitario || 0).toLocaleString('es-MX', { minimumFractionDigits: 2 })}</td>
+                      </tr>
+                  `).join('')}
+              </tbody>
+          </table>
+      </div>
+
+      <!-- TOTALES -->
+      <div class="totals-section">
+          <div class="total-row subtotal-row">
+              <span><strong>Subtotal:</strong></span>
+              <span><strong>$${Number(subtotal).toLocaleString('es-MX', { minimumFractionDigits: 2 })}</strong></span>
+          </div>
+          <div class="total-row iva-row">
+              <span>IVA (${(SYSTEM_CONSTANTS.IVA_RATE * 100).toFixed(0)}%):</span>
+              <span>$${Number(iva).toLocaleString('es-MX', { minimumFractionDigits: 2 })}</span>
+          </div>
+          <div class="final-total">
+              <div style="display: flex; justify-content: space-between; align-items: center;">
+                  <span>TOTAL A PAGAR:</span>
+                  <span>$${Number(total).toLocaleString('es-MX', { minimumFractionDigits: 2 })}</span>
+              </div>
+          </div>
+          ${presupuesto.formaPago ? `
+              <div style="margin-top: 15px; text-align: center; background: #e0f2fe; padding: 10px; border-radius: 6px;">
+                  <strong>Forma de Pago:</strong> ${presupuesto.formaPago}
+              </div>
+          ` : ''}
+      </div>
+
+      <!-- RESUMEN EJECUTIVO POR SUBÁREAS -->
+      ${Object.keys(detallesPorArea).length > 0 ? `
+          <div class="executive-summary">
+              <div class="section-title">Resumen Ejecutivo por Áreas de Servicio</div>
+              <p style="margin-bottom: 15px; font-style: italic; color: #64748b;">
+                  Las áreas marcadas en <span class="subarea-included">verde</span> están incluidas en este presupuesto.
+              </p>
+              ${Object.entries(detallesPorArea).map(([area, subareas]: [string, any]) => `
+                  <div class="area-group">
+                      <div class="area-header">${area}</div>
+                      <div class="subarea-list">
+                          ${Object.keys(subareas).map(subarea => `
+                              <div class="subarea-item subarea-included">
+                                  ✓ ${subarea} (${subareas[subarea].length} concepto${subareas[subarea].length > 1 ? 's' : ''})
+                              </div>
+                          `).join('')}
+                      </div>
+                  </div>
+              `).join('')}
+          </div>
+      ` : ''}
+
+      <!-- PÁGINA NUEVA PARA TÉRMINOS -->
+      <div class="page-break"></div>
+
+      <!-- TÉRMINOS COMERCIALES Y LEGALES -->
+      <div class="terms-section">
+          <div class="section-title">Términos y Condiciones Generales</div>
+          <ol class="terms-list">
+              ${SYSTEM_CONSTANTS.TERMS_AND_CONDITIONS.map(term => `
+                  <li>${term}</li>
+              `).join('')}
+          </ol>
+      </div>
+
+      <!-- CLÁUSULA LEGAL DE ACEPTACIÓN -->
+      <div class="legal-clause">
+          <p>
+              <strong>CLÁUSULA LEGAL DE ACEPTACIÓN:</strong><br><br>
+              La firma de este documento por parte del cliente implica la aceptación total de los términos y condiciones aquí establecidos, 
+              así como la autorización para la ejecución de los servicios descritos, constituyendo este presupuesto un acuerdo vinculante entre las partes.
+          </p>
+      </div>
+
+      <!-- SECCIÓN DE FIRMAS -->
+      <div class="signatures-section">
+          <div class="signature-box">
+              <div class="signature-title">Firma del Laboratorio</div>
+              <div class="signature-space"></div>
+              <div class="signature-line">Nombre: ${SYSTEM_CONSTANTS.COMPANY_INFO.manager}</div>
+              <div class="signature-line">Cargo: ${SYSTEM_CONSTANTS.COMPANY_INFO.position}</div>
+              <div class="signature-line">Fecha: _________________</div>
+          </div>
+          
+          <div class="signature-box">
+              <div class="signature-title">Firma del Cliente</div>
+              <div class="signature-space"></div>
+              <div class="signature-line">Nombre: _________________________________</div>
+              <div class="signature-line">Cargo: __________________________________</div>
+              <div class="signature-line">Fecha: _________________</div>
+          </div>
+      </div>        <!-- FOOTER -->
+      <div class="footer">
+          <p style="margin-bottom: 10px;"><strong>${SYSTEM_CONSTANTS.COMPANY_INFO.name}</strong></p>
+          <p style="margin-bottom: 5px;">Este documento ha sido generado electrónicamente el ${fechaGeneracion}</p>
+          <p style="font-size: 9px; color: #94a3b8; margin-top: 10px;">
+              Para consultas: ${SYSTEM_CONSTANTS.COMPANY_INFO.email} | ${SYSTEM_CONSTANTS.COMPANY_INFO.phone}
+          </p>
+      </div>
+    </body>
+    </html>
