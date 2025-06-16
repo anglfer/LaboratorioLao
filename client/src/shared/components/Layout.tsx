@@ -1,11 +1,15 @@
 import { Link, useLocation } from "wouter";
 import { Button } from "./ui/button";
-import { 
-  BarChart3, 
-  FileText, 
+import {
+  BarChart3,
+  FileText,
   LogOut,
   Menu,
-  X
+  X,
+  Settings,
+  ChevronDown,
+  ChevronRight,
+  Plus,
 } from "lucide-react";
 import { useState } from "react";
 import { cn } from "../lib/utils";
@@ -19,6 +23,10 @@ const navigation = [
   { name: "Presupuestos", href: "/budgets", icon: FileText },
 ];
 
+const adminNavigation = [
+  { name: "Gestión de Conceptos", href: "/admin/concepts", icon: Plus },
+];
+
 export default function Layout({ children }: LayoutProps) {
   const [location] = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -26,11 +34,16 @@ export default function Layout({ children }: LayoutProps) {
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-900">
       {/* Mobile sidebar */}
-      <div className={cn(
-        "fixed inset-0 flex z-40 md:hidden",
-        sidebarOpen ? "block" : "hidden"
-      )}>
-        <div className="fixed inset-0 bg-slate-600 bg-opacity-75" onClick={() => setSidebarOpen(false)} />
+      <div
+        className={cn(
+          "fixed inset-0 flex z-40 md:hidden",
+          sidebarOpen ? "block" : "hidden"
+        )}
+      >
+        <div
+          className="fixed inset-0 bg-slate-600 bg-opacity-75"
+          onClick={() => setSidebarOpen(false)}
+        />
         <div className="relative flex-1 flex flex-col max-w-xs w-full bg-white dark:bg-slate-800">
           <div className="absolute top-0 right-0 -mr-12 pt-2">
             <Button
@@ -79,12 +92,12 @@ export default function Layout({ children }: LayoutProps) {
 }
 
 function SidebarContent({ location }: { location: string }) {
+  const [adminOpen, setAdminOpen] = useState(false);
+
   return (
     <>
       <div className="flex items-center h-16 flex-shrink-0 px-4 bg-blue-600 dark:bg-blue-700">
-        <h1 className="text-xl font-semibold text-white">
-          Laboratorio LOA
-        </h1>
+        <h1 className="text-xl font-semibold text-white">Laboratorio LOA</h1>
       </div>
       <div className="flex-1 flex flex-col overflow-y-auto">
         <nav className="flex-1 px-2 py-4 space-y-1">
@@ -92,23 +105,78 @@ function SidebarContent({ location }: { location: string }) {
             const isActive = location === item.href;
             return (
               <Link key={item.name} href={item.href}>
-                <div className={cn(
-                  "group flex items-center px-2 py-2 text-sm font-medium rounded-md transition-colors",
-                  isActive
-                    ? "bg-blue-100 text-blue-900 dark:bg-blue-900 dark:text-blue-100"
-                    : "text-slate-600 hover:bg-slate-50 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-700 dark:hover:text-white"
-                )}>
-                  <item.icon className={cn(
-                    "mr-3 flex-shrink-0 h-5 w-5",
+                <div
+                  className={cn(
+                    "group flex items-center px-2 py-2 text-sm font-medium rounded-md transition-colors",
                     isActive
-                      ? "text-blue-500 dark:text-blue-400"
-                      : "text-slate-400 group-hover:text-slate-500 dark:group-hover:text-slate-300"
-                  )} />
+                      ? "bg-blue-100 text-blue-900 dark:bg-blue-900 dark:text-blue-100"
+                      : "text-slate-600 hover:bg-slate-50 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-700 dark:hover:text-white"
+                  )}
+                >
+                  <item.icon
+                    className={cn(
+                      "mr-3 flex-shrink-0 h-5 w-5",
+                      isActive
+                        ? "text-blue-500 dark:text-blue-400"
+                        : "text-slate-400 group-hover:text-slate-500 dark:group-hover:text-slate-300"
+                    )}
+                  />
                   {item.name}
                 </div>
               </Link>
             );
           })}
+
+          {/* Admin Section */}
+          <div className="pt-4">
+            <div className="border-t border-slate-200 dark:border-slate-700 pt-4">
+              <button
+                onClick={() => setAdminOpen(!adminOpen)}
+                className={cn(
+                  "group flex items-center w-full px-2 py-2 text-sm font-medium rounded-md transition-colors",
+                  "text-slate-500 hover:bg-slate-50 hover:text-slate-700 dark:text-slate-400 dark:hover:bg-slate-700 dark:hover:text-slate-200"
+                )}
+              >
+                <Settings className="mr-3 flex-shrink-0 h-4 w-4" />
+                <span className="flex-1 text-left">Administración</span>
+                {adminOpen ? (
+                  <ChevronDown className="h-4 w-4" />
+                ) : (
+                  <ChevronRight className="h-4 w-4" />
+                )}
+              </button>
+
+              {adminOpen && (
+                <div className="mt-1 space-y-1">
+                  {adminNavigation.map((item) => {
+                    const isActive = location === item.href;
+                    return (
+                      <Link key={item.name} href={item.href}>
+                        <div
+                          className={cn(
+                            "group flex items-center pl-8 pr-2 py-2 text-sm rounded-md transition-colors",
+                            isActive
+                              ? "bg-blue-50 text-blue-700 dark:bg-blue-900/50 dark:text-blue-200"
+                              : "text-slate-500 hover:bg-slate-50 hover:text-slate-700 dark:text-slate-400 dark:hover:bg-slate-700 dark:hover:text-slate-200"
+                          )}
+                        >
+                          <item.icon
+                            className={cn(
+                              "mr-3 flex-shrink-0 h-4 w-4",
+                              isActive
+                                ? "text-blue-500 dark:text-blue-400"
+                                : "text-slate-400 group-hover:text-slate-500 dark:group-hover:text-slate-300"
+                            )}
+                          />
+                          {item.name}
+                        </div>
+                      </Link>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
         </nav>
       </div>
     </>

@@ -735,6 +735,30 @@ export function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Rutas específicas para el feature de conceptos
+  app.get("/api/areas/:codigo/subareas", async (req, res) => {
+    try {
+      const areaCodigo = req.params.codigo;
+      const subareas = await storage.getSubareasByArea(areaCodigo);
+      res.json(subareas);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.get("/api/subareas/:id/conceptos", async (req, res) => {
+    try {
+      const subareaId = parseInt(req.params.id);
+      if (isNaN(subareaId)) {
+        return res.status(400).json({ message: "ID de subárea inválido" });
+      }
+      const conceptos = await storage.getConceptosBySubarea(subareaId);
+      res.json(conceptos);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
   // Cliente routes
   app.get("/api/clientes", async (req, res) => {
     try {
