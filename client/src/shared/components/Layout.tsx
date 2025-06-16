@@ -10,6 +10,8 @@ import {
   ChevronDown,
   ChevronRight,
   Plus,
+  Calendar,
+  Users,
 } from "lucide-react";
 import { useState } from "react";
 import { cn } from "../lib/utils";
@@ -21,6 +23,8 @@ interface LayoutProps {
 const navigation = [
   { name: "Panel de Control", href: "/", icon: BarChart3 },
   { name: "Presupuestos", href: "/budgets", icon: FileText },
+  { name: "Programación", href: "/programming", icon: Calendar },
+  { name: "Brigadista", href: "/brigadista", icon: Users },
 ];
 
 const adminNavigation = [

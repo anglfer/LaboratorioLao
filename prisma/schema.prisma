@@ -37,6 +37,7 @@ model Concepto {
   p_u         Decimal? @db.Decimal(10,2)
   subarea     Subarea? @relation(fields: [subareaId], references: [id])
   detalles    PresupuestoDetalle[]
+  programaciones Programacion[]
 
   @@index([subareaId], name: "idx_conceptos_subarea_id")
 }
@@ -77,6 +78,7 @@ model Obra {
   estado       Int?     @db.TinyInt
   area         Area     @relation(fields: [areaCodigo], references: [codigo])
   presupuestos Presupuesto[]
+  programaciones Programacion[]
 
   @@index([areaCodigo], name: "idx_obra_area_codigo")
 }
@@ -154,4 +156,88 @@ model PresupuestoDetalle {
 enum DetalleEstado {
   en_proceso
   hecho
+}
+
+// Nuevas entidades para el módulo de programación
+model Brigadista {
+  id               Int      @id @default(autoincrement())
+  nombre           String   @db.VarChar(255)
+  telefono         String?  @db.VarChar(255)
+  email            String?  @db.VarChar(255)
+  activo           Boolean  @default(true)
+  fechaRegistro    DateTime @default(now()) @map("fecha_registro")
+  
+  programaciones   Programacion[]
+  programacionesApoyo Programacion[] @relation("BrigadistaApoyo")
+}
+
+model Vehiculo {
+  id               Int      @id @default(autoincrement())
+  clave            String   @unique @db.VarChar(50)
+  descripcion      String   @db.VarChar(255)
+  activo           Boolean  @default(true)
+  fechaRegistro    DateTime @default(now()) @map("fecha_registro")
+  
+  programaciones   Programacion[]
+}
+
+model Programacion {
+  id                    Int                  @id @default(autoincrement())
+  claveObra             String               @db.VarChar(20) @map("clave_obra")
+  fechaProgramada       DateTime             @db.Date @map("fecha_programada")
+  horaProgramada        String               @db.VarChar(10) @map("hora_programada")
+  tipoProgramacion      TipoProgramacion     @map("tipo_programacion")
+  nombreResidente       String?              @db.VarChar(255) @map("nombre_residente")
+  telefonoResidente     String?              @db.VarChar(255) @map("telefono_residente")
+  conceptoCodigo        String               @db.VarChar(50) @map("concepto_codigo")
+  cantidadMuestras      Int                  @map("cantidad_muestras")
+  tipoRecoleccion       TipoRecoleccion      @map("tipo_recoleccion")
+  brigadistaId          Int                  @map("brigadista_id")
+  brigaistaApoyoId      Int?                 @map("brigadista_apoyo_id")
+  vehiculoId            Int                  @map("vehiculo_id")
+  claveEquipo           String?              @db.VarChar(50) @map("clave_equipo")
+  observaciones         String?              @db.Text
+  instrucciones         String?              @db.Text
+  condicionesEspeciales String?              @db.Text @map("condiciones_especiales")
+  estado                EstadoProgramacion   @default(programada)
+  fechaCreacion         DateTime             @default(now()) @map("fecha_creacion")
+  fechaActualizacion    DateTime             @updatedAt @map("fecha_actualizacion")
+  motivoCancelacion     String?              @db.Text @map("motivo_cancelacion")
+  muestrasObtenidas     Int?                 @map("muestras_obtenidas")
+  fechaInicio           DateTime?            @map("fecha_inicio")
+  fechaCompletado       DateTime?            @map("fecha_completado")
+  
+  // Relaciones
+  obra                  Obra                 @relation(fields: [claveObra], references: [clave])
+  concepto              Concepto             @relation(fields: [conceptoCodigo], references: [codigo])
+  brigadista            Brigadista           @relation(fields: [brigadistaId], references: [id])
+  brigaistaApoyo        Brigadista?          @relation("BrigadistaApoyo", fields: [brigaistaApoyoId], references: [id])
+  vehiculo              Vehiculo             @relation(fields: [vehiculoId], references: [id])
+  
+  @@index([claveObra], name: "idx_programacion_clave_obra")
+  @@index([fechaProgramada], name: "idx_programacion_fecha")
+  @@index([brigadistaId], name: "idx_programacion_brigadista")
+  @@index([estado], name: "idx_programacion_estado")
+}
+
+enum TipoProgramacion {
+  obra_por_visita
+  obra_por_estancia
+}
+
+enum TipoRecoleccion {
+  metros_cuadrados
+  metros_cubicos  
+  metros_lineales
+  sondeo
+  piezas
+  condensacion
+}
+
+enum EstadoProgramacion {
+  programada
+  en_proceso
+  completada
+  cancelada
+  reprogramada
 }

@@ -32,564 +32,495 @@ function generatePresupuestoHTML(presupuesto: any, detalles: any[], forPDF = fal
     month: 'long', 
     day: 'numeric' 
   });
-    // Generar número de folio único basado en ID y fecha
-  
+
   // Obtener el estado del presupuesto con color apropiado
   const estadoColors = {
     'borrador': { bg: '#fef3c7', text: '#92400e', border: '#f59e0b' },
     'enviado': { bg: '#dbeafe', text: '#1e40af', border: '#3b82f6' },
-    'aprobado': { bg: '#d1fae5', text: '#065f46', border: '#10b981' },
-    'rechazado': { bg: '#fee2e2', text: '#991b1b', border: '#ef4444' },
-    'finalizado': { bg: '#e0e7ff', text: '#3730a3', border: '#6366f1' }
+    'aprobado': { bg: '#dcfce7', text: '#166534', border: '#22c55e' },
+    'rechazado': { bg: '#fee2e2', text: '#dc2626', border: '#ef4444' },
+    'finalizado': { bg: '#f3f4f6', text: '#374151', border: '#6b7280' },
   };
-  const estadoInfo = estadoColors[presupuesto.estado as keyof typeof estadoColors] || estadoColors.borrador;
+  
+  const estadoConfig = estadoColors[presupuesto.estado] || estadoColors['borrador'];
 
-  // Agrupar detalles por subárea/área para el resumen ejecutivo
-  const detallesPorArea = detalles.reduce((acc: any, detalle: any) => {
-    const area = detalle.concepto?.subarea?.area?.nombre || 'Sin Área';
-    const subarea = detalle.concepto?.subarea?.nombre || 'Sin Subárea';
+  // Agrupar conceptos por área y subárea para el resumen ejecutivo
+  const conceptosPorArea = detalles.reduce((acc, detalle) => {
+    const area = detalle.concepto?.subarea?.area?.nombre || 'Sin área';
+    const subarea = detalle.concepto?.subarea?.nombre || 'Sin subárea';
     
     if (!acc[area]) {
-      acc[area] = {};
+      acc[area] = new Set();
     }
-    if (!acc[area][subarea]) {
-      acc[area][subarea] = [];
-    }
-    acc[area][subarea].push(detalle);
+    acc[area].add(subarea);
     return acc;
   }, {});
-  let logoSrc = "/img/versionPresupuesto.png";
-  if (forPDF) {
-    logoSrc = "file://" + path.resolve(__dirname, "public/img/versionPresupuesto.png");
-    console.log('[PDF] Logo path:', logoSrc);
-  }
+
   return `
-    <!DOCTYPE html>
-    <html lang="es">
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Presupuesto ${presupuesto.claveObra || presupuesto.id}</title>
-        <style>
-        @page {
-            size: A4;
-            margin: 15mm;
-        }
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Presupuesto ${presupuesto.claveObra} - Laboratorio LOA</title>
+    <style>
         body {
-            font-family: 'Arial', sans-serif;
-            color: #000;
+            font-family: Arial, sans-serif;
             margin: 0;
-            padding: 0;
-            font-size: 10px;
-            line-height: 1.3;
+            padding: 20px;
+            font-size: 11px;
+            line-height: 1.4;
+            color: #333;
         }
         
         .header {
-            text-align: left;
-            margin-bottom: 20px;
-            border-bottom: 2px solid #333;
-            padding-bottom: 10px;
-            background: none;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid #0066cc;
         }
         
-        .company-logo {
-            font-size: 16px;
-            font-weight: bold;
-            color: #333;
-            margin-bottom: 5px;
-            text-transform: none;
-            text-shadow: none;
+        .logo-section {
+            flex: 1;
+        }
+        
+        .logo {
+            max-width: 200px;
+            height: auto;
         }
         
         .company-info {
+            margin-top: 10px;
             font-size: 10px;
-            color: #333;
-            margin-bottom: 5px;
-            line-height: 1.3;
+            color: #666;
         }
         
-        .document-title {
-            font-size: 14px;
-            font-weight: bold;
-            color: #000;
-            margin: 10px 0 8px;
-            text-transform: none;
+        .document-info {
+            text-align: right;
+            flex: 1;
         }
         
         .budget-code {
-            font-size: 12px;
+            font-size: 18px;
             font-weight: bold;
-            color: #000;
-            margin-top: 5px;
-            padding: 5px 10px;
-            border: 1px solid #333;
-            background: none;
-            display: inline-block;
+            color: #0066cc;
+            margin-bottom: 10px;
         }
         
-        .generation-date {
-            font-size: 9px;
-            color: #333;
-            margin-top: 8px;
+        .status-badge {
+            padding: 5px 12px;
+            border-radius: 15px;
+            font-size: 10px;
+            font-weight: bold;
+            background-color: ${estadoConfig.bg};
+            color: ${estadoConfig.text};
+            border: 1px solid ${estadoConfig.border};
+            text-transform: uppercase;
         }
         
-        /* INFORMACIÓN DEL CLIENTE Y PROYECTO */
-        .client-project-section {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 15px;
-            margin-bottom: 20px;
-            border: 1px solid #ccc;
-            padding: 10px;
-            border-radius: 5px;
-            background: none;
+        .client-section {
+            background-color: #f8f9fa;
+            padding: 20px;
+            margin: 20px 0;
+            border-left: 4px solid #0066cc;
         }
         
         .section-title {
-            font-size: 12px;
+            font-size: 14px;
             font-weight: bold;
-            color: #000;
-            margin-bottom: 8px;
-            border-bottom: 1px solid #333;
-            padding-bottom: 5px;
+            color: #0066cc;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+        }
+        
+        .section-title::before {
+            content: '';
+            width: 20px;
+            height: 2px;
+            background-color: #0066cc;
+            margin-right: 10px;
+        }
+        
+        .info-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 15px;
         }
         
         .info-item {
             margin-bottom: 8px;
-            display: flex;
-            align-items: flex-start;
-            padding: 4px 0;
         }
         
-        .label {
+        .info-label {
             font-weight: bold;
-            min-width: 80px;
-            color: #333;
-            font-size: 10px;
+            color: #555;
         }
         
-        .value {
-            color: #000;
-            flex: 1;
-            font-size: 10px;
-            line-height: 1.4;
-        }
-        
-        /* TABLA DE CONCEPTOS */
-        .concepts-section {
-            margin-bottom: 20px;
-        }
-        
-        table {
+        .concepts-table {
             width: 100%;
             border-collapse: collapse;
-            margin: 10px 0;
+            margin: 20px 0;
             font-size: 10px;
-            border: 1px solid #333;
         }
         
-        th {
-            background: #ddd;
-            color: #000;
-            padding: 8px;
-            text-align: center;
-            font-weight: bold;
-            border: 1px solid #333;
-        }
-        
-        td {
-            border: 1px solid #ccc;
-            padding: 8px;
+        .concepts-table th {
+            background-color: #0066cc;
+            color: white;
+            padding: 10px 8px;
             text-align: left;
+            font-weight: bold;
         }
         
-        .number-cell { text-align: center; font-weight: bold; }
-        .amount-cell { text-align: right; font-family: 'Courier New', monospace; }
-        
-        tr:nth-child(even) {
-            background-color: #f9fafb;
+        .concepts-table td {
+            padding: 8px;
+            border-bottom: 1px solid #ddd;
         }
         
-        tr:hover {
-            background-color: #f3f4f6;
+        .concepts-table tr:nth-child(even) {
+            background-color: #f8f9fa;
         }
         
-        /* TOTALES */
-        .totals-section {
+        .text-right {
             text-align: right;
+        }
+        
+        .text-center {
+            text-align: center;
+        }
+        
+        .totals-section {
+            background-color: #f8f9fa;
+            padding: 20px;
             margin: 20px 0;
-            border: 1px solid #ccc;
-            padding: 10px;
-            border-radius: 5px;
-            background: none;
+            border: 1px solid #ddd;
         }
         
-        .total-row {
-            margin: 8px 0;
+        .totals-table {
+            width: 100%;
             font-size: 12px;
-            display: flex;
-            justify-content: space-between;
-            padding: 6px 0;
-            border-bottom: 1px solid #ccc;
         }
         
-        .subtotal-row { 
-            border-bottom: 2px solid #333; 
-            font-weight: 600;
-        }
-        .iva-row { 
-            color: #7c2d12; 
-            font-weight: 500;
+        .totals-table td {
+            padding: 8px;
+            border-bottom: 1px solid #ddd;
         }
         
-        .final-total {
-            font-size: 12px;
+        .total-final {
+            font-size: 16px;
             font-weight: bold;
-            margin-top: 10px;
-            padding: 10px;
-            border: 1px solid #333;
-            background: #eee;
+            color: #0066cc;
         }
         
-        /* RESUMEN EJECUTIVO */
         .executive-summary {
-            margin: 20px 0;
-            padding: 15px;
-            border: 1px solid #ccc;
-            border-radius: 5px;
-            background: none;
+            margin: 30px 0;
+            padding: 20px;
+            background-color: #fff;
+            border: 1px solid #ddd;
         }
         
-        .area-group {
-            margin-bottom: 10px;
-            border: 1px solid #ccc;
-            border-radius: 5px;
-            overflow: hidden;
+        .areas-list {
+            columns: 2;
+            column-gap: 30px;
+            margin-top: 15px;
         }
         
-        .area-header {
-            background: #f0f0f0;
-            color: #000;
-            padding: 8px 10px;
+        .area-item {
+            break-inside: avoid;
+            margin-bottom: 15px;
+        }
+        
+        .area-name {
             font-weight: bold;
-            font-size: 10px;
+            color: #0066cc;
+            margin-bottom: 5px;
         }
         
         .subarea-list {
-            padding: 8px 10px;
-            background: white;
+            margin-left: 15px;
         }
         
         .subarea-item {
-            padding: 4px 0;
-            border-bottom: 1px solid #f1f5f9;
+            margin-bottom: 3px;
+            display: flex;
+            align-items: center;
         }
         
         .subarea-included {
-            color: #16a34a;
+            color: #22c55e;
             font-weight: bold;
         }
         
         .subarea-not-included {
-            color: #64748b;
+            color: #6b7280;
         }
         
-        /* TÉRMINOS Y CONDICIONES */
         .terms-section {
             margin: 30px 0;
-            padding: 20px;
-            border: 1px solid #ccc;
-            border-radius: 5px;
-            background: none;
+            font-size: 10px;
+            line-height: 1.5;
         }
         
         .terms-list {
             list-style: decimal;
-            padding-left: 25px;
-            margin: 10px 0;
+            margin-left: 20px;
         }
         
         .terms-list li {
             margin-bottom: 10px;
-            text-align: justify;
-            line-height: 1.4;
-            font-size: 10px;
-            color: #333;
         }
         
-        /* CLÁUSULA LEGAL */
         .legal-clause {
-            background: #fff3f3;
-            border: 1px solid #dc2626;
+            background-color: #fef3c7;
             padding: 15px;
-            margin: 25px 0;
-            border-radius: 5px;
-            text-align: center;
-            font-weight: bold;
-            color: #991b1b;
-            font-size: 10px;
-            line-height: 1.4;
+            margin: 20px 0;
+            border-left: 4px solid #f59e0b;
+            font-style: italic;
+            font-size: 11px;
         }
         
-        /* SECCIÓN DE FIRMAS */
         .signatures-section {
-            margin-top: 30px;
+            margin-top: 50px;
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 30px;
+            gap: 50px;
         }
         
         .signature-box {
-            border: 1px solid #333;
-            padding: 20px;
             text-align: center;
-            background: none;
-            border-radius: 5px;
-            min-height: 120px;
-        }
-        
-        .signature-title {
-            font-weight: bold;
-            font-size: 12px;
-            color: #000;
-            margin-bottom: 30px;
-            text-transform: none;
+            padding: 20px;
+            border: 1px solid #ddd;
         }
         
         .signature-line {
-            border-top: 1px solid #333;
-            margin: 15px 0 10px 0;
-            padding-top: 5px;
-            font-size: 10px;
-            color: #333;
-            font-weight: 500;
+            border-top: 2px solid #333;
+            margin: 40px 0 10px 0;
+            height: 1px;
         }
         
-        .signature-space {
-            height: 60px;
-            margin: 15px 0;
-            border-bottom: 1px dashed #ccc;
+        .page-break {
+            page-break-before: always;
         }
         
-        /* FOOTER */
-        .footer {
-            margin-top: 30px;
-            text-align: center;
-            font-size: 9px;
-            color: #333;
-            border-top: 1px solid #ccc;
-            padding-top: 10px;
+        @media print {
+            body {
+                margin: 0;
+                padding: 15px;
+            }
+            
+            .page-break {
+                page-break-before: always;
+            }
         }
-        </style>
-    </head>
-    <body>
-      <div class="header">
-        <img src="${logoSrc}" alt="Versión Presupuesto" style="height:40px; width:auto; margin-right:10px;" />
-        <div class="company-logo">
-          ${SYSTEM_CONSTANTS.COMPANY_INFO.name}
-        </div>
-        <div class="company-info">
-            RFC: ${SYSTEM_CONSTANTS.COMPANY_INFO.fiscalId} | 
-            Tel: ${SYSTEM_CONSTANTS.COMPANY_INFO.phone} | 
-            Email: ${SYSTEM_CONSTANTS.COMPANY_INFO.email}<br>
-            ${SYSTEM_CONSTANTS.COMPANY_INFO.address}<br>
-            ${SYSTEM_CONSTANTS.COMPANY_INFO.website}
-        </div>
-        <div class="document-title">Presupuesto de Servicios de Laboratorio</div>            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 15px;">
-            <div class="budget-code">Clave de Obra: ${presupuesto.claveObra || 'N/A'}</div>
-            <div style="display: flex; gap: 15px; align-items: center;">
+    </style>
+</head>
+<body>
+    <!-- PÁGINA 1: INFORMACIÓN PRINCIPAL -->
+    <div class="header">
+        <div class="logo-section">
+            <img src="/img/versionPresupuesto.png" alt="Laboratorio LOA" class="logo" />
+            <div class="company-info">
+                <strong>Laboratorio LOA</strong><br>
+                Control de Calidad | Mecánica de Suelos | Diseño de Pavimentos<br>
+                Av. la Presa 519-511, 37677 Ibarrilla, Gto.<br>
+                Tel: (477) 123-4567 | Email: controldecalidad@loalaboratorio.com<br>
+                www.loalaboratorio.com
             </div>
         </div>
-        <div class="generation-date">Fecha de generación: ${fechaGeneracion}</div>
-      </div>
+        <div class="document-info">
+            <div class="budget-code">PRESUPUESTO ${presupuesto.claveObra || 'SIN-ASIGNAR'}</div>
+            <div class="status-badge">${presupuesto.estado || 'borrador'}</div>
+            <div style="margin-top: 15px; font-size: 10px;">
+                <strong>Fecha de Generación:</strong><br>
+                ${fechaGeneracion}<br><br>
+                <strong>Folio:</strong> ${presupuesto.id || 'N/A'}
+            </div>
+        </div>
+    </div>
 
-      <!-- INFORMACIÓN DEL CLIENTE Y PROYECTO -->
-      <div class="client-project-section">
-          <div>
-              <div class="section-title">Datos del Cliente</div>                <div class="info-item">
-                  <span class="label">Dirigido a:</span>
-                  <span class="value">${presupuesto.cliente?.nombre ? presupuesto.cliente.nombre.replace(/"/g, '&quot;').replace(/'/g, '&#39;') : '<span style="color: #dc2626; font-style: italic;">Cliente no especificado</span>'}</span>
-              </div>
-              <div class="info-item">
-                  <span class="label">Dirección:</span>
-                  <span class="value">${presupuesto.cliente?.direccion ? presupuesto.cliente.direccion.replace(/"/g, '&quot;').replace(/'/g, '&#39;') : '<span style="color: #64748b; font-style: italic;">No especificada</span>'}</span>
-              </div>
-              <div class="info-item">
-                  <span class="label">Teléfonos:</span>
-                  <span class="value">${presupuesto.cliente?.telefonos?.length > 0 ? presupuesto.cliente.telefonos.map((t: any) => t.telefono).join(', ') : '<span style="color: #64748b; font-style: italic;">No registrados</span>'}</span>
-              </div>
-              <div class="info-item">
-                  <span class="label">Correos:</span>
-                  <span class="value">${presupuesto.cliente?.correos?.length > 0 ? presupuesto.cliente.correos.map((c: any) => c.correo).join(', ') : '<span style="color: #64748b; font-style: italic;">No registrados</span>'}</span>
-              </div>
-          </div>
-          <div>
-              <div class="section-title">Información del Proyecto</div>                <div class="info-item">
-                  <span class="label">Responsable:</span>
-                  <span class="value">${presupuesto.contactoResponsable ? presupuesto.contactoResponsable.replace(/"/g, '&quot;').replace(/'/g, '&#39;') : '<span style="color: #64748b; font-style: italic;">No especificado</span>'}</span>
-              </div>
-              <div class="info-item">
-                  <span class="label">Contratista:</span>
-                  <span class="value">${presupuesto.nombreContratista ? presupuesto.nombreContratista.replace(/"/g, '&quot;').replace(/'/g, '&#39;') : '<span style="color: #64748b; font-style: italic;">No especificado</span>'}</span>
-              </div>
-              <div class="info-item">
-                  <span class="label">Descripción:</span>
-                  <span class="value">${presupuesto.descripcionObra ? presupuesto.descripcionObra.replace(/"/g, '&quot;').replace(/'/g, '&#39;') : '<span style="color: #64748b; font-style: italic;">No especificada</span>'}</span>
-              </div>
-              <div class="info-item">
-                  <span class="label">Ubicación:</span>
-                  <span class="value">
-                      ${[presupuesto.tramo, presupuesto.colonia, presupuesto.calle].filter(Boolean).map(item => item.replace(/"/g, '&quot;').replace(/'/g, '&#39;')).join(', ') || '<span style="color: #64748b; font-style: italic;">No especificada</span>'}
-                  </span>
-              </div>
-              <div class="info-item">
-                  <span class="label">F. Solicitud:</span>
-                  <span class="value">${presupuesto.fechaSolicitud ? new Date(presupuesto.fechaSolicitud).toLocaleDateString('es-MX') : '<span style="color: #64748b; font-style: italic;">No registrada</span>'}</span>
-              </div>
-              <div class="info-item">
-                  <span class="label">F. Inicio:</span>
-                  <span class="value">${presupuesto.fechaInicio ? new Date(presupuesto.fechaInicio).toLocaleDateString('es-MX') : '<span style="color: #64748b; font-style: italic;">No programada</span>'}</span>
-              </div>
-          </div>
-      </div>
+    <!-- INFORMACIÓN DEL CLIENTE Y PROYECTO -->
+    <div class="client-section">
+        <div class="section-title">INFORMACIÓN DEL CLIENTE Y PROYECTO</div>
+        
+        <div class="info-grid">
+            <div>
+                <div class="info-item">
+                    <span class="info-label">Dirigido a:</span> ${presupuesto.cliente?.nombre || 'Cliente no especificado'}
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Dirección:</span> ${presupuesto.cliente?.direccion || 'No especificada'}
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Atención:</span> ${presupuesto.contactoResponsable || 'No especificado'}
+                </div>
+            </div>
+            <div>
+                <div class="info-item">
+                    <span class="info-label">Contratista:</span> ${presupuesto.nombreContratista || 'No especificado'}
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Fecha de Solicitud:</span> ${presupuesto.fechaSolicitud ? new Date(presupuesto.fechaSolicitud).toLocaleDateString('es-MX') : 'No especificada'}
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Fecha Propuesta de Inicio:</span> ${presupuesto.fechaInicio ? new Date(presupuesto.fechaInicio).toLocaleDateString('es-MX') : 'Por definir'}
+                </div>
+            </div>
+        </div>
+        
+        <div class="info-item">
+            <span class="info-label">Descripción de la Obra:</span><br>
+            ${presupuesto.descripcionObra || 'No especificada'}
+        </div>
+        
+        ${presupuesto.tramo || presupuesto.colonia || presupuesto.calle ? `
+        <div class="info-item" style="margin-top: 15px;">
+            <span class="info-label">Ubicación:</span><br>
+            ${[presupuesto.tramo, presupuesto.colonia, presupuesto.calle].filter(Boolean).join(', ')}
+        </div>
+        ` : ''}
+    </div>
 
-      <!-- DESGLOSE DE SERVICIOS Y CONCEPTOS -->
-      <div class="concepts-section">
-          <div class="section-title">Desglose Detallado de Servicios</div>
-          <table>
-              <thead>
-                  <tr>
-                      <th style="width: 8%;">No.</th>
-                      <th style="width: 15%;">Código</th>
-                      <th style="width: 40%;">Descripción del Servicio</th>
-                      <th style="width: 10%;">Unidad</th>
-                      <th style="width: 8%;">Cantidad</th>
-                      <th style="width: 12%;">Precio Unitario</th>
-                      <th style="width: 12%;">Importe</th>
-                  </tr>
-              </thead>
-              <tbody>                    ${detalles.length === 0 ? `
-                      <tr>
-                          <td colspan="7" style="text-align: center; padding: 30px; color: #64748b; font-style: italic; background: #f8fafc;">
-                              <div style="padding: 20px;">
-                                  <strong style="color: #dc2626;">⚠️ No hay conceptos registrados para este presupuesto</strong><br>
-                                  <span style="font-size: 10px; margin-top: 10px; display: block;">
-                                      Es necesario agregar servicios para completar la cotización
-                                  </span>
-                              </div>
-                          </td>
-                      </tr>
-                  ` : detalles.map((detalle, index) => `
-                      <tr style="border-left: 4px solid ${index % 2 === 0 ? '#2563eb' : '#3b82f6'};">
-                          <td class="number-cell" style="background: #f8fafc; font-weight: bold;">${(index + 1).toString().padStart(2, '0')}</td>
-                          <td class="number-cell" style="font-family: 'Courier New', monospace; font-weight: bold; color: #2563eb;">
-                              ${detalle.conceptoCodigo}
-                          </td>
-                          <td style="line-height: 1.4;">${detalle.concepto?.descripcion ? detalle.concepto.descripcion.replace(/"/g, '&quot;').replace(/'/g, '&#39;') : '<span style="color: #dc2626; font-style: italic;">Descripción no disponible</span>'}</td>
-                          <td class="number-cell" style="font-weight: 600;">${detalle.concepto?.unidad || 'N/A'}</td>
-                          <td class="amount-cell" style="font-weight: 600;">${Number(detalle.cantidad || 1).toLocaleString('es-MX', { minimumFractionDigits: 2 })}</td>
-                          <td class="amount-cell" style="color: #059669; font-weight: bold;">$${Number(detalle.precioUnitario || 0).toLocaleString('es-MX', { minimumFractionDigits: 2 })}</td>
-                          <td class="amount-cell" style="background: #f0f9ff; color: #1e40af; font-weight: bold;">$${Number(detalle.subtotal || detalle.precioUnitario || 0).toLocaleString('es-MX', { minimumFractionDigits: 2 })}</td>
-                      </tr>
-                  `).join('')}
-              </tbody>
-          </table>
-      </div>
+    <!-- DESGLOSE DE SERVICIOS -->
+    <div class="section-title">DESGLOSE DETALLADO DE SERVICIOS</div>
+    
+    <table class="concepts-table">
+        <thead>
+            <tr>
+                <th style="width: 8%;">No.</th>
+                <th style="width: 50%;">Descripción del Servicio</th>
+                <th style="width: 10%;">Unidad</th>
+                <th style="width: 10%;">Cantidad</th>
+                <th style="width: 11%;">Precio Unitario</th>
+                <th style="width: 11%;">Importe</th>
+            </tr>
+        </thead>
+        <tbody>
+            ${detalles.map((detalle, index) => `
+                <tr>
+                    <td class="text-center">${index + 1}</td>
+                    <td>
+                        <strong>${detalle.concepto?.codigo || 'N/A'}</strong><br>
+                        ${detalle.concepto?.descripcion || 'Descripción no disponible'}
+                    </td>
+                    <td class="text-center">${detalle.concepto?.unidad || 'N/A'}</td>
+                    <td class="text-center">${Number(detalle.cantidad || 0).toLocaleString('es-MX', { minimumFractionDigits: 2 })}</td>
+                    <td class="text-right">$${Number(detalle.precioUnitario || 0).toLocaleString('es-MX', { minimumFractionDigits: 2 })}</td>
+                    <td class="text-right">$${Number(detalle.subtotal || 0).toLocaleString('es-MX', { minimumFractionDigits: 2 })}</td>
+                </tr>
+            `).join('')}
+        </tbody>
+    </table>
 
-      <!-- TOTALES -->
-      <div class="totals-section">
-          <div class="total-row subtotal-row">
-              <span><strong>Subtotal:</strong></span>
-              <span><strong>$${Number(subtotal).toLocaleString('es-MX', { minimumFractionDigits: 2 })}</strong></span>
-          </div>
-          <div class="total-row iva-row">
-              <span>IVA (${(SYSTEM_CONSTANTS.IVA_RATE * 100).toFixed(0)}%):</span>
-              <span>$${Number(iva).toLocaleString('es-MX', { minimumFractionDigits: 2 })}</span>
-          </div>
-          <div class="final-total">
-              <div style="display: flex; justify-content: space-between; align-items: center;">
-                  <span>TOTAL A PAGAR:</span>
-                  <span>$${Number(total).toLocaleString('es-MX', { minimumFractionDigits: 2 })}</span>
-              </div>
-          </div>
-          ${presupuesto.formaPago ? `
-              <div style="margin-top: 15px; text-align: center; background: #e0f2fe; padding: 10px; border-radius: 6px;">
-                  <strong>Forma de Pago:</strong> ${presupuesto.formaPago}
-              </div>
-          ` : ''}
-      </div>
+    <!-- TOTALES -->
+    <div class="totals-section">
+        <table class="totals-table">
+            <tr>
+                <td style="width: 70%; text-align: right; font-weight: bold;">SUBTOTAL:</td>
+                <td style="width: 30%; text-align: right; font-weight: bold;">$${Number(subtotal).toLocaleString('es-MX', { minimumFractionDigits: 2 })}</td>
+            </tr>
+            <tr>
+                <td style="text-align: right; font-weight: bold;">IVA (16%):</td>
+                <td style="text-align: right; font-weight: bold;">$${Number(iva).toLocaleString('es-MX', { minimumFractionDigits: 2 })}</td>
+            </tr>
+            <tr style="border-top: 2px solid #0066cc;">
+                <td style="text-align: right;" class="total-final">TOTAL:</td>
+                <td style="text-align: right;" class="total-final">$${Number(total).toLocaleString('es-MX', { minimumFractionDigits: 2 })}</td>
+            </tr>
+        </table>
+        
+        ${presupuesto.formaPago ? `
+        <div style="margin-top: 15px;">
+            <span class="info-label">Forma de Pago:</span> ${presupuesto.formaPago}
+        </div>
+        ` : ''}
+    </div>
 
-      <!-- RESUMEN EJECUTIVO POR SUBÁREAS -->
-      ${Object.keys(detallesPorArea).length > 0 ? `
-          <div class="executive-summary">
-              <div class="section-title">Resumen Ejecutivo por Áreas de Servicio</div>
-              <p style="margin-bottom: 15px; font-style: italic; color: #64748b;">
-                  Las áreas marcadas en <span class="subarea-included">verde</span> están incluidas en este presupuesto.
-              </p>
-              ${Object.entries(detallesPorArea).map(([area, subareas]: [string, any]) => `
-                  <div class="area-group">
-                      <div class="area-header">${area}</div>
-                      <div class="subarea-list">
-                          ${Object.keys(subareas).map(subarea => `
-                              <div class="subarea-item subarea-included">
-                                  ✓ ${subarea} (${subareas[subarea].length} concepto${subareas[subarea].length > 1 ? 's' : ''})
-                              </div>
-                          `).join('')}
-                      </div>
-                  </div>
-              `).join('')}
-          </div>
-      ` : ''}
+    <!-- PÁGINA 2: RESUMEN EJECUTIVO Y TÉRMINOS -->
+    <div class="page-break"></div>
+    
+    <div class="executive-summary">
+        <div class="section-title">RESUMEN EJECUTIVO POR ÁREAS DE SERVICIO</div>
+        <p style="margin-bottom: 15px; color: #666;">
+            A continuación se presenta un resumen de todas las áreas de servicio disponibles, 
+            resaltando aquellas incluidas en este presupuesto:
+        </p>
+        
+        <div class="areas-list">
+            ${Object.entries(conceptosPorArea).map(([area, subareas]) => `
+                <div class="area-item">
+                    <div class="area-name">${area}</div>
+                    <div class="subarea-list">
+                        ${Array.from(subareas).map(subarea => `
+                            <div class="subarea-item">
+                                <span class="subarea-included">✓ ${subarea}</span>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `).join('')}
+        </div>
+    </div>
 
-      <!-- PÁGINA NUEVA PARA TÉRMINOS -->
-      <div class="page-break"></div>
+    <!-- TÉRMINOS Y CONDICIONES -->
+    <div class="terms-section">
+        <div class="section-title">TÉRMINOS Y CONDICIONES COMERCIALES</div>
+        
+        <ol class="terms-list">
+            <li>Las cantidades en presupuesto pueden sufrir variación en función de las pruebas elaboradas, por lo que el presente presupuesto es una referencia de los costos. En la realización de visitas a obra para actividades de muestreo se deberá considerar el costo de viáticos de traslado (CC.060) por actividad.</li>
+            
+            <li>El horario de servicio es de 08:00 a 17:00 hrs de lunes a viernes, sábados de 08:00 a 14:00 hrs. Trabajos fuera del horario se tomarán como tiempo extraordinario con un costo de $394.70 más IVA por hora.</li>
+            
+            <li>Una vez finalizados los trabajos y entregados los informes correspondientes, se dará un período de 30 días para mantener los materiales en laboratorio; posteriormente se desecharán los mismos.</li>
+            
+            <li>Los accesos al lugar de la obra, la ubicación de las exploraciones y los permisos necesarios para su realización correrán por cuenta del contratante.</li>
+            
+            <li>Para iniciar los trabajos se requiere la aceptación del presupuesto firmando la orden de servicio correspondiente, preferentemente por el representante legal. La entrega de información final con los resultados se realizará una vez liquidado el monto de los trabajos ejecutados.</li>
+            
+            <li>En caso de requerir cualquier tipo de modificación en el alcance de este presupuesto después de su firma, se realizará un nuevo presupuesto.</li>
+            
+            <li>Anexo I. Métodos de prueba, Frecuencia de muestreo, Criterios de aceptación y Rechazo, Políticas de Laboratorio, Imparcialidad y Confidencialidad.</li>
+        </ol>
+    </div>
 
-      <!-- TÉRMINOS COMERCIALES Y LEGALES -->
-      <div class="terms-section">
-          <div class="section-title">Términos y Condiciones Generales</div>
-          <ol class="terms-list">
-              ${SYSTEM_CONSTANTS.TERMS_AND_CONDITIONS.map(term => `
-                  <li>${term}</li>
-              `).join('')}
-          </ol>
-      </div>
+    <!-- CLÁUSULA LEGAL -->
+    <div class="legal-clause">
+        <strong>CLÁUSULA DE ACEPTACIÓN:</strong> 
+        La firma de este documento por parte del cliente implica la aceptación total de los términos y condiciones aquí establecidos, 
+        así como la autorización para la ejecución de los servicios descritos, constituyendo este presupuesto un acuerdo vinculante entre las partes.
+    </div>
 
-      <!-- CLÁUSULA LEGAL DE ACEPTACIÓN -->
-      <div class="legal-clause">
-          <p>
-              <strong>CLÁUSULA LEGAL DE ACEPTACIÓN:</strong><br><br>
-              La firma de este documento por parte del cliente implica la aceptación total de los términos y condiciones aquí establecidos, 
-              así como la autorización para la ejecución de los servicios descritos, constituyendo este presupuesto un acuerdo vinculante entre las partes.
-          </p>
-      </div>
-
-      <!-- SECCIÓN DE FIRMAS -->
-      <div class="signatures-section">
-          <div class="signature-box">
-              <div class="signature-title">Firma del Laboratorio</div>
-              <div class="signature-space"></div>
-              <div class="signature-line">Nombre: ${SYSTEM_CONSTANTS.COMPANY_INFO.manager}</div>
-              <div class="signature-line">Cargo: ${SYSTEM_CONSTANTS.COMPANY_INFO.position}</div>
-              <div class="signature-line">Fecha: _________________</div>
-          </div>
-          
-          <div class="signature-box">
-              <div class="signature-title">Firma del Cliente</div>
-              <div class="signature-space"></div>
-              <div class="signature-line">Nombre: _________________________________</div>
-              <div class="signature-line">Cargo: __________________________________</div>
-              <div class="signature-line">Fecha: _________________</div>
-          </div>
-      </div>        <!-- FOOTER -->
-      <div class="footer">
-          <p style="margin-bottom: 10px;"><strong>${SYSTEM_CONSTANTS.COMPANY_INFO.name}</strong></p>
-          <p style="margin-bottom: 5px;">Este documento ha sido generado electrónicamente el ${fechaGeneracion}</p>
-          <p style="font-size: 9px; color: #94a3b8; margin-top: 10px;">
-              Para consultas: ${SYSTEM_CONSTANTS.COMPANY_INFO.email} | ${SYSTEM_CONSTANTS.COMPANY_INFO.phone}
-          </p>
-      </div>
-    </body>
-    </html>
+    <!-- SECCIÓN DE FIRMAS -->
+    <div class="signatures-section">
+        <div class="signature-box">
+            <div style="margin-bottom: 20px;">
+                <strong>LABORATORIO LOA</strong>
+            </div>
+            <div class="signature-line"></div>
+            <div style="margin-top: 10px;">
+                <div><strong>Nombre:</strong> _________________________</div>
+                <div style="margin-top: 5px;"><strong>Cargo:</strong> _________________________</div>
+                <div style="margin-top: 5px;"><strong>Fecha:</strong> _________________________</div>
+            </div>
+        </div>
+        
+        <div class="signature-box">
+            <div style="margin-bottom: 20px;">
+                <strong>CLIENTE</strong><br>
+                <small>${presupuesto.cliente?.nombre || 'Nombre del Cliente'}</small>
+            </div>
+            <div class="signature-line"></div>
+            <div style="margin-top: 10px;">
+                <div><strong>Nombre:</strong> _________________________</div>
+                <div style="margin-top: 5px;"><strong>Cargo:</strong> _________________________</div>
+                <div style="margin-top: 5px;"><strong>Fecha:</strong> _________________________</div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
   `;
 }
 
@@ -921,6 +852,52 @@ export function registerRoutes(app: Express): Promise<Server> {
       const { conceptos, areaCodigo, ...presupuestoData } = req.body;
       console.log('[POST /api/presupuestos] Request body:', req.body);
       
+      // Validar límites de valores antes de procesamiento
+      if (conceptos && conceptos.length > 0) {
+        for (const concepto of conceptos) {
+          // Validar cantidad
+          if (concepto.cantidad > 999999) {
+            return res.status(400).json({ 
+              message: `La cantidad para el concepto ${concepto.conceptoCodigo} excede el límite permitido (999,999)` 
+            });
+          }
+          
+          // Validar precio unitario
+          if (concepto.precioUnitario > 9999999.99) {
+            return res.status(400).json({ 
+              message: `El precio unitario para el concepto ${concepto.conceptoCodigo} excede el límite permitido ($9,999,999.99)` 
+            });
+          }
+          
+          // Validar subtotal individual
+          const subtotalConcepto = concepto.cantidad * concepto.precioUnitario;
+          if (subtotalConcepto > 9999999999.99) {
+            return res.status(400).json({ 
+              message: `El subtotal para el concepto ${concepto.conceptoCodigo} excede el límite permitido ($9,999,999,999.99)` 
+            });
+          }
+        }
+        
+        // Validar subtotal total
+        const subtotalTotal = conceptos.reduce((sum: number, concepto: any) => 
+          sum + (concepto.cantidad * concepto.precioUnitario), 0);
+        
+        if (subtotalTotal > 9999999999.99) {
+          return res.status(400).json({ 
+            message: 'El subtotal total del presupuesto excede el límite permitido ($9,999,999,999.99)' 
+          });
+        }
+        
+        // Validar total con IVA
+        const ivaMonto = subtotalTotal * (presupuestoData.iva || SYSTEM_CONSTANTS.IVA_RATE);
+        const totalConIva = subtotalTotal + ivaMonto;
+        
+        if (totalConIva > 9999999999.99) {
+          return res.status(400).json({ 
+            message: 'El total del presupuesto (incluyendo IVA) excede el límite permitido ($9,999,999,999.99)' 
+          });        }
+      }
+      
       // Si se proporciona areaCodigo, necesitamos crear o encontrar una obra
       let claveObra = presupuestoData.claveObra;
       
@@ -931,8 +908,7 @@ export function registerRoutes(app: Express): Promise<Server> {
           console.log('[POST /api/presupuestos] Generated claveObra:', claveObra);
           
           // Crear la obra si no existe
-          const existingObra = await storage.getObraById(claveObra);
-          if (!existingObra) {
+          const existingObra = await storage.getObraById(claveObra);          if (!existingObra) {
             await storage.createObra({
               clave: claveObra,
               areaCodigo: areaCodigo,
@@ -940,7 +916,8 @@ export function registerRoutes(app: Express): Promise<Server> {
               estado: 1
             });
             console.log('[POST /api/presupuestos] Created new obra:', claveObra);
-          }        } catch (error) {
+          }
+        } catch (error) {
           console.error('[POST /api/presupuestos] Error creating obra:', error);
           const errorMessage = error instanceof Error ? error.message : 'Unknown error';
           return res.status(500).json({ message: 'Error creating obra: ' + errorMessage });
@@ -1349,5 +1326,340 @@ export function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // ============ ENDPOINTS DE PROGRAMACIONES ============
+  
+  // Obtener programaciones con filtros
+  app.get("/api/programming/programaciones", async (req, res) => {
+    try {
+      const filters = {
+        fechaDesde: req.query.fechaDesde as string,
+        fechaHasta: req.query.fechaHasta as string,
+        brigadistaId: req.query.brigadistaId ? parseInt(req.query.brigadistaId as string) : undefined,
+        estado: req.query.estado as string,
+        claveObra: req.query.claveObra as string
+      };
+
+      const programaciones = await storage.getAllProgramaciones(filters);
+      res.json(programaciones);
+    } catch (error: any) {
+      console.error('Error obteniendo programaciones:', error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Obtener programación por ID
+  app.get("/api/programming/programaciones/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const programacion = await storage.getProgramacionById(id);
+      
+      if (!programacion) {
+        return res.status(404).json({ message: 'Programación no encontrada' });
+      }
+      
+      res.json(programacion);
+    } catch (error: any) {
+      console.error('Error obteniendo programación:', error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Crear nueva programación
+  app.post("/api/programming/programaciones", async (req, res) => {
+    try {
+      const programacion = await storage.createProgramacion({
+        ...req.body,
+        fechaProgramada: new Date(req.body.fechaProgramada)
+      });
+      res.status(201).json(programacion);
+    } catch (error: any) {
+      console.error('Error creando programación:', error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Actualizar programación
+  app.put("/api/programming/programaciones/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const data = { ...req.body };
+      
+      if (data.fechaProgramada) {
+        data.fechaProgramada = new Date(data.fechaProgramada);
+      }
+      
+      const programacion = await storage.updateProgramacion(id, data);
+      res.json(programacion);
+    } catch (error: any) {
+      console.error('Error actualizando programación:', error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Eliminar programación
+  app.delete("/api/programming/programaciones/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      await storage.deleteProgramacion(id);
+      res.status(204).send();
+    } catch (error: any) {
+      console.error('Error eliminando programación:', error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Obtener programaciones por brigadista
+  app.get("/api/programming/programaciones/brigadista", async (req, res) => {
+    try {
+      const brigadistaId = parseInt(req.query.brigadistaId as string);
+      const fecha = req.query.fecha as string;
+      
+      // Construir filtros según la fecha proporcionada
+      const filters = fecha ? { fechaDesde: fecha, fechaHasta: fecha } : undefined;
+      
+      const programaciones = await storage.getProgramacionesByBrigadista(brigadistaId, filters);
+      res.json(programaciones);
+    } catch (error: any) {
+      console.error('Error obteniendo programaciones del brigadista:', error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Obtener información del brigadista actual (mock - en producción vendría del token de sesión)
+  app.get("/api/programming/brigadista/perfil", async (req, res) => {
+    try {
+      // Por ahora devolvemos el primer brigadista como ejemplo
+      const brigadista = await storage.getBrigadistaById(1);
+      if (!brigadista) {
+        return res.status(404).json({ message: "Brigadista no encontrado" });
+      }
+      res.json(brigadista);
+    } catch (error: any) {
+      console.error('Error obteniendo perfil del brigadista:', error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Obtener programaciones del brigadista actual
+  app.get("/api/programming/brigadista/programaciones", async (req, res) => {
+    try {
+      const { fechaDesde, fechaHasta, estado } = req.query;
+      
+      // Por ahora usamos brigadista ID 1 como ejemplo
+      const programaciones = await storage.getProgramacionesByBrigadista(1, {
+        fechaDesde: fechaDesde as string,
+        fechaHasta: fechaHasta as string,
+        estado: estado as string,
+      });
+      
+      res.json(programaciones);
+    } catch (error: any) {
+      console.error('Error obteniendo programaciones del brigadista:', error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // ============ ACCIONES DE PROGRAMACIONES ============
+  
+  // Iniciar actividad
+  app.post("/api/programming/programaciones/:id/iniciar", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { muestrasObtenidas, fechaInicio } = req.body;
+      
+      const programacion = await storage.iniciarProgramacion(Number(id), {
+        muestrasObtenidas,
+        fechaInicio: fechaInicio ? new Date(fechaInicio) : undefined
+      });
+      
+      res.json(programacion);
+    } catch (error: any) {
+      console.error('Error iniciando programación:', error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Completar actividad
+  app.post("/api/programming/programaciones/:id/completar", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { muestrasObtenidas, fechaCompletado, observaciones } = req.body;
+      
+      const programacion = await storage.completarProgramacion(Number(id), {
+        muestrasObtenidas,
+        fechaCompletado: fechaCompletado ? new Date(fechaCompletado) : undefined,
+        observaciones
+      });
+      
+      res.json(programacion);
+    } catch (error: any) {
+      console.error('Error completando programación:', error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Cancelar actividad
+  app.post("/api/programming/programaciones/:id/cancelar", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { motivoCancelacion } = req.body;
+      
+      const programacion = await storage.cancelarProgramacion(Number(id), {
+        motivoCancelacion
+      });
+      
+      res.json(programacion);
+    } catch (error: any) {
+      console.error('Error cancelando programación:', error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Reprogramar actividad
+  app.post("/api/programming/programaciones/:id/reprogramar", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { fechaProgramada, horaProgramada, brigadistaId, vehiculoId, motivoCancelacion } = req.body;
+      
+      const programacion = await storage.reprogramarProgramacion(Number(id), {
+        fechaProgramada: new Date(fechaProgramada),
+        horaProgramada,
+        brigadistaId,
+        vehiculoId,
+        motivoCancelacion
+      });
+      
+      res.json(programacion);
+    } catch (error: any) {
+      console.error('Error reprogramando:', error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // ============ ENDPOINTS DE BRIGADISTAS Y VEHÍCULOS ============
+  
+  // Obtener brigadistas
+  app.get("/api/programming/brigadistas", async (_req, res) => {
+    try {
+      const brigadistas = await storage.getAllBrigadistas();
+      res.json(brigadistas);
+    } catch (error: any) {
+      console.error('Error obteniendo brigadistas:', error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+  // Obtener brigadistas disponibles
+  app.get("/api/programming/brigadistas/disponibles", async (req, res) => {
+    try {
+      const { fecha, hora } = req.query;
+      const brigadistas = await storage.getBrigadistasDisponibles(
+        fecha as string, 
+        hora as string
+      );
+      res.json(brigadistas);
+    } catch (error: any) {
+      console.error('Error obteniendo brigadistas disponibles:', error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Obtener vehículos
+  app.get("/api/programming/vehiculos", async (_req, res) => {
+    try {
+      const vehiculos = await storage.getAllVehiculos();
+      res.json(vehiculos);
+    } catch (error: any) {
+      console.error('Error obteniendo vehículos:', error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+  // Obtener vehículos disponibles
+  app.get("/api/programming/vehiculos/disponibles", async (req, res) => {
+    try {
+      const { fecha, hora } = req.query;
+      const vehiculos = await storage.getVehiculosDisponibles(
+        fecha as string, 
+        hora as string
+      );
+      res.json(vehiculos);
+    } catch (error: any) {
+      console.error('Error obteniendo vehículos disponibles:', error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Obtener obras aprobadas para programación
+  app.get("/api/programming/obras-aprobadas", async (_req, res) => {
+    try {
+      const presupuestosAprobados = await storage.getPresupuestosAprobados();
+      
+      // Transformar los datos al formato esperado por el frontend
+      const obrasAprobadas = presupuestosAprobados.map(presupuesto => {
+        const ubicacion = [
+          presupuesto.tramo,
+          presupuesto.colonia,
+          presupuesto.calle
+        ].filter(Boolean).join(' ');
+
+        return {
+          clave: presupuesto.claveObra || `OBRA-${presupuesto.id}`,
+          clienteNombre: presupuesto.cliente?.nombre || 'Cliente no especificado',
+          descripcionObra: presupuesto.descripcionObra || 'Descripción no disponible',
+          ubicacion: ubicacion || 'Ubicación no especificada',
+          contratista: presupuesto.nombreContratista || presupuesto.cliente?.nombre || 'Contratista no especificado',
+          conceptos: presupuesto.detalles?.map(detalle => ({
+            codigo: detalle.concepto.codigo,
+            descripcion: detalle.concepto.descripcion || 'Descripción no disponible',
+            unidad: detalle.concepto.unidad || 'pza'
+          })) || []
+        };
+      });
+
+      res.json(obrasAprobadas);
+    } catch (error: any) {
+      console.error('Error obteniendo obras aprobadas:', error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+  // Obtener estadísticas del dashboard de programming
+  app.get("/api/programming/dashboard/stats", async (req, res) => {
+    try {
+      const stats = await storage.getDashboardStats();
+      res.json(stats);
+    } catch (error: any) {
+      console.error('Error obteniendo estadísticas:', error);
+      res.status(500).json({ message: error.message });
+    }
+  });  // Obtener datos de gráfica del dashboard de programming
+  app.get("/api/programming/dashboard/grafica", async (req, res) => {
+    try {
+      const { fechaInicio } = req.query;
+      const graficaData = await storage.getDashboardGrafica(fechaInicio as string);
+      res.json(graficaData);
+    } catch (error: any) {
+      console.error('Error obteniendo datos de gráfica:', error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Obtener estadísticas rápidas para la página principal
+  app.get("/api/programming/quick-stats", async (req, res) => {
+    try {
+      const stats = await storage.getQuickStats();
+      res.json(stats);
+    } catch (error: any) {
+      console.error('Error obteniendo estadísticas rápidas:', error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Cliente routes - serve static files from client/dist
+  app.use('*', (req, res, next) => {
+    // Let vite handle client-side routing
+    next();
+  });
+
   return Promise.resolve(server);
 }
+
+export default registerRoutes;

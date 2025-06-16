@@ -9,6 +9,9 @@ import type {
   Obra,
   Presupuesto,
   PresupuestoDetalle,
+  Programacion,
+  Brigadista,
+  Vehiculo,
   Prisma
 } from "../generated/prisma";
 
@@ -419,6 +422,42 @@ export async function getPresupuestosByObra(claveObra: string) {
   });
 }
 
+export async function getPresupuestosAprobados() {
+  return await prisma.presupuesto.findMany({
+    where: {
+      estado: 'aprobado'
+    },
+    include: {
+      obra: {
+        include: {
+          area: true
+        }
+      },
+      cliente: {
+        include: {
+          telefonos: true,
+          correos: true
+        }
+      },
+      detalles: {
+        include: {
+          concepto: {
+            include: {
+              subarea: {
+                include: {
+                  area: true
+                }
+              }
+            }
+          }
+        },
+        orderBy: { id: 'asc' }
+      }
+    },
+    orderBy: { fechaSolicitud: 'desc' }
+  });
+}
+
 export async function createPresupuesto(data: { 
   claveObra?: string; 
   clienteId?: number; 
@@ -657,6 +696,594 @@ export async function generateClaveObra(areaCodigo: string): Promise<string> {
   return claveObra;
 }
 
+// Brigadistas
+export async function getAllBrigadistas() {
+  return await prisma.brigadista.findMany({
+    where: { activo: true },
+    orderBy: { nombre: 'asc' }
+  });
+}
+
+export async function getBrigadistasDisponibles(fecha?: string, hora?: string) {
+  const fechaConsulta = fecha ? new Date(fecha) : new Date();
+  
+  // Obtener todos los brigadistas activos
+  const todosBrigadistas = await prisma.brigadista.findMany({
+    where: { activo: true },
+    orderBy: { nombre: 'asc' }
+  });
+
+  if (!fecha || !hora) {
+    // Si no se especifica fecha/hora, devolver todos los activos
+    return todosBrigadistas;
+  }
+
+  // Obtener programaciones en la fecha y hora especificada
+  const programacionesOcupadas = await prisma.programacion.findMany({
+    where: {
+      fechaProgramada: fechaConsulta,
+      horaProgramada: hora,
+      estado: {
+        in: ['programada', 'en_proceso']
+      }
+    },
+    select: {
+      brigadistaId: true,
+      brigaistaApoyoId: true
+    }
+  });
+
+  // Extraer IDs de brigadistas ocupados
+  const brigadistasOcupados = new Set([
+    ...programacionesOcupadas.map(p => p.brigadistaId),
+    ...programacionesOcupadas.map(p => p.brigaistaApoyoId).filter(Boolean)
+  ]);
+
+  // Filtrar brigadistas disponibles
+  return todosBrigadistas.filter(brigadista => 
+    !brigadistasOcupados.has(brigadista.id)
+  );
+}
+
+export async function getBrigadistaById(id: number) {
+  return await prisma.brigadista.findUnique({
+    where: { id }
+  });
+}
+
+// Vehículos
+export async function getAllVehiculos() {
+  return await prisma.vehiculo.findMany({
+    where: { activo: true },
+    orderBy: { descripcion: 'asc' }
+  });
+}
+
+export async function getVehiculosDisponibles(fecha?: string, hora?: string) {
+  const fechaConsulta = fecha ? new Date(fecha) : new Date();
+  
+  // Obtener todos los vehículos activos
+  const todosVehiculos = await prisma.vehiculo.findMany({
+    where: { activo: true },
+    orderBy: { descripcion: 'asc' }
+  });
+
+  if (!fecha || !hora) {
+    // Si no se especifica fecha/hora, devolver todos los activos
+    return todosVehiculos;
+  }
+
+  // Obtener programaciones en la fecha y hora especificada
+  const programacionesOcupadas = await prisma.programacion.findMany({
+    where: {
+      fechaProgramada: fechaConsulta,
+      horaProgramada: hora,
+      estado: {
+        in: ['programada', 'en_proceso']
+      }
+    },
+    select: {
+      vehiculoId: true
+    }
+  });
+
+  // Extraer IDs de vehículos ocupados
+  const vehiculosOcupados = new Set(
+    programacionesOcupadas.map(p => p.vehiculoId)
+  );
+
+  // Filtrar vehículos disponibles
+  return todosVehiculos.filter(vehiculo => 
+    !vehiculosOcupados.has(vehiculo.id)
+  );
+}
+
+export async function getVehiculoById(id: number) {
+  return await prisma.vehiculo.findUnique({
+    where: { id }
+  });
+}
+
+// Programaciones
+export async function getAllProgramaciones(filters?: {
+  fechaDesde?: string;
+  fechaHasta?: string;
+  brigadistaId?: number;
+  estado?: string;
+  claveObra?: string;
+}) {
+  const where: any = {};
+  
+  if (filters?.fechaDesde) {
+    where.fechaProgramada = {
+      gte: new Date(filters.fechaDesde)
+    };
+  }
+  
+  if (filters?.fechaHasta) {
+    where.fechaProgramada = {
+      ...where.fechaProgramada,
+      lte: new Date(filters.fechaHasta)
+    };
+  }
+  
+  if (filters?.brigadistaId) {
+    where.brigadistaId = filters.brigadistaId;
+  }
+  
+  if (filters?.estado) {
+    where.estado = filters.estado;
+  }
+  
+  if (filters?.claveObra) {
+    where.claveObra = filters.claveObra;
+  }
+
+  return await prisma.programacion.findMany({
+    where,
+    include: {
+      obra: {
+        include: {
+          area: true
+        }
+      },
+      concepto: {
+        include: {
+          subarea: {
+            include: {
+              area: true
+            }
+          }
+        }
+      },
+      brigadista: true,
+      brigaistaApoyo: true,
+      vehiculo: true
+    },
+    orderBy: [
+      { fechaProgramada: 'asc' },
+      { horaProgramada: 'asc' }
+    ]
+  });
+}
+
+export async function getProgramacionById(id: number) {
+  return await prisma.programacion.findUnique({
+    where: { id },
+    include: {
+      obra: {
+        include: {
+          area: true
+        }
+      },
+      concepto: {
+        include: {
+          subarea: {
+            include: {
+              area: true
+            }
+          }
+        }
+      },
+      brigadista: true,
+      brigaistaApoyo: true,
+      vehiculo: true
+    }
+  });
+}
+
+export async function createProgramacion(data: {
+  claveObra: string;
+  fechaProgramada: Date;
+  horaProgramada: string;
+  tipoProgramacion: any;
+  nombreResidente?: string;
+  telefonoResidente?: string;
+  conceptoCodigo: string;
+  cantidadMuestras: number;
+  tipoRecoleccion: any;
+  brigadistaId: number;
+  brigaistaApoyoId?: number;
+  vehiculoId: number;
+  claveEquipo?: string;
+  observaciones?: string;
+  instrucciones?: string;
+  condicionesEspeciales?: string;
+}) {
+  return await prisma.programacion.create({
+    data,
+    include: {
+      obra: {
+        include: {
+          area: true
+        }
+      },
+      concepto: {
+        include: {
+          subarea: {
+            include: {
+              area: true
+            }
+          }
+        }
+      },
+      brigadista: true,
+      brigaistaApoyo: true,
+      vehiculo: true
+    }
+  });
+}
+
+export async function updateProgramacion(id: number, data: any) {
+  return await prisma.programacion.update({
+    where: { id },
+    data,
+    include: {
+      obra: {
+        include: {
+          area: true
+        }
+      },
+      concepto: {
+        include: {
+          subarea: {
+            include: {
+              area: true
+            }
+          }
+        }
+      },
+      brigadista: true,
+      brigaistaApoyo: true,
+      vehiculo: true
+    }
+  });
+}
+
+export async function deleteProgramacion(id: number) {
+  await prisma.programacion.delete({
+    where: { id }
+  });
+}
+
+export async function getProgramacionesByBrigadista(
+  brigadistaId: number, 
+  filters?: { fechaDesde?: string; fechaHasta?: string; estado?: string }
+) {
+  const where: any = { brigadistaId };
+  
+  if (filters?.fechaDesde && filters?.fechaHasta) {
+    where.fechaProgramada = {
+      gte: new Date(filters.fechaDesde),
+      lte: new Date(filters.fechaHasta)
+    };
+  } else if (filters?.fechaDesde) {
+    where.fechaProgramada = {
+      gte: new Date(filters.fechaDesde)
+    };
+  } else if (filters?.fechaHasta) {
+    where.fechaProgramada = {
+      lte: new Date(filters.fechaHasta)
+    };
+  }
+  
+  if (filters?.estado) {
+    where.estado = filters.estado;
+  }
+
+  return await prisma.programacion.findMany({
+    where,
+    include: {
+      obra: {
+        include: {
+          area: true
+        }
+      },
+      concepto: {
+        include: {
+          subarea: {
+            include: {
+              area: true
+            }
+          }
+        }
+      },
+      brigadista: true,
+      brigaistaApoyo: true,
+      vehiculo: true
+    },
+    orderBy: [
+      { fechaProgramada: 'asc' },
+      { horaProgramada: 'asc' }
+    ]
+  });
+}
+
+// Acciones de programación
+export async function iniciarProgramacion(id: number, data: {
+  muestrasObtenidas?: number;
+  fechaInicio?: Date;
+}) {
+  return await prisma.programacion.update({
+    where: { id },
+    data: {
+      estado: 'en_proceso',
+      fechaInicio: data.fechaInicio || new Date(),
+      muestrasObtenidas: data.muestrasObtenidas,
+    },
+    include: {
+      obra: {
+        include: {
+          area: true
+        }
+      },
+      concepto: {
+        include: {
+          subarea: {
+            include: {
+              area: true
+            }
+          }
+        }
+      },
+      brigadista: true,
+      brigaistaApoyo: true,
+      vehiculo: true
+    }
+  });
+}
+
+export async function completarProgramacion(id: number, data: {
+  muestrasObtenidas: number;
+  fechaCompletado?: Date;
+  observaciones?: string;
+}) {
+  return await prisma.programacion.update({
+    where: { id },
+    data: {
+      estado: 'completada',
+      fechaCompletado: data.fechaCompletado || new Date(),
+      muestrasObtenidas: data.muestrasObtenidas,
+      observaciones: data.observaciones,
+    },
+    include: {
+      obra: {
+        include: {
+          area: true
+        }
+      },
+      concepto: {
+        include: {
+          subarea: {
+            include: {
+              area: true
+            }
+          }
+        }
+      },
+      brigadista: true,
+      brigaistaApoyo: true,
+      vehiculo: true
+    }
+  });
+}
+
+export async function cancelarProgramacion(id: number, data: {
+  motivoCancelacion: string;
+}) {
+  return await prisma.programacion.update({
+    where: { id },
+    data: {
+      estado: 'cancelada',
+      motivoCancelacion: data.motivoCancelacion,
+    },
+    include: {
+      obra: {
+        include: {
+          area: true
+        }
+      },
+      concepto: {
+        include: {
+          subarea: {
+            include: {
+              area: true
+            }
+          }
+        }
+      },
+      brigadista: true,
+      brigaistaApoyo: true,
+      vehiculo: true
+    }
+  });
+}
+
+export async function reprogramarProgramacion(id: number, data: {
+  fechaProgramada: Date;
+  horaProgramada: string;
+  brigadistaId?: number;
+  vehiculoId?: number;
+  motivoCancelacion?: string;
+}) {
+  return await prisma.programacion.update({
+    where: { id },
+    data: {
+      estado: 'reprogramada',
+      fechaProgramada: data.fechaProgramada,
+      horaProgramada: data.horaProgramada,
+      brigadistaId: data.brigadistaId,
+      vehiculoId: data.vehiculoId,
+      motivoCancelacion: data.motivoCancelacion,
+    },
+    include: {
+      obra: {
+        include: {
+          area: true
+        }
+      },
+      concepto: {
+        include: {
+          subarea: {
+            include: {
+              area: true
+            }
+          }
+        }
+      },
+      brigadista: true,
+      brigaistaApoyo: true,
+      vehiculo: true
+    }
+  });
+}
+
+// Dashboard estadísticas
+export async function getDashboardStats() {
+  const [
+    actividadesProgramadas,
+    actividadesEnProceso,
+    actividadesCompletadas,
+    actividadesCanceladas
+  ] = await Promise.all([
+    prisma.programacion.count({
+      where: { estado: 'programada' }
+    }),
+    prisma.programacion.count({
+      where: { estado: 'en_proceso' }
+    }),
+    prisma.programacion.count({
+      where: { estado: 'completada' }
+    }),
+    prisma.programacion.count({
+      where: { estado: 'cancelada' }
+    })
+  ]);
+
+  return {
+    actividadesProgramadas,
+    actividadesEnProceso,
+    actividadesCompletadas,
+    actividadesCanceladas
+  };
+}
+
+export async function getDashboardGrafica(fechaInicio?: string) {
+  // Obtener datos de la semana especificada o la última semana
+  let fechaConsulta = new Date();
+  if (fechaInicio) {
+    fechaConsulta = new Date(fechaInicio);
+  }
+  
+  const fechaFin = new Date(fechaConsulta);
+  fechaFin.setDate(fechaConsulta.getDate() + 6); // 7 días
+  
+  const programaciones = await prisma.programacion.findMany({
+    where: {
+      fechaProgramada: {
+        gte: fechaConsulta,
+        lte: fechaFin
+      }
+    },
+    select: {
+      fechaProgramada: true,
+      estado: true
+    }
+  });
+
+  // Agrupar por día de la semana
+  const diasSemana = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+  const datos = Array.from({ length: 7 }, (_, i) => {
+    const fecha = new Date(fechaConsulta);
+    fecha.setDate(fechaConsulta.getDate() + i);
+    const diaSemana = diasSemana[fecha.getDay()];
+    
+    const programacionesDia = programaciones.filter(p => {
+      const fechaProg = new Date(p.fechaProgramada);
+      return fechaProg.toDateString() === fecha.toDateString();
+    });
+
+    return {
+      dia: diaSemana,
+      actividades: programacionesDia.length,
+      completadas: programacionesDia.filter(p => p.estado === 'completada').length
+    };
+  });
+
+  return datos;
+}
+
+export async function getQuickStats() {
+  const hoy = new Date();
+  const inicioSemana = new Date(hoy);
+  inicioSemana.setDate(hoy.getDate() - hoy.getDay() + 1); // Lunes de esta semana
+  
+  const finSemana = new Date(inicioSemana);
+  finSemana.setDate(inicioSemana.getDate() + 6); // Domingo de esta semana
+  
+  const inicioMes = new Date(hoy.getFullYear(), hoy.getMonth(), 1);
+  
+  const [
+    programacionesActivasSemana,
+    actividadesEnProceso,
+    completadasMes
+  ] = await Promise.all([
+    // Programaciones activas esta semana (programadas + en proceso)
+    prisma.programacion.count({
+      where: {
+        fechaProgramada: {
+          gte: inicioSemana,
+          lte: finSemana
+        },
+        estado: {
+          in: ['programada', 'en_proceso']
+        }
+      }
+    }),
+    // Actividades actualmente en proceso
+    prisma.programacion.count({
+      where: { 
+        estado: 'en_proceso'
+      }
+    }),
+    // Completadas este mes
+    prisma.programacion.count({
+      where: {
+        estado: 'completada',
+        fechaCompletado: {
+          gte: inicioMes
+        }
+      }
+    })
+  ]);
+
+  return {
+    programacionesActivas: programacionesActivasSemana,
+    enProceso: actividadesEnProceso,
+    completadasMes: completadasMes
+  };
+}
+
 export const storage = {
   // Areas
   getAllAreas,
@@ -705,6 +1332,7 @@ export const storage = {
   getAllPresupuestos,
   getPresupuestoById,
   getPresupuestosByObra,
+  getPresupuestosAprobados,
   createPresupuesto,
   updatePresupuesto,
   deletePresupuesto,
@@ -718,5 +1346,27 @@ export const storage = {
   
   // Utilidades
   recalcularTotalesPresupuesto,
-  generateClaveObra
+  generateClaveObra,
+  // Brigadistas
+  getAllBrigadistas,
+  getBrigadistasDisponibles,
+  getBrigadistaById,
+
+  // Vehículos
+  getAllVehiculos,
+  getVehiculosDisponibles,
+  getVehiculoById,  // Programaciones
+  getAllProgramaciones,
+  getProgramacionById,
+  createProgramacion,
+  updateProgramacion,
+  deleteProgramacion,
+  getProgramacionesByBrigadista,
+  iniciarProgramacion,
+  completarProgramacion,
+  cancelarProgramacion,
+  reprogramarProgramacion,  // Dashboard
+  getDashboardStats,
+  getDashboardGrafica,
+  getQuickStats
 };

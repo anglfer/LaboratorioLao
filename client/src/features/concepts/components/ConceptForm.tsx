@@ -124,9 +124,9 @@ export function ConceptForm() {
           </div>{" "}
           {/* Selección de Subárea */}
           <div className="space-y-2">
-            <Label htmlFor="subarea">Subárea</Label>
+            <Label htmlFor="subarea">Subárea</Label>{" "}
             <Select
-              value={selectedSubarea?.toString() || ""}
+              value={selectedSubarea?.toString()}
               onValueChange={handleSubareaChange}
               disabled={!selectedArea}
               key={selectedArea} // Force re-render when area changes

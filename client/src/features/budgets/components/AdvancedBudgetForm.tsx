@@ -93,11 +93,32 @@ const budgetSchema = z
       .array(
         z.object({
           conceptoCodigo: z.string().min(1, "Debe seleccionar un concepto"),
-          cantidad: z.number().min(0.01, "La cantidad debe ser mayor a 0"),
-          precioUnitario: z.number().min(0.01, "El precio debe ser mayor a 0"),
+          cantidad: z
+            .number()
+            .min(0.01, "La cantidad debe ser mayor a 0")
+            .max(999999, "La cantidad no puede exceder 999,999"),
+          precioUnitario: z
+            .number()
+            .min(0.01, "El precio debe ser mayor a 0")
+            .max(9999999.99, "El precio no puede exceder $9,999,999.99"),
         })
       )
-      .min(1, "Debe agregar al menos un concepto"),
+      .min(1, "Debe agregar al menos un concepto")
+      .refine(
+        (conceptos) => {
+          // Validar que el subtotal total no exceda el límite de DB
+          const subtotalTotal = conceptos.reduce(
+            (sum, concepto) =>
+              sum + concepto.cantidad * concepto.precioUnitario,
+            0
+          );
+          return subtotalTotal <= 9999999999.99; // Límite para Decimal(12,2)
+        },
+        {
+          message:
+            "El subtotal total del presupuesto excede el límite permitido ($9,999,999,999.99)",
+        }
+      ),
 
     // Forma de pago
     formaPago: z.string().optional(),
@@ -178,13 +199,8 @@ export default function AdvancedBudgetForm({
   const [selectedSubarea, setSelectedSubarea] = useState<number | null>(null);
   const [conceptosSeleccionados, setConceptosSeleccionados] = useState<
     string[]
-  >([]);  const [busquedaConcepto, setBusquedaConcepto] = useState<string>("");
-  const [mostrarFormularioNuevoConcepto, setMostrarFormularioNuevoConcepto] = useState(false);
-  const [nuevoConcepto, setNuevoConcepto] = useState({
-    descripcion: "",
-    unidad: "",
-    precioUnitario: 0
-  });
+  >([]);
+  const [busquedaConcepto, setBusquedaConcepto] = useState<string>("");
   const [clienteNuevo, setClienteNuevo] = useState(false);
   const [copiarDeCliente, setCopiarDeCliente] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
@@ -482,7 +498,7 @@ export default function AdvancedBudgetForm({
         const conceptos = initialData.detalles.map((detalle: any) => {
           console.log("[AdvancedBudgetForm] Processing detalle:", detalle);
           const conceptoCodigo =
-            detalle.concepto?.codigo || detalle.conceptoCodigo || "";
+            detalle.concepto?.codigo || detalle.conceptoCodigo;
           console.log(
             "[AdvancedBudgetForm] Extracted conceptoCodigo:",
             conceptoCodigo
@@ -812,9 +828,9 @@ export default function AdvancedBudgetForm({
             </div>{" "}
             {!clienteNuevo ? (
               <div className="space-y-2">
-                <Label htmlFor="clienteId">Seleccionar Cliente</Label>
+                <Label htmlFor="clienteId">Seleccionar Cliente</Label>{" "}
                 <Select
-                  value={selectedClienteId?.toString() || ""}
+                  value={selectedClienteId?.toString()}
                   onValueChange={(value) => {
                     const id = parseInt(value);
                     setValue("clienteId", id);
@@ -988,7 +1004,6 @@ export default function AdvancedBudgetForm({
             )}
           </CardContent>
         </Card>
-
         {/* Sección Contratista */}
         <Card>
           <CardHeader>
@@ -1024,7 +1039,6 @@ export default function AdvancedBudgetForm({
             </div>
           </CardContent>
         </Card>
-
         {/* Sección Detalles de Obra */}
         <Card>
           <CardHeader>
@@ -1098,7 +1112,6 @@ export default function AdvancedBudgetForm({
             </div>
           </CardContent>
         </Card>
-
         {/* Sección Conceptos */}
         <Card>
           <CardHeader>
@@ -1111,9 +1124,9 @@ export default function AdvancedBudgetForm({
             {" "}
             {/* Selección de área */}
             <div className="space-y-2">
-              <Label htmlFor="areaCodigo">Área de Trabajo</Label>
+              <Label htmlFor="areaCodigo">Área de Trabajo</Label>{" "}
               <Select
-                value={selectedArea || ""}
+                value={selectedArea}
                 onValueChange={(value) => {
                   setSelectedArea(value);
                   setValue("areaCodigo", value);
@@ -1140,9 +1153,9 @@ export default function AdvancedBudgetForm({
             {/* Selección de subárea */}
             {selectedArea && (
               <div className="space-y-2">
-                <Label htmlFor="subarea">Subárea</Label>
+                <Label htmlFor="subarea">Subárea</Label>{" "}
                 <Select
-                  value={selectedSubarea?.toString() || ""}
+                  value={selectedSubarea?.toString()}
                   onValueChange={(value) => {
                     setSelectedSubarea(parseInt(value));
                   }}
@@ -1287,14 +1300,14 @@ export default function AdvancedBudgetForm({
                               ({concepto.unidad})
                             </div>
                           </div>
-                        </div>
-
+                        </div>{" "}
                         <div className="space-y-2">
                           <Label>Cantidad</Label>
                           <Input
                             type="number"
                             step="0.01"
                             min="0.01"
+                            max="999999"
                             placeholder="1.00"
                             value={conceptoEnForm?.cantidad || 1}
                             onChange={(e) =>
@@ -1304,15 +1317,25 @@ export default function AdvancedBudgetForm({
                                 parseFloat(e.target.value) || 1
                               )
                             }
+                            className={
+                              (conceptoEnForm?.cantidad || 1) > 999999
+                                ? "border-red-500 focus:border-red-500"
+                                : ""
+                            }
                           />
+                          {(conceptoEnForm?.cantidad || 1) > 999999 && (
+                            <p className="text-sm text-red-600">
+                              La cantidad no puede exceder 999,999
+                            </p>
+                          )}
                         </div>
-
                         <div className="space-y-2">
                           <Label>Precio Unitario</Label>
                           <Input
                             type="number"
                             step="0.01"
                             min="0.01"
+                            max="9999999.99"
                             placeholder="0.00"
                             value={
                               conceptoEnForm?.precioUnitario ||
@@ -1326,9 +1349,22 @@ export default function AdvancedBudgetForm({
                                 parseFloat(e.target.value) || 0
                               )
                             }
+                            className={
+                              (conceptoEnForm?.precioUnitario ||
+                                Number(concepto.p_u) ||
+                                0) > 9999999.99
+                                ? "border-red-500 focus:border-red-500"
+                                : ""
+                            }
                           />
+                          {(conceptoEnForm?.precioUnitario ||
+                            Number(concepto.p_u) ||
+                            0) > 9999999.99 && (
+                            <p className="text-sm text-red-600">
+                              El precio no puede exceder $9,999,999.99
+                            </p>
+                          )}
                         </div>
-
                         <div className="flex items-end space-x-2">
                           <div className="flex-1">
                             <Label>Subtotal</Label>
@@ -1362,8 +1398,7 @@ export default function AdvancedBudgetForm({
               <p className="text-sm text-red-600">{errors.conceptos.message}</p>
             )}
           </CardContent>
-        </Card>
-
+        </Card>{" "}
         {/* Sección Totales */}
         <Card>
           <CardHeader>
@@ -1371,13 +1406,62 @@ export default function AdvancedBudgetForm({
               <FileText className="h-5 w-5 text-blue-600" />
               <span>Totales y Forma de Pago</span>
             </CardTitle>
-          </CardHeader>{" "}
+          </CardHeader>
           <CardContent className="space-y-4">
+            {/* Validaciones y advertencias */}
+            {subtotal > 5000000000 && (
+              <div className="bg-yellow-100 border border-yellow-400 text-yellow-700 px-4 py-3 rounded">
+                <strong>Advertencia:</strong> El subtotal se acerca al límite
+                permitido ($9,999,999,999.99).
+              </div>
+            )}
+            {subtotal > 9999999999.99 && (
+              <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
+                <strong>Error:</strong> El subtotal excede el límite permitido.
+                Reduzca las cantidades o precios.
+              </div>
+            )}
+
+            {/* Totales */}
+            <div className="space-y-3 bg-gray-50 p-4 rounded-lg">
+              <div className="flex justify-between items-center">
+                <span className="font-medium">Subtotal:</span>
+                <span className="text-lg font-semibold">
+                  $
+                  {subtotal.toLocaleString("es-MX", {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                  })}
+                </span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="font-medium">IVA (16%):</span>
+                <span className="text-lg font-semibold">
+                  $
+                  {ivaMonto.toLocaleString("es-MX", {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                  })}
+                </span>
+              </div>
+              <Separator />
+              <div className="flex justify-between items-center">
+                <span className="font-bold text-lg">Total:</span>
+                <span className="text-xl font-bold text-blue-600">
+                  $
+                  {total.toLocaleString("es-MX", {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                  })}
+                </span>
+              </div>
+            </div>
+
             <div className="grid grid-cols-1 md:grid-cols-1 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="formaPago">Forma de Pago</Label>
+                <Label htmlFor="formaPago">Forma de Pago</Label>{" "}
                 <Select
-                  value={watch("formaPago") || ""}
+                  value={watch("formaPago")}
                   onValueChange={(value) => setValue("formaPago", value)}
                 >
                   <SelectTrigger>
@@ -1416,7 +1500,6 @@ export default function AdvancedBudgetForm({
             </div>
           </CardContent>
         </Card>
-
         {/* Botones */}
         <div className="flex justify-end space-x-4">
           <Button type="button" variant="outline" onClick={() => reset()}>
