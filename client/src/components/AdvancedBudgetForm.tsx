@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { useQuery } from "@tanstack/react-query";
+import { SYSTEM_CONSTANTS } from "@/../../shared/schema";
 import { 
   User, 
   Building, 
@@ -57,10 +58,9 @@ const budgetSchema = z.object({
   conceptos: z.array(z.object({
     conceptoCodigo: z.string().min(1, "Debe seleccionar un concepto"),
     cantidad: z.number().min(0.01, "La cantidad debe ser mayor a 0"),
-    precioUnitario: z.number().min(0.01, "El precio debe ser mayor a 0"),
-  })).min(1, "Debe agregar al menos un concepto"),
-    // Totales
-  iva: z.number().min(0).max(1, "El IVA debe ser entre 0 y 1"),
+    precioUnitario: z.number().min(0.01, "El precio debe ser mayor a 0"),  })).min(1, "Debe agregar al menos un concepto"),
+  
+  // Forma de pago
   formaPago: z.string().optional(),
 }).refine((data) => {
   // Validar que se tenga un cliente seleccionado O un cliente nuevo con nombre
@@ -147,7 +147,6 @@ export default function AdvancedBudgetForm({ onSubmit, isLoading, initialData }:
     reset,  } = useForm<BudgetFormData>({
     resolver: zodResolver(budgetSchema),
     defaultValues: {
-      iva: 0.16,
       conceptos: [{ conceptoCodigo: "", cantidad: 1, precioUnitario: 0 }],
       clienteNuevo: {
         telefonos: [],
@@ -211,10 +210,8 @@ export default function AdvancedBudgetForm({ onSubmit, isLoading, initialData }:
       }
     }
   }, [clienteNuevo, setValue, watch]);
-  
-  // Watch values
+    // Watch values
   const watchedConceptos = watch("conceptos");
-  const watchedIva = watch("iva");
   const watchedClienteId = watch("clienteId");
   const watchedClienteNombre = watch("clienteNuevo.nombre");
   const allFormValues = watch();
@@ -273,10 +270,12 @@ export default function AdvancedBudgetForm({ onSubmit, isLoading, initialData }:
         setValue("clienteId", initialData.clienteId);
         setClienteNuevo(false);
       }
-      
-      // Cargar datos del contratista de la obra
-      if (initialData.obra?.contratista) {
-        console.log('[AdvancedBudgetForm] Setting nombreContratista:', initialData.obra.contratista);
+        // Cargar datos del contratista de la obra
+      if (initialData.nombreContratista) {
+        console.log('[AdvancedBudgetForm] Setting nombreContratista from main field:', initialData.nombreContratista);
+        setValue("nombreContratista", initialData.nombreContratista);
+      } else if (initialData.obra?.contratista) {
+        console.log('[AdvancedBudgetForm] Setting nombreContratista from obra.contratista:', initialData.obra.contratista);
         setValue("nombreContratista", initialData.obra.contratista);
       }
       
@@ -286,47 +285,47 @@ export default function AdvancedBudgetForm({ onSubmit, isLoading, initialData }:
         setValue("descripcionObra", initialData.descripcionObra);
       }
       if (initialData.tramo) {
+        console.log('[AdvancedBudgetForm] Setting tramo:', initialData.tramo);
         setValue("tramo", initialData.tramo);
       }
       if (initialData.colonia) {
+        console.log('[AdvancedBudgetForm] Setting colonia:', initialData.colonia);
         setValue("colonia", initialData.colonia);
       }
       if (initialData.calle) {
+        console.log('[AdvancedBudgetForm] Setting calle:', initialData.calle);
         setValue("calle", initialData.calle);
       }
       if (initialData.contactoResponsable) {
+        console.log('[AdvancedBudgetForm] Setting contactoResponsable:', initialData.contactoResponsable);
         setValue("contactoResponsable", initialData.contactoResponsable);
-      }
-      if (initialData.fechaInicio) {
-        setValue("fechaInicio", initialData.fechaInicio);
+      }if (initialData.fechaInicio) {
+        // Formatear la fecha para el input tipo date (YYYY-MM-DD)
+        const fechaFormatted = new Date(initialData.fechaInicio).toISOString().split('T')[0];
+        setValue("fechaInicio", fechaFormatted);
       }
       
       // Cargar área de la obra
       if (initialData.obra?.areaCodigo) {
         console.log('[AdvancedBudgetForm] Setting areaCodigo:', initialData.obra.areaCodigo);
-        setValue("areaCodigo", initialData.obra.areaCodigo);
-        setSelectedArea(initialData.obra.areaCodigo);
-      }
-      
-      // Cargar IVA
-      if (initialData.iva !== undefined) {
-        console.log('[AdvancedBudgetForm] Setting iva:', initialData.iva);
-        setValue("iva", Number(initialData.iva));
+        setValue("areaCodigo", initialData.obra.areaCodigo);        setSelectedArea(initialData.obra.areaCodigo);
       }
       
       // Cargar forma de pago
       if (initialData.formaPago) {
+        console.log('[AdvancedBudgetForm] Setting formaPago:', initialData.formaPago);
         setValue("formaPago", initialData.formaPago);
       }
       
       // Cargar conceptos desde detalles
       if (initialData.detalles && initialData.detalles.length > 0) {
         console.log('[AdvancedBudgetForm] Loading conceptos from detalles:', initialData.detalles);
-        
-        const conceptos = initialData.detalles.map((detalle: any) => {
+          const conceptos = initialData.detalles.map((detalle: any) => {
           console.log('[AdvancedBudgetForm] Processing detalle:', detalle);
+          const conceptoCodigo = detalle.concepto?.codigo || detalle.conceptoCodigo || "";
+          console.log('[AdvancedBudgetForm] Extracted conceptoCodigo:', conceptoCodigo);
           return {
-            conceptoCodigo: detalle.concepto?.codigo || "",
+            conceptoCodigo,
             cantidad: Number(detalle.cantidad) || 1,
             precioUnitario: Number(detalle.precioUnitario) || 0
           };
@@ -344,10 +343,8 @@ export default function AdvancedBudgetForm({ onSubmit, isLoading, initialData }:
 
   // useEffect para limpiar el formulario cuando se sale del modo de edición
   useEffect(() => {
-    if (!initialData) {
-      console.log('[AdvancedBudgetForm] No initialData - resetting form to defaults');
+    if (!initialData) {      console.log('[AdvancedBudgetForm] No initialData - resetting form to defaults');
       reset({
-        iva: 0.16,
         conceptos: [{ conceptoCodigo: "", cantidad: 1, precioUnitario: 0 }],
         clienteNuevo: {
           telefonos: [],
@@ -361,14 +358,13 @@ export default function AdvancedBudgetForm({ onSubmit, isLoading, initialData }:
       setCopiarDeCliente(false);
     }
   }, [initialData, reset]);
-
   // Calcular totales
   const subtotal = watchedConceptos.reduce((sum, concepto) => {
     return sum + (concepto.cantidad * concepto.precioUnitario);
   }, 0);
   
-  const ivaMonto = subtotal * watchedIva;
-  const total = subtotal + ivaMonto;  const handleFormSubmit = async (data: BudgetFormData) => {
+  const ivaMonto = subtotal * SYSTEM_CONSTANTS.IVA_RATE;
+  const total = subtotal + ivaMonto;const handleFormSubmit = async (data: BudgetFormData) => {
     console.log('[AdvancedBudgetForm] handleFormSubmit called with data:', data);
     console.log('[AdvancedBudgetForm] Cliente nuevo teléfonos:', data.clienteNuevo?.telefonos);
     console.log('[AdvancedBudgetForm] Cliente nuevo correos:', data.clienteNuevo?.correos);
@@ -445,10 +441,9 @@ export default function AdvancedBudgetForm({ onSubmit, isLoading, initialData }:
         descripcionObra: data.descripcionObra,
         tramo: data.tramo,
         colonia: data.colonia,
-        calle: data.calle,
-        contactoResponsable: data.contactoResponsable,
+        calle: data.calle,        contactoResponsable: data.contactoResponsable,
         formaPago: data.formaPago,
-        iva: data.iva,
+        iva: SYSTEM_CONSTANTS.IVA_RATE,
         subtotal,
         ivaMonto,
         total,
@@ -514,12 +509,11 @@ export default function AdvancedBudgetForm({ onSubmit, isLoading, initialData }:
                 />
                 <span>Cliente nuevo</span>
               </Label>
-            </div>
-
-            {!clienteNuevo ? (
+            </div>            {!clienteNuevo ? (
               <div className="space-y-2">
                 <Label htmlFor="clienteId">Seleccionar Cliente</Label>
                 <Select
+                  value={selectedClienteId?.toString() || ""}
                   onValueChange={(value) => {
                     const id = parseInt(value);
                     setValue("clienteId", id);
@@ -785,11 +779,11 @@ export default function AdvancedBudgetForm({ onSubmit, isLoading, initialData }:
               <span>Conceptos del Presupuesto</span>
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
-            {/* Selección de área */}
+          <CardContent className="space-y-4">            {/* Selección de área */}
             <div className="space-y-2">
               <Label htmlFor="areaCodigo">Área de Trabajo</Label>
               <Select
+                value={selectedArea || ""}
                 onValueChange={(value) => {
                   setSelectedArea(value);
                   setValue("areaCodigo", value);
@@ -817,6 +811,7 @@ export default function AdvancedBudgetForm({ onSubmit, isLoading, initialData }:
               <div className="space-y-2">
                 <Label htmlFor="subarea">Subárea</Label>
                 <Select
+                  value={selectedSubarea?.toString() || ""}
                   onValueChange={(value) => {
                     setSelectedSubarea(parseInt(value));
                   }}
@@ -855,10 +850,10 @@ export default function AdvancedBudgetForm({ onSubmit, isLoading, initialData }:
 
               {conceptosFields.map((field, index) => (
                 <Card key={field.id} className="p-4">
-                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                    <div className="space-y-2">
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">                    <div className="space-y-2">
                       <Label>Concepto</Label>
                       <Select
+                        value={watch(`conceptos.${index}.conceptoCodigo`) || ""}
                         onValueChange={(value) => {
                           setValue(`conceptos.${index}.conceptoCodigo`, value);
                           const concepto = conceptos?.find(c => c.codigo === value);
@@ -953,33 +948,14 @@ export default function AdvancedBudgetForm({ onSubmit, isLoading, initialData }:
               <FileText className="h-5 w-5 text-blue-600" />
               <span>Totales y Forma de Pago</span>
             </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="iva">IVA (decimal: 0.16 = 16%)</Label>
-                <Input
-                  id="iva"
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  max="1"
-                  placeholder="0.16"
-                  {...register("iva", { valueAsNumber: true })}
-                />
-                {watchedIva && (
-                  <p className="text-xs text-gray-500">
-                    Equivale al {(watchedIva * 100).toFixed(1)}%
-                  </p>
-                )}
-                {errors.iva && (
-                  <p className="text-sm text-red-600">{errors.iva.message}</p>
-                )}
-              </div>
-
+          </CardHeader>          <CardContent className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-1 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="formaPago">Forma de Pago</Label>
-                <Select onValueChange={(value) => setValue("formaPago", value)}>
+                <Select 
+                  value={watch("formaPago") || ""}
+                  onValueChange={(value) => setValue("formaPago", value)}
+                >
                   <SelectTrigger>
                     <SelectValue placeholder="Seleccionar forma de pago" />
                   </SelectTrigger>
@@ -1001,9 +977,8 @@ export default function AdvancedBudgetForm({ onSubmit, isLoading, initialData }:
               <div className="flex justify-between">
                 <span>Subtotal:</span>
                 <span className="font-medium">${subtotal.toFixed(2)}</span>
-              </div>
-              <div className="flex justify-between">
-                <span>IVA ({(watchedIva * 100).toFixed(1)}%):</span>
+              </div>              <div className="flex justify-between">
+                <span>IVA ({(SYSTEM_CONSTANTS.IVA_RATE * 100).toFixed(0)}%):</span>
                 <span className="font-medium">${ivaMonto.toFixed(2)}</span>
               </div>
               <Separator />
