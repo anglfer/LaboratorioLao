@@ -247,40 +247,81 @@ export default function AdvancedBudgetForm({
     control,
     name: "conceptos",
   });
-
   // Queries
-  const { data: clientes } = useQuery<Cliente[]>({
+  const { data: clientes, error: clientesError } = useQuery<Cliente[]>({
     queryKey: ["clientes"],
     queryFn: async () => {
       const response = await fetch("/api/clientes");
-      return response.json();
+      if (!response.ok) {
+        throw new Error(`Error fetching clientes: ${response.statusText}`);
+      }
+      const data = await response.json();
+      // Verificar que sea un array
+      if (!Array.isArray(data)) {
+        console.error(
+          "[AdvancedBudgetForm] Clientes response is not an array:",
+          data
+        );
+        return [];
+      }
+      return data;
     },
   });
-
-  const { data: areas } = useQuery<Area[]>({
+  const { data: areas, error: areasError } = useQuery<Area[]>({
     queryKey: ["areas"],
     queryFn: async () => {
       const response = await fetch("/api/areas");
-      return response.json();
+      if (!response.ok) {
+        throw new Error(`Error fetching areas: ${response.statusText}`);
+      }
+      const data = await response.json();
+      if (!Array.isArray(data)) {
+        console.error(
+          "[AdvancedBudgetForm] Areas response is not an array:",
+          data
+        );
+        return [];
+      }
+      return data;
     },
   });
-
-  const { data: subareas } = useQuery<Subarea[]>({
+  const { data: subareas, error: subareasError } = useQuery<Subarea[]>({
     queryKey: ["subareas", selectedArea],
     queryFn: async () => {
       if (!selectedArea) return [];
       const response = await fetch(`/api/subareas?area=${selectedArea}`);
-      return response.json();
+      if (!response.ok) {
+        throw new Error(`Error fetching subareas: ${response.statusText}`);
+      }
+      const data = await response.json();
+      if (!Array.isArray(data)) {
+        console.error(
+          "[AdvancedBudgetForm] Subareas response is not an array:",
+          data
+        );
+        return [];
+      }
+      return data;
     },
     enabled: !!selectedArea,
   });
-
-  const { data: conceptos } = useQuery<Concepto[]>({
+  const { data: conceptos, error: conceptosError } = useQuery<Concepto[]>({
     queryKey: ["conceptos", selectedSubarea],
     queryFn: async () => {
       if (!selectedSubarea) return [];
       const response = await fetch(`/api/conceptos?subarea=${selectedSubarea}`);
-      return response.json();
+      if (!response.ok) {
+        throw new Error(`Error fetching conceptos: ${response.statusText}`);
+      }
+      const data = await response.json();
+      if (!Array.isArray(data)) {
+        console.error(
+          "[AdvancedBudgetForm] Conceptos response is not an array:",
+          data
+        );
+        return [];
+      }
+      return data;
     },
     enabled: !!selectedSubarea,
   });
@@ -841,31 +882,43 @@ export default function AdvancedBudgetForm({
                     <SelectValue placeholder="Seleccionar cliente" />
                   </SelectTrigger>{" "}
                   <SelectContent>
-                    {clientes?.map((cliente) => (
-                      <SelectItem
-                        key={cliente.id}
-                        value={cliente.id.toString()}
-                      >
-                        <div className="flex flex-col">
-                          <span className="font-medium">{cliente.nombre}</span>
-                          {cliente.telefonos &&
-                            cliente.telefonos.length > 0 && (
+                    {Array.isArray(clientes) && clientes.length > 0 ? (
+                      clientes.map((cliente) => (
+                        <SelectItem
+                          key={cliente.id}
+                          value={cliente.id.toString()}
+                        >
+                          <div className="flex flex-col">
+                            <span className="font-medium">
+                              {cliente.nombre}
+                            </span>
+                            {cliente.telefonos &&
+                              cliente.telefonos.length > 0 && (
+                                <span className="text-xs text-gray-500">
+                                  📞{" "}
+                                  {cliente.telefonos
+                                    .map((t) => t.telefono)
+                                    .join(", ")}
+                                </span>
+                              )}
+                            {cliente.correos && cliente.correos.length > 0 && (
                               <span className="text-xs text-gray-500">
-                                📞{" "}
-                                {cliente.telefonos
-                                  .map((t) => t.telefono)
+                                ✉️{" "}
+                                {cliente.correos
+                                  .map((c) => c.correo)
                                   .join(", ")}
                               </span>
                             )}
-                          {cliente.correos && cliente.correos.length > 0 && (
-                            <span className="text-xs text-gray-500">
-                              ✉️{" "}
-                              {cliente.correos.map((c) => c.correo).join(", ")}
-                            </span>
-                          )}
-                        </div>
+                          </div>
+                        </SelectItem>
+                      ))
+                    ) : (
+                      <SelectItem value="__no_clientes__" disabled>
+                        {clientesError
+                          ? "Error cargando clientes"
+                          : "No hay clientes disponibles"}
                       </SelectItem>
-                    ))}
+                    )}
                   </SelectContent>
                 </Select>
                 {errors.clienteId && (
@@ -1135,13 +1188,22 @@ export default function AdvancedBudgetForm({
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Seleccionar área" />
-                </SelectTrigger>
+                </SelectTrigger>{" "}
                 <SelectContent>
-                  {areas?.map((area) => (
-                    <SelectItem key={area.codigo} value={area.codigo}>
-                      {area.nombre}
+                  {Array.isArray(areas) && areas.length > 0 ? (
+                    areas.map((area) => (
+                      <SelectItem key={area.codigo} value={area.codigo}>
+                        {" "}
+                        {area.nombre}
+                      </SelectItem>
+                    ))
+                  ) : (
+                    <SelectItem value="__no_areas__" disabled>
+                      {areasError
+                        ? "Error cargando áreas"
+                        : "No hay áreas disponibles"}
                     </SelectItem>
-                  ))}
+                  )}
                 </SelectContent>
               </Select>
               {errors.areaCodigo && (
@@ -1162,16 +1224,24 @@ export default function AdvancedBudgetForm({
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Seleccionar subárea" />
-                  </SelectTrigger>
+                  </SelectTrigger>{" "}
                   <SelectContent>
-                    {subareas?.map((subarea) => (
-                      <SelectItem
-                        key={subarea.id}
-                        value={subarea.id.toString()}
-                      >
-                        {subarea.nombre}
+                    {Array.isArray(subareas) && subareas.length > 0 ? (
+                      subareas.map((subarea) => (
+                        <SelectItem
+                          key={subarea.id}
+                          value={subarea.id.toString()}
+                        >
+                          {subarea.nombre}
+                        </SelectItem>
+                      ))
+                    ) : (
+                      <SelectItem value="__no_subareas__" disabled>
+                        {subareasError
+                          ? "Error cargando subáreas"
+                          : "No hay subáreas disponibles"}
                       </SelectItem>
-                    ))}
+                    )}
                   </SelectContent>
                 </Select>
               </div>

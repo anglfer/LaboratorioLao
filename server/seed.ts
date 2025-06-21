@@ -6,11 +6,11 @@ async function seedTestData() {
   try {
     // Crear áreas si no existen
     const area = await prisma.area.upsert({
-      where: { codigo: "LAB" },
+      where: { codigo: "PCC" },
       update: {},
       create: {
-        codigo: "LAB",
-        nombre: "Laboratorio"
+        codigo: "PCC",
+        nombre: "Control de Calidad",
       }
     });
 
@@ -19,20 +19,20 @@ async function seedTestData() {
       where: { id: 1 },
       update: {},
       create: {
-        nombre: "Análisis de Suelos",
-        areaCodigo: "LAB"
+        nombre: "Concretos",
+        areaCodigo: "PCC"
       }
     });
 
     // Crear conceptos
     const concepto = await prisma.concepto.upsert({
-      where: { codigo: "SUE-01" },
+      where: { codigo: "CON-01" },
       update: {},
       create: {
-        codigo: "SUE-01",
-        descripcion: "Análisis granulométrico de suelos",
-        unidad: "muestra",
-        p_u: 450.00,
+        codigo: "CON-01",
+        descripcion: "Concreto hidráulico",
+        unidad: "m3",
+        p_u: 750.00,
         subareaId: subarea.id
       }
     });
@@ -50,11 +50,11 @@ async function seedTestData() {
 
     // Crear obra
     const obra = await prisma.obra.upsert({
-      where: { clave: "LAB-2025-001" },
+      where: { clave: "PCC-2025-001" },
       update: {},
       create: {
-        clave: "LAB-2025-001",
-        areaCodigo: "LAB",
+        clave: "PCC-2025-001",
+        areaCodigo: "PCC",
         contratista: "Constructora ABC",
         estado: 1
       }

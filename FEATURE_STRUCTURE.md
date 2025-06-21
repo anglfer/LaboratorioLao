@@ -4,6 +4,9 @@ Este proyecto ha sido reestructurado siguiendo el patrón de **Feature-Based Arc
 
 ## Estructura de Carpetas
 
+
+
+
 ```
 src/
 ├── app/                    # Configuración principal de la aplicación
