@@ -1,5 +1,7 @@
 import { Link, useLocation } from "wouter";
+import React from "react";
 import { Button } from "./ui/button";
+import { SafeDisplay } from "./ui/safe-display";
 import {
   BarChart3,
   FileText,
@@ -36,7 +38,7 @@ export default function Layout({ children }: LayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-900">
+    <div className="min-h-screen bg-background dark:bg-background">
       {/* Mobile sidebar */}
       <div
         className={cn(
@@ -45,16 +47,16 @@ export default function Layout({ children }: LayoutProps) {
         )}
       >
         <div
-          className="fixed inset-0 bg-slate-600 bg-opacity-75"
+          className="fixed inset-0 bg-[#2C3E50]/50 dark:bg-[#2C3E50]/70"
           onClick={() => setSidebarOpen(false)}
         />
-        <div className="relative flex-1 flex flex-col max-w-xs w-full bg-white dark:bg-slate-800">
+        <div className="relative flex-1 flex flex-col max-w-xs w-full bg-sidebar dark:bg-sidebar">
           <div className="absolute top-0 right-0 -mr-12 pt-2">
             <Button
               variant="ghost"
               size="icon"
               onClick={() => setSidebarOpen(false)}
-              className="text-slate-300 hover:text-white"
+              className="text-white hover:text-white"
             >
               <X className="h-6 w-6" />
             </Button>
@@ -65,19 +67,19 @@ export default function Layout({ children }: LayoutProps) {
 
       {/* Desktop sidebar */}
       <div className="hidden md:flex md:w-64 md:flex-col md:fixed md:inset-y-0">
-        <div className="flex-1 flex flex-col min-h-0 bg-white dark:bg-slate-800 border-r border-slate-200 dark:border-slate-700">
+        <div className="flex-1 flex flex-col min-h-0 bg-sidebar dark:bg-sidebar border-r border-sidebar-border dark:border-sidebar-border">
           <SidebarContent location={location} />
         </div>
       </div>
 
       {/* Main content */}
       <div className="md:pl-64 flex flex-col flex-1">
-        <div className="sticky top-0 z-10 md:hidden pl-1 pt-1 sm:pl-3 sm:pt-3 bg-slate-50 dark:bg-slate-900">
+        <div className="sticky top-0 z-10 md:hidden pl-1 pt-1 sm:pl-3 sm:pt-3 bg-background dark:bg-background">
           <Button
             variant="ghost"
             size="icon"
             onClick={() => setSidebarOpen(true)}
-            className="text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100"
+            className="text-[#2C3E50] hover:text-[#4F7D2C] dark:text-[#E7F2E0] dark:hover:text-[#68A53B]"
           >
             <Menu className="h-6 w-6" />
           </Button>
@@ -86,7 +88,7 @@ export default function Layout({ children }: LayoutProps) {
         <main className="flex-1">
           <div className="py-6">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8">
-              {children}
+              <SafeDisplay value={children} />
             </div>
           </div>
         </main>
@@ -100,7 +102,7 @@ function SidebarContent({ location }: { location: string }) {
 
   return (
     <>
-      <div className="flex items-center h-16 flex-shrink-0 px-4 bg-blue-600 dark:bg-blue-700">
+      <div className="flex items-center h-16 flex-shrink-0 px-4 bg-[#68A53B] dark:bg-[#4F7D2C]">
         <h1 className="text-xl font-semibold text-white">Laboratorio LOA</h1>
       </div>
       <div className="flex-1 flex flex-col overflow-y-auto">
@@ -113,16 +115,16 @@ function SidebarContent({ location }: { location: string }) {
                   className={cn(
                     "group flex items-center px-2 py-2 text-sm font-medium rounded-md transition-colors",
                     isActive
-                      ? "bg-blue-100 text-blue-900 dark:bg-blue-900 dark:text-blue-100"
-                      : "text-slate-600 hover:bg-slate-50 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-700 dark:hover:text-white"
+                      ? "bg-[#E7F2E0] text-[#4F7D2C] dark:bg-[#4F7D2C] dark:text-[#E7F2E0]"
+                      : "text-[#2C3E50] hover:bg-[#E7F2E0]/70 hover:text-[#4F7D2C] dark:text-[#E7F2E0]/90 dark:hover:bg-[#4F7D2C]/50 dark:hover:text-white"
                   )}
                 >
                   <item.icon
                     className={cn(
                       "mr-3 flex-shrink-0 h-5 w-5",
                       isActive
-                        ? "text-blue-500 dark:text-blue-400"
-                        : "text-slate-400 group-hover:text-slate-500 dark:group-hover:text-slate-300"
+                        ? "text-[#68A53B] dark:text-[#68A53B]"
+                        : "text-[#2C3E50]/70 group-hover:text-[#68A53B] dark:text-[#E7F2E0]/70 dark:group-hover:text-[#68A53B]"
                     )}
                   />
                   {item.name}
@@ -133,12 +135,12 @@ function SidebarContent({ location }: { location: string }) {
 
           {/* Admin Section */}
           <div className="pt-4">
-            <div className="border-t border-slate-200 dark:border-slate-700 pt-4">
+            <div className="border-t border-[#E7F2E0] dark:border-[#4F7D2C]/40 pt-4">
               <button
                 onClick={() => setAdminOpen(!adminOpen)}
                 className={cn(
                   "group flex items-center w-full px-2 py-2 text-sm font-medium rounded-md transition-colors",
-                  "text-slate-500 hover:bg-slate-50 hover:text-slate-700 dark:text-slate-400 dark:hover:bg-slate-700 dark:hover:text-slate-200"
+                  "text-[#2C3E50] hover:bg-[#E7F2E0]/70 hover:text-[#4F7D2C] dark:text-[#E7F2E0]/90 dark:hover:bg-[#4F7D2C]/50 dark:hover:text-white"
                 )}
               >
                 <Settings className="mr-3 flex-shrink-0 h-4 w-4" />
@@ -160,16 +162,16 @@ function SidebarContent({ location }: { location: string }) {
                           className={cn(
                             "group flex items-center pl-8 pr-2 py-2 text-sm rounded-md transition-colors",
                             isActive
-                              ? "bg-blue-50 text-blue-700 dark:bg-blue-900/50 dark:text-blue-200"
-                              : "text-slate-500 hover:bg-slate-50 hover:text-slate-700 dark:text-slate-400 dark:hover:bg-slate-700 dark:hover:text-slate-200"
+                              ? "bg-[#E7F2E0] text-[#4F7D2C] dark:bg-[#4F7D2C]/50 dark:text-[#E7F2E0]"
+                              : "text-[#2C3E50]/80 hover:bg-[#E7F2E0]/70 hover:text-[#4F7D2C] dark:text-[#E7F2E0]/80 dark:hover:bg-[#4F7D2C]/40 dark:hover:text-[#E7F2E0]"
                           )}
                         >
                           <item.icon
                             className={cn(
                               "mr-3 flex-shrink-0 h-4 w-4",
                               isActive
-                                ? "text-blue-500 dark:text-blue-400"
-                                : "text-slate-400 group-hover:text-slate-500 dark:group-hover:text-slate-300"
+                                ? "text-[#68A53B] dark:text-[#68A53B]"
+                                : "text-[#2C3E50]/60 group-hover:text-[#68A53B] dark:text-[#E7F2E0]/60 dark:group-hover:text-[#68A53B]"
                             )}
                           />
                           {item.name}

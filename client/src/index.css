@@ -3,81 +3,89 @@
 @tailwind utilities;
 
 :root {
-  --background: 0 0% 100%;
-  --foreground: 220 14% 4%;
-  --muted: 210 40% 98%;
-  --muted-foreground: 215 16% 47%;
-  --popover: 0 0% 100%;
-  --popover-foreground: 220 14% 4%;
-  --card: 0 0% 100%;
-  --card-foreground: 220 14% 4%;
-  --border: 220 13% 91%;
-  --input: 220 13% 91%;
-  --primary: 160 84% 39%; /* #10B981 - Emerald 600 */
-  --primary-foreground: 0 0% 98%;
-  --secondary: 210 40% 98%;
-  --secondary-foreground: 222 84% 5%;
-  --accent: 210 40% 98%;
-  --accent-foreground: 222 84% 5%;
-  --destructive: 0 84% 60%;
-  --destructive-foreground: 210 40% 98%;
-  --ring: 160 84% 39%;
-  --radius: 0.5rem;
-  --chart-1: 220 70% 50%;
-  --chart-2: 160 60% 45%;
-  --chart-3: 30 80% 55%;
-  --chart-4: 280 65% 60%;
-  --chart-5: 340 75% 55%;
+  /* COLORES NEUTROS */
+  --background: 210 33% 98%; /* #F8F9FA Gris Muy Claro para fondos generales */
+  --foreground: 210 29% 24%; /* #2C3E50 Azul Gris Oscuro para textos principales */
+  --muted: 210 33% 98%; /* #F8F9FA Gris Muy Claro para fondos suaves */
+  --muted-foreground: 208 7% 46%; /* #6C757D Gris Medio para textos secundarios */
+  --popover: 0 0% 100%; /* #FFFFFF Blanco */
+  --popover-foreground: 210 29% 24%; /* #2C3E50 Azul Gris Oscuro para textos principales */
+  --card: 0 0% 100%; /* #FFFFFF Blanco para tarjetas */
+  --card-foreground: 210 29% 24%; /* #2C3E50 Azul Gris Oscuro para textos principales */
+  --border: 210 33% 98%; /* #F8F9FA Gris Muy Claro para bordes */
+  --input: 210 33% 98%; /* #F8F9FA Gris Muy Claro para campos de entrada */
   
-  /* LOD Brand Colors */
-  --lod-green: 160 84% 39%; /* #10B981 */
-  --lod-green-light: 153 100% 85%; /* #D1FAE5 */
-  --lod-green-dark: 160 93% 25%; /* #065F46 */
-  --lod-blue: 220 90% 54%; /* #3B82F6 */
-  --lod-yellow: 45 93% 47%; /* #F59E0B */
-  --lod-purple: 271 81% 56%; /* #8B5CF6 */
-  --lod-red: 0 84% 60%; /* #EF4444 */
+  /* COLORES PRIMARIOS */
+  --primary: 93 48% 44%; /* #68A53B Verde Corporativo para botones primarios */
+  --primary-foreground: 0 0% 100%; /* #FFFFFF Blanco para texto sobre verde */
+  --secondary: 208 7% 46%; /* #6C757D Gris Medio para botones secundarios */
+  --secondary-foreground: 0 0% 100%; /* #FFFFFF Blanco para texto sobre gris */
+  --accent: 93 48% 33%; /* #4F7D2C Verde Oscuro */
+  --accent-foreground: 0 0% 100%; /* #FFFFFF Blanco para texto sobre verde oscuro */
+  
+  /* COLORES FUNCIONALES */
+  --destructive: 7 65% 46%; /* #C0392B Rojo Ladrillo para errores */
+  --destructive-foreground: 0 0% 100%; /* #FFFFFF Blanco */
+  --ring: 93 48% 44%; /* #68A53B Verde Corporativo para enfoque */
+  --radius: 0.5rem;
+  
+  /* Colores para gráficos */
+  --chart-1: 93 48% 44%; /* #68A53B Verde Corporativo */
+  --chart-2: 210 29% 24%; /* #2C3E50 Azul Gris Oscuro */
+  --chart-3: 21 69% 52%; /* #E67E22 Naranja Terracota */
+  --chart-4: 7 65% 46%; /* #C0392B Rojo Ladrillo */
+  --chart-5: 37 90% 51%; /* #F39C12 Amarillo Construcción */
+  
+  /* LAO Brand Colors */
+  --lao-green: 93 48% 44%; /* #68A53B Verde Corporativo */
+  --lao-green-light: 90 34% 94%; /* #E7F2E0 Verde Claro */
+  --lao-green-dark: 93 48% 33%; /* #4F7D2C Verde Oscuro */
+  --lao-blue-gray: 210 29% 24%; /* #2C3E50 Azul Gris Oscuro */
+  --lao-orange: 21 69% 52%; /* #E67E22 Naranja Terracota */
+  --lao-yellow: 37 90% 51%; /* #F39C12 Amarillo Construcción */
+  --lao-red: 7 65% 46%; /* #C0392B Rojo Ladrillo */
   
   /* Sidebar variables */
-  --sidebar-background: 0 0% 98%;
-  --sidebar-foreground: 240 5% 34%;
-  --sidebar-primary: 160 84% 39%;
-  --sidebar-primary-foreground: 0 0% 98%;
-  --sidebar-accent: 220 13% 91%;
-  --sidebar-accent-foreground: 220 14% 4%;
-  --sidebar-border: 220 13% 91%;
-  --sidebar-ring: 160 84% 39%;
+  --sidebar-background: 0 0% 100%; /* #FFFFFF Blanco para la barra lateral */
+  --sidebar-foreground: 210 29% 24%; /* #2C3E50 Azul Gris Oscuro para textos */
+  --sidebar-primary: 93 48% 44%; /* #68A53B Verde Corporativo para elementos activos */
+  --sidebar-primary-foreground: 0 0% 100%; /* #FFFFFF Blanco */
+  --sidebar-accent: 90 34% 94%; /* #E7F2E0 Verde Claro para hover */
+  --sidebar-accent-foreground: 210 29% 24%; /* #2C3E50 Azul Gris Oscuro */
+  --sidebar-border: 210 33% 98%; /* #F8F9FA Gris Muy Claro para bordes */
+  --sidebar-ring: 93 48% 44%; /* #68A53B Verde Corporativo para enfoque */
 }
 
 .dark {
-  --background: 222 84% 5%;
-  --foreground: 210 40% 98%;
-  --muted: 217 33% 17%;
-  --muted-foreground: 215 20% 65%;
-  --popover: 222 84% 5%;
-  --popover-foreground: 210 40% 98%;
-  --card: 222 84% 5%;
-  --card-foreground: 210 40% 98%;
-  --border: 217 33% 17%;
-  --input: 217 33% 17%;
-  --primary: 160 84% 39%;
-  --primary-foreground: 0 0% 98%;
-  --secondary: 217 33% 17%;
-  --secondary-foreground: 210 40% 98%;
-  --accent: 217 33% 17%;
-  --accent-foreground: 210 40% 98%;
-  --destructive: 0 62% 30%;
-  --destructive-foreground: 210 40% 98%;
-  --ring: 160 84% 39%;
+  --background: 210 29% 13%; /* Versión oscura del Azul Gris #2C3E50 */
+  --foreground: 0 0% 95%; /* Texto claro para modo oscuro */
+  --muted: 93 15% 25%; /* Versión oscura del Verde Corporativo */
+  --muted-foreground: 0 0% 75%; /* Gris claro para textos secundarios */
+  --popover: 210 29% 13%; /* Versión oscura del Azul Gris */
+  --popover-foreground: 0 0% 95%; /* Texto claro */
+  --card: 210 29% 15%; /* Ligeramente más claro que el fondo */
+  --card-foreground: 0 0% 95%; /* Texto claro */
+  --border: 93 20% 30%; /* Versión oscura del Verde Corporativo */
+  --input: 93 20% 30%; /* Versión oscura del Verde Corporativo */
+  --primary: 93 48% 44%; /* #68A53B Verde Corporativo - se mantiene para reconocimiento */
+  --primary-foreground: 0 0% 100%; /* Blanco */
+  --secondary: 208 7% 35%; /* Versión oscura del Gris Medio */
+  --secondary-foreground: 0 0% 95%; /* Texto claro */
+  --accent: 93 48% 33%; /* #4F7D2C Verde Oscuro */
+  --accent-foreground: 0 0% 95%; /* Texto claro */
+  --destructive: 7 65% 46%; /* #C0392B Rojo Ladrillo */
+  --destructive-foreground: 0 0% 95%; /* Texto claro */
+  --ring: 93 48% 44%; /* #68A53B Verde Corporativo */
   
-  --sidebar-background: 222 84% 5%;
-  --sidebar-foreground: 210 40% 98%;
-  --sidebar-primary: 160 84% 39%;
-  --sidebar-primary-foreground: 0 0% 98%;
-  --sidebar-accent: 217 33% 17%;
-  --sidebar-accent-foreground: 210 40% 98%;
-  --sidebar-border: 217 33% 17%;
-  --sidebar-ring: 160 84% 39%;
+  /* Sidebar variables para modo oscuro */
+  --sidebar-background: 210 29% 16%; /* Versión oscura del Azul Gris, ligeramente más clara que el fondo */
+  --sidebar-foreground: 0 0% 95%; /* Texto claro */
+  --sidebar-primary: 93 48% 44%; /* #68A53B Verde Corporativo */
+  --sidebar-primary-foreground: 0 0% 100%; /* Blanco */
+  --sidebar-accent: 93 25% 25%; /* Versión oscura del Verde Corporativo */
+  --sidebar-accent-foreground: 0 0% 95%; /* Texto claro */
+  --sidebar-border: 210 29% 18%; /* Versión oscura del Azul Gris */
+  --sidebar-ring: 93 48% 44%; /* #68A53B Verde Corporativo */
 }
 
 @layer base {
@@ -108,100 +116,132 @@
 }
 
 @layer components {
-  /* LOD Brand utilities */
-  .text-lod-green {
-    color: hsl(var(--lod-green));
+  /* LAO Brand utilities */
+  .text-lao-green {
+    color: hsl(var(--lao-green));
   }
   
-  .bg-lod-green {
-    background-color: hsl(var(--lod-green));
+  .bg-lao-green {
+    background-color: hsl(var(--lao-green));
   }
   
-  .border-lod-green {
-    border-color: hsl(var(--lod-green));
+  .border-lao-green {
+    border-color: hsl(var(--lao-green));
   }
   
-  .text-lod-green-light {
-    color: hsl(var(--lod-green-light));
+  .text-lao-green-light {
+    color: hsl(var(--lao-green-light));
   }
   
-  .bg-lod-green-light {
-    background-color: hsl(var(--lod-green-light));
+  .bg-lao-green-light {
+    background-color: hsl(var(--lao-green-light));
   }
   
-  .text-lod-green-dark {
-    color: hsl(var(--lod-green-dark));
+  .text-lao-green-dark {
+    color: hsl(var(--lao-green-dark));
   }
   
-  .bg-lod-green-dark {
-    background-color: hsl(var(--lod-green-dark));
+  .bg-lao-green-dark {
+    background-color: hsl(var(--lao-green-dark));
+  }
+  
+  .text-lao-blue-gray {
+    color: hsl(var(--lao-blue-gray));
+  }
+  
+  .bg-lao-blue-gray {
+    background-color: hsl(var(--lao-blue-gray));
+  }
+  
+  .text-lao-orange {
+    color: hsl(var(--lao-orange));
+  }
+  
+  .bg-lao-orange {
+    background-color: hsl(var(--lao-orange));
+  }
+  
+  .text-lao-yellow {
+    color: hsl(var(--lao-yellow));
+  }
+  
+  .bg-lao-yellow {
+    background-color: hsl(var(--lao-yellow));
+  }
+  
+  .text-lao-red {
+    color: hsl(var(--lao-red));
+  }
+  
+  .bg-lao-red {
+    background-color: hsl(var(--lao-red));
   }
   
   /* Status badges */
   .status-approved {
-    @apply bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300;
+    @apply bg-[#E7F2E0] text-[#4F7D2C] dark:bg-[#4F7D2C]/30 dark:text-[#E7F2E0];
   }
   
   .status-pending {
-    @apply bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300;
+    @apply bg-[#FEF5E7] text-[#F39C12] dark:bg-[#F39C12]/30 dark:text-[#F8F9FA];
   }
   
   .status-active {
-    @apply bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300;
+    @apply bg-[#EBF5FB] text-[#2C3E50] dark:bg-[#2C3E50]/30 dark:text-[#F8F9FA];
   }
   
   .status-completed {
-    @apply bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300;
+    @apply bg-[#E7F2E0] text-[#4F7D2C] dark:bg-[#4F7D2C]/30 dark:text-[#E7F2E0];
   }
   
   .status-rejected {
-    @apply bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300;
+    @apply bg-[#F9EBEA] text-[#C0392B] dark:bg-[#C0392B]/30 dark:text-[#F8F9FA];
   }
   
   .status-cancelled {
-    @apply bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300;
+    @apply bg-[#F8F9FA] text-[#6C757D] dark:bg-[#6C757D]/30 dark:text-[#F8F9FA];
   }
   
   /* Priority indicators */
   .priority-critical {
-    @apply text-red-600 dark:text-red-400;
+    @apply text-[#C0392B] dark:text-[#F9EBEA];
   }
   
   .priority-high {
-    @apply text-orange-600 dark:text-orange-400;
+    @apply text-[#E67E22] dark:text-[#FEF5E7];
   }
   
   .priority-medium {
-    @apply text-yellow-600 dark:text-yellow-400;
+    @apply text-[#F39C12] dark:text-[#FEF5E7];
   }
   
   .priority-low {
-    @apply text-green-600 dark:text-green-400;
+    @apply text-[#68A53B] dark:text-[#E7F2E0];
   }
   
   /* Test type colors */
   .test-pcc {
-    @apply bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300;
+    @apply bg-[#EBF5FB] text-[#2C3E50] dark:bg-[#2C3E50]/30 dark:text-[#F8F9FA];
   }
   
   .test-pms {
-    @apply bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300;
+    @apply bg-[#E7F2E0] text-[#4F7D2C] dark:bg-[#4F7D2C]/30 dark:text-[#E7F2E0];
   }
   
   .test-pdp {
-    @apply bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300;
+    @apply bg-[#EBF5FB] text-[#2C3E50] dark:bg-[#2C3E50]/30 dark:text-[#F8F9FA];
   }
   
   .test-asfalto {
-    @apply bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-300;
+    @apply bg-[#FBE5D6] text-[#E67E22] dark:bg-[#E67E22]/30 dark:text-[#F8F9FA];
   }
   
   .test-acero {
-    @apply bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300;
+    @apply bg-[#F8F9FA] text-[#6C757D] dark:bg-[#6C757D]/30 dark:text-[#F8F9FA];
   }
   
   .test-compactacion {
-    @apply bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300;
+    @apply bg-[#FEF5E7] text-[#F39C12] dark:bg-[#F39C12]/30 dark:text-[#F8F9FA];
   }
 }
 

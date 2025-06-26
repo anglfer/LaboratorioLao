@@ -7,6 +7,7 @@ import {
 } from "../../../shared/components/ui/card";
 import { Button } from "../../../shared/components/ui/button";
 import { Badge } from "../../../shared/components/ui/badge";
+import { SafeDisplay } from "../../../shared/components/ui/safe-display";
 import { useLocation } from "wouter";
 import {
   BarChart3,
@@ -354,7 +355,10 @@ export function EmpleadoDashboard() {
                         </Badge>
                       </div>
                       <p className="text-sm text-muted-foreground">
-                        {presupuesto.cliente}
+                        <SafeDisplay
+                          value={presupuesto.cliente}
+                          fallback="Cliente no disponible"
+                        />
                       </p>
                       <p className="text-xs text-muted-foreground">
                         {presupuesto.fechaSolicitud}

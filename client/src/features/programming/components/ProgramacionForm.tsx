@@ -46,6 +46,33 @@ import {
   CreateProgramacionData,
 } from "../types/programming";
 
+// Mapeo de unidades de concepto a TipoRecoleccion
+const mapUnidadToTipoRecoleccion = (
+  unidad: string
+): TipoRecoleccion | undefined => {
+  const lowerUnidad = unidad.toLowerCase().trim();
+  switch (lowerUnidad) {
+    case "m2":
+    case "m²":
+      return TipoRecoleccion.METROS_CUADRADOS;
+    case "m3":
+    case "m³":
+      return TipoRecoleccion.METROS_CUBICOS;
+    case "ml":
+    case "m lineal":
+      return TipoRecoleccion.METROS_LINEALES;
+    case "sondeo":
+      return TipoRecoleccion.SONDEO;
+    case "pza":
+    case "piezas":
+      return TipoRecoleccion.PIEZAS;
+    case "condensacion":
+      return TipoRecoleccion.CONDENSACION;
+    default:
+      return undefined;
+  }
+};
+
 // Schema de validación
 const programacionSchema = z.object({
   claveObra: z.string().min(1, "Debe seleccionar una obra"),
@@ -62,7 +89,7 @@ const programacionSchema = z.object({
     errorMap: () => ({ message: "Debe seleccionar un tipo de recolección" }),
   }),
   brigadistaId: z.number().min(1, "Debe seleccionar un brigadista"),
-  brigaistaApoyoId: z.number().optional(),
+  brigadistaApoyoId: z.number().optional(),
   vehiculoId: z.number().min(1, "Debe seleccionar un vehículo"),
   claveEquipo: z.string().optional(),
   observaciones: z.string().optional(),
@@ -134,7 +161,7 @@ export default function ProgramacionForm({
   const handleSubmit = (data: ProgramacionFormData) => {
     const submitData: CreateProgramacionData = {
       ...data,
-      brigaistaApoyoId: data.brigaistaApoyoId || undefined,
+      brigadistaApoyoId: data.brigadistaApoyoId || undefined,
     };
     if (onSubmit) {
       onSubmit(submitData);
@@ -147,7 +174,23 @@ export default function ProgramacionForm({
       });
     }
   };
+  const handleConceptoChange = (codigoConcepto: string) => {
+    form.setValue("conceptoCodigo", codigoConcepto);
+    const conceptoSeleccionado = obraDetalles?.conceptos.find(
+      (c) => c.codigo === codigoConcepto
+    );
 
+    if (conceptoSeleccionado) {
+      form.setValue("cantidadMuestras", conceptoSeleccionado.cantidad);
+      const tipoRecoleccion = mapUnidadToTipoRecoleccion(
+        conceptoSeleccionado.unidad
+      );
+
+      if (tipoRecoleccion) {
+        form.setValue("tipoRecoleccion", tipoRecoleccion);
+      }
+    }
+  };
   const isLoading = externalLoading || createMutation.isPending;
 
   // Generar opciones de hora (cada 30 minutos)
@@ -256,7 +299,9 @@ export default function ProgramacionForm({
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="horaProgramada">Hora Programada *</Label>
+              <Label htmlFor="horaProgramada">
+                Hora Programada aproximada *
+              </Label>
               <Select
                 value={form.watch("horaProgramada")}
                 onValueChange={(value) =>
@@ -343,7 +388,7 @@ export default function ProgramacionForm({
             <Label htmlFor="conceptoCodigo">Actividad a Realizar *</Label>
             <Select
               value={form.watch("conceptoCodigo")}
-              onValueChange={(value) => form.setValue("conceptoCodigo", value)}
+              onValueChange={handleConceptoChange}
               disabled={!obraDetalles}
             >
               <SelectTrigger>
@@ -365,6 +410,7 @@ export default function ProgramacionForm({
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {" "}
             <div className="space-y-2">
               <Label htmlFor="cantidadMuestras">Cantidad de Muestras *</Label>
               <Input
@@ -377,8 +423,7 @@ export default function ProgramacionForm({
                   {form.formState.errors.cantidadMuestras.message}
                 </p>
               )}
-            </div>
-
+            </div>{" "}
             <div className="space-y-2">
               <Label htmlFor="tipoRecoleccion">Tipo de Recolección *</Label>
               <Select
@@ -471,14 +516,14 @@ export default function ProgramacionForm({
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="brigaistaApoyoId">
+              <Label htmlFor="brigadistaApoyoId">
                 Brigadista de Apoyo (Opcional)
-              </Label>{" "}
+              </Label>
               <Select
-                value={form.watch("brigaistaApoyoId")?.toString() || "none"}
+                value={form.watch("brigadistaApoyoId")?.toString() || "none"}
                 onValueChange={(value) =>
                   form.setValue(
-                    "brigaistaApoyoId",
+                    "brigadistaApoyoId",
                     value === "none" ? undefined : parseInt(value)
                   )
                 }

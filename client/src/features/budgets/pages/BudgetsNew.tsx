@@ -43,6 +43,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "../../../shared/components/ui/dropdown-menu";
+import { Textarea } from "../../../shared/components/ui/textarea"; // Importando Textarea para la opción "Otra razón"
 import { useToast } from "../../../shared/hooks/use-toast";
 import AdvancedBudgetForm from "../components/AdvancedBudgetForm";
 import {
@@ -89,6 +90,13 @@ export default function BudgetsNew() {
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(10);
+
+  // Estados para el modal de rechazo
+  const [showRejectModal, setShowRejectModal] = useState(false);
+  const [rejectingBudget, setRejectingBudget] = useState<any>(null);
+  const [rejectReason, setRejectReason] = useState("");
+  const [customRejectReason, setCustomRejectReason] = useState("");
+
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -320,6 +328,49 @@ export default function BudgetsNew() {
     }
   };
 
+  // Función para abrir el modal de rechazo
+  const handleOpenRejectModal = (budget: any) => {
+    setRejectingBudget(budget);
+    setRejectReason("");
+    setCustomRejectReason("");
+    setShowRejectModal(true);
+  };
+
+  // Función para confirmar el rechazo con razón
+  const handleConfirmReject = () => {
+    if (!rejectReason) {
+      toast({
+        title: "Razón requerida",
+        description: "Por favor seleccione una razón para el rechazo",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (rejectReason === "otra" && !customRejectReason.trim()) {
+      toast({
+        title: "Descripción requerida",
+        description: "Por favor describa la razón del rechazo",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const finalReason =
+      rejectReason === "otra" ? customRejectReason : rejectReason;
+
+    updateStatusMutation.mutate({
+      id: rejectingBudget.id,
+      estado: "rechazado",
+      razonRechazo: finalReason,
+    });
+
+    setShowRejectModal(false);
+    setRejectingBudget(null);
+    setRejectReason("");
+    setCustomRejectReason("");
+  };
+
   const handleExportPDF = async (id: number) => {
     try {
       // Obtener información del presupuesto
@@ -414,10 +465,23 @@ export default function BudgetsNew() {
   };
 
   const updateStatusMutation = useMutation({
-    mutationFn: async ({ id, estado }: { id: number; estado: string }) => {
+    mutationFn: async ({
+      id,
+      estado,
+      razonRechazo,
+    }: {
+      id: number;
+      estado: string;
+      razonRechazo?: string;
+    }) => {
+      const updateData: any = { estado };
+      if (razonRechazo) {
+        updateData.razonRechazo = razonRechazo;
+      }
+
       const response = await fetch(`/api/presupuestos/${id}`, {
         method: "PUT",
-        body: JSON.stringify({ estado }),
+        body: JSON.stringify(updateData),
         headers: { "Content-Type": "application/json" },
       });
       if (!response.ok) {
@@ -436,7 +500,7 @@ export default function BudgetsNew() {
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-3">
-            <FileText className="h-8 w-8 text-blue-600 dark:text-blue-400" />
+            <FileText className="h-8 w-8 text-green-600 dark:text-green-400" />
             <div>
               <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">
                 {editingBudget ? "Editar Presupuesto" : "Nuevo Presupuesto"}
@@ -462,7 +526,7 @@ export default function BudgetsNew() {
 
         {/* Debug info for editing budget */}
         {editingBudget && (
-          <div className="bg-blue-100 border border-blue-400 text-blue-700 px-4 py-3 rounded">
+          <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded">
             <strong>Debug - editingBudget:</strong> ID: {editingBudget.id} |
             Detalles: {editingBudget.detalles?.length || "N/A"} | Cliente:{" "}
             {editingBudget.clienteId || "N/A"}
@@ -484,7 +548,7 @@ export default function BudgetsNew() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-3">
-          <FileText className="h-8 w-8 text-blue-600 dark:text-blue-400" />
+          <FileText className="h-8 w-8 text-green-600 dark:text-green-400" />
           <div>
             <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">
               Gestión de Presupuestos
@@ -506,7 +570,7 @@ export default function BudgetsNew() {
           </Button>
           <Button
             onClick={() => setShowForm(true)}
-            className="bg-blue-600 hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-800 flex items-center space-x-2"
+            className="bg-green-600 hover:bg-green-700 dark:bg-green-700 dark:hover:bg-green-800 flex items-center space-x-2"
           >
             <Plus className="h-4 w-4" />
             <span>Crear Nuevo Presupuesto</span>
@@ -803,10 +867,7 @@ export default function BudgetsNew() {
                                     </DropdownMenuItem>
                                     <DropdownMenuItem
                                       onClick={() =>
-                                        updateStatusMutation.mutate({
-                                          id: budget.id,
-                                          estado: "rechazado",
-                                        })
+                                        handleOpenRejectModal(budget)
                                       }
                                     >
                                       <X className="h-4 w-4 mr-2" />
@@ -865,7 +926,7 @@ export default function BudgetsNew() {
                 </p>
                 <Button
                   onClick={() => setShowForm(true)}
-                  className="bg-blue-600 hover:bg-blue-700"
+                  className="bg-green-600 hover:bg-green-700"
                 >
                   <Plus className="h-4 w-4 mr-2" />
                   Crear Primer Presupuesto
@@ -918,6 +979,107 @@ export default function BudgetsNew() {
           )}
         </>
       )}
+
+      {/* Modal de Rechazo */}
+      <Dialog open={showRejectModal} onOpenChange={setShowRejectModal}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center space-x-2">
+              <AlertTriangle className="h-5 w-5 text-red-600" />
+              <span>Rechazar Presupuesto</span>
+            </DialogTitle>
+            <DialogDescription>
+              Seleccione la razón por la cual se rechaza este presupuesto:
+              <strong className="block mt-1">
+                {rejectingBudget?.claveObra || "Sin clave"} -{" "}
+                {rejectingBudget?.cliente?.nombre || "Sin cliente"}
+              </strong>
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div className="space-y-3">
+              <Label className="text-base font-medium">
+                Motivo del rechazo:
+              </Label>
+
+              <div className="space-y-2">
+                <label className="flex items-center space-x-2 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="rejectReason"
+                    value="no_anticipo"
+                    checked={rejectReason === "no_anticipo"}
+                    onChange={(e) => setRejectReason(e.target.value)}
+                    className="text-red-600"
+                  />
+                  <span>
+                    Esta obra se rechaza porque el cliente no dio anticipo
+                  </span>
+                </label>
+
+                <label className="flex items-center space-x-2 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="rejectReason"
+                    value="problemas_cliente"
+                    checked={rejectReason === "problemas_cliente"}
+                    onChange={(e) => setRejectReason(e.target.value)}
+                    className="text-red-600"
+                  />
+                  <span>Esta obra se rechaza por problemas del cliente</span>
+                </label>
+
+                <label className="flex items-center space-x-2 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="rejectReason"
+                    value="otra"
+                    checked={rejectReason === "otra"}
+                    onChange={(e) => setRejectReason(e.target.value)}
+                    className="text-red-600"
+                  />
+                  <span>Otra razón</span>
+                </label>
+              </div>
+
+              {rejectReason === "otra" && (
+                <div className="mt-3">
+                  <Label htmlFor="customReason">Describa la razón:</Label>
+                  <Textarea
+                    id="customReason"
+                    placeholder="Escriba el motivo del rechazo..."
+                    value={customRejectReason}
+                    onChange={(e) => setCustomRejectReason(e.target.value)}
+                    className="mt-1"
+                    rows={3}
+                  />
+                </div>
+              )}
+            </div>
+
+            <div className="flex justify-end space-x-2 pt-4">
+              <Button
+                variant="outline"
+                onClick={() => setShowRejectModal(false)}
+              >
+                Cancelar
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={handleConfirmReject}
+                disabled={
+                  !rejectReason ||
+                  (rejectReason === "otra" && !customRejectReason.trim())
+                }
+              >
+                <X className="h-4 w-4 mr-2" />
+                Rechazar Presupuesto
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

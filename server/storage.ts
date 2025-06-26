@@ -504,6 +504,7 @@ export async function updatePresupuesto(id: number, data: {
   total?: number;
   estado?: any;
   fechaInicio?: Date;
+  razonRechazo?: string;
 }): Promise<Presupuesto> {
   return await prisma.presupuesto.update({
     where: { id },
@@ -681,8 +682,8 @@ export async function generateClaveObra(areaCodigo: string): Promise<string> {
     });
   }
 
-  // Formatear clave: [área]-[año]-[consecutivo]
-  const claveObra = `${areaCodigo.toLowerCase()}-${año.toString().slice(-2)}-${String(contador.contador).padStart(3, '0')}`;
+  // Formatear clave: [ÁREA]-[YY]-[001] (código en mayúsculas, año con 2 dígitos)
+  const claveObra = `${areaCodigo.toUpperCase()}-${año.toString().slice(-2)}-${String(contador.contador).padStart(3, '0')}`;
   
   // Crear la obra
   await prisma.obra.create({
@@ -729,14 +730,14 @@ export async function getBrigadistasDisponibles(fecha?: string, hora?: string) {
     },
     select: {
       brigadistaId: true,
-      brigaistaApoyoId: true
+      brigadistaApoyoId: true
     }
   });
 
   // Extraer IDs de brigadistas ocupados
   const brigadistasOcupados = new Set([
     ...programacionesOcupadas.map(p => p.brigadistaId),
-    ...programacionesOcupadas.map(p => p.brigaistaApoyoId).filter(Boolean)
+    ...programacionesOcupadas.map(p => p.brigadistaApoyoId).filter(Boolean)
   ]);
 
   // Filtrar brigadistas disponibles
@@ -857,7 +858,7 @@ export async function getAllProgramaciones(filters?: {
         }
       },
       brigadista: true,
-      brigaistaApoyo: true,
+      brigadistaApoyo: true,
       vehiculo: true
     },
     orderBy: [
@@ -886,7 +887,7 @@ export async function getProgramacionById(id: number) {
         }
       },
       brigadista: true,
-      brigaistaApoyo: true,
+      brigadistaApoyo: true,
       vehiculo: true
     }
   });
@@ -903,7 +904,7 @@ export async function createProgramacion(data: {
   cantidadMuestras: number;
   tipoRecoleccion: any;
   brigadistaId: number;
-  brigaistaApoyoId?: number;
+  brigadistaApoyoId?: number;
   vehiculoId: number;
   claveEquipo?: string;
   observaciones?: string;
@@ -928,7 +929,7 @@ export async function createProgramacion(data: {
         }
       },
       brigadista: true,
-      brigaistaApoyo: true,
+      brigadistaApoyo: true,
       vehiculo: true
     }
   });
@@ -954,7 +955,7 @@ export async function updateProgramacion(id: number, data: any) {
         }
       },
       brigadista: true,
-      brigaistaApoyo: true,
+      brigadistaApoyo: true,
       vehiculo: true
     }
   });
@@ -1009,7 +1010,7 @@ export async function getProgramacionesByBrigadista(
         }
       },
       brigadista: true,
-      brigaistaApoyo: true,
+      brigadistaApoyo: true,
       vehiculo: true
     },
     orderBy: [
@@ -1047,7 +1048,7 @@ export async function iniciarProgramacion(id: number, data: {
         }
       },
       brigadista: true,
-      brigaistaApoyo: true,
+      brigadistaApoyo: true,
       vehiculo: true
     }
   });
@@ -1082,7 +1083,7 @@ export async function completarProgramacion(id: number, data: {
         }
       },
       brigadista: true,
-      brigaistaApoyo: true,
+      brigadistaApoyo: true,
       vehiculo: true
     }
   });
@@ -1113,7 +1114,7 @@ export async function cancelarProgramacion(id: number, data: {
         }
       },
       brigadista: true,
-      brigaistaApoyo: true,
+      brigadistaApoyo: true,
       vehiculo: true
     }
   });
@@ -1152,7 +1153,7 @@ export async function reprogramarProgramacion(id: number, data: {
         }
       },
       brigadista: true,
-      brigaistaApoyo: true,
+      brigadistaApoyo: true,
       vehiculo: true
     }
   });

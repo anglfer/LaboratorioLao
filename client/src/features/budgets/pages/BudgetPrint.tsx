@@ -45,12 +45,12 @@ export default function BudgetPrint() {
       </div>
       <div className="flex justify-between items-center mb-8 print:hidden">
         <Button variant="outline" onClick={() => window.history.back()}>Volver</Button>
-        <Button onClick={() => window.print()} className="bg-blue-600 text-white">Imprimir</Button>
+        <Button onClick={() => window.print()} className="bg-green-600 text-white">Imprimir</Button>
       </div>
       {/* Encabezado simplificado */}
       <div className="border-b pb-4 mb-6 text-center">
         <div className="text-3xl font-bold mt-2">Presupuesto</div>
-        <div className="text-lg font-bold text-gray-800 mt-2">Clave de Obra: <span className="text-blue-700">{budget.budgetCode}</span></div>
+        <div className="text-lg font-bold text-gray-800 mt-2">Clave de Obra: <span className="text-green-700">{budget.budgetCode}</span></div>
       </div>
       <div className="grid grid-cols-2 gap-4 mb-6">
         <div>

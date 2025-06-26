@@ -17,6 +17,7 @@ export interface Budget {
   estado?: BudgetStatus;
   fechaSolicitud?: Date;
   fechaInicio?: Date;
+  razonRechazo?: string; // Nuevo campo para la razón de rechazo
   cliente?: Client;
   obra?: Project;
   detalles?: BudgetDetail[];

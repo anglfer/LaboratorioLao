@@ -4,9 +4,9 @@ import { storage } from "./storage";
 import { z } from "zod";
 import path from "path";
 import { fileURLToPath } from "url";
+import { prisma } from "./prisma";
 
-
-import { 
+import {
   insertClienteSchema,
   insertTelefonoSchema,
   insertCorreoSchema,
@@ -27,10 +27,10 @@ function generatePresupuestoHTML(presupuesto: any, detalles: any[], forPDF = fal
   const subtotal = presupuesto.subtotal || 0;
   const iva = presupuesto.ivaMonto || 0;
   const total = presupuesto.total || 0;
-  const fechaGeneracion = new Date().toLocaleDateString('es-MX', { 
-    year: 'numeric', 
-    month: 'long', 
-    day: 'numeric' 
+  const fechaGeneracion = new Date().toLocaleDateString('es-MX', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric'
   });
 
   // Obtener el estado del presupuesto con color apropiado
@@ -41,14 +41,14 @@ function generatePresupuestoHTML(presupuesto: any, detalles: any[], forPDF = fal
     'rechazado': { bg: '#fee2e2', text: '#dc2626', border: '#ef4444' },
     'finalizado': { bg: '#f3f4f6', text: '#374151', border: '#6b7280' },
   };
-  
+
   const estadoConfig = estadoColors[presupuesto.estado] || estadoColors['borrador'];
 
   // Agrupar conceptos por área y subárea para el resumen ejecutivo
   const conceptosPorArea = detalles.reduce((acc, detalle) => {
     const area = detalle.concepto?.subarea?.area?.nombre || 'Sin área';
     const subarea = detalle.concepto?.subarea?.nombre || 'Sin subárea';
-    
+
     if (!acc[area]) {
       acc[area] = new Set();
     }
@@ -58,7 +58,7 @@ function generatePresupuestoHTML(presupuesto: any, detalles: any[], forPDF = fal
 
   return `
 <!DOCTYPE html>
-<html lang="es">
+<html lang="es">;
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -1593,27 +1593,49 @@ export function registerRoutes(app: Express): Promise<Server> {
     try {
       const presupuestosAprobados = await storage.getPresupuestosAprobados();
       
-      // Transformar los datos al formato esperado por el frontend
-      const obrasAprobadas = presupuestosAprobados.map(presupuesto => {
-        const ubicacion = [
-          presupuesto.tramo,
-          presupuesto.colonia,
-          presupuesto.calle
-        ].filter(Boolean).join(' ');
+      // Agrupar presupuestos por clave de obra para consolidar conceptos
+      const obrasMap = new Map();
+      
+      presupuestosAprobados.forEach(presupuesto => {
+        const claveObra = presupuesto.claveObra || `OBRA-${presupuesto.id}`;
+        
+        if (!obrasMap.has(claveObra)) {
+          const ubicacion = [
+            presupuesto.tramo,
+            presupuesto.colonia,
+            presupuesto.calle
+          ].filter(Boolean).join(' ');
 
-        return {
-          clave: presupuesto.claveObra || `OBRA-${presupuesto.id}`,
-          clienteNombre: presupuesto.cliente?.nombre || 'Cliente no especificado',
-          descripcionObra: presupuesto.descripcionObra || 'Descripción no disponible',
-          ubicacion: ubicacion || 'Ubicación no especificada',
-          contratista: presupuesto.nombreContratista || presupuesto.cliente?.nombre || 'Contratista no especificado',
-          conceptos: presupuesto.detalles?.map(detalle => ({
-            codigo: detalle.concepto.codigo,
-            descripcion: detalle.concepto.descripcion || 'Descripción no disponible',
-            unidad: detalle.concepto.unidad || 'pza'
-          })) || []
-        };
+          obrasMap.set(claveObra, {
+            clave: claveObra,
+            clienteNombre: presupuesto.cliente?.nombre || 'Cliente no especificado',
+            descripcionObra: presupuesto.descripcionObra || 'Descripción no disponible',
+            ubicacion: ubicacion || 'Ubicación no especificada',
+            contratista: presupuesto.nombreContratista || presupuesto.cliente?.nombre || 'Contratista no especificado',
+            conceptos: []
+          });
+        }
+        
+        // Agregar conceptos de este presupuesto a la obra
+        const obra = obrasMap.get(claveObra);
+        if (presupuesto.detalles) {
+          presupuesto.detalles.forEach(detalle => {
+            // Verificar que el concepto no esté ya agregado
+            const conceptoExiste = obra.conceptos.some((c: any) => c.codigo === detalle.concepto.codigo);
+            if (!conceptoExiste) {
+              obra.conceptos.push({
+                codigo: detalle.concepto.codigo,
+                descripcion: detalle.concepto.descripcion || 'Descripción no disponible',
+                unidad: detalle.concepto.unidad || 'pza',
+                cantidad: detalle.cantidad || 1
+              });
+            }
+          });
+        }
       });
+
+      // Convertir el Map a array
+      const obrasAprobadas = Array.from(obrasMap.values());
 
       res.json(obrasAprobadas);
     } catch (error: any) {
@@ -1657,6 +1679,81 @@ export function registerRoutes(app: Express): Promise<Server> {
   app.use('*', (req, res, next) => {
     // Let vite handle client-side routing
     next();
+  });
+
+  app.get("/api/empleado/stats", async (_req, res) => {
+    try {
+      const [obrasEnProceso, muestrasEnLaboratorio, presupuestosPendientes, informesPorGenerar, facturacionPendiente] = await Promise.all([
+        prisma.obra.count({ where: { estado: "en_proceso" } }),
+        prisma.muestra.count({ where: { estado: "en_laboratorio" } }),
+        prisma.presupuesto.count({ where: { estado: "pendiente" } }),
+        prisma.informe.count({ where: { estado: "por_generar" } }),
+        prisma.factura.count({ where: { estado: "pendiente" } }),
+      ]);
+
+      const tiempoPromedioEnsayo = await prisma.ensayo.aggregate({
+        _avg: { duracionHoras: true },
+      });
+
+      const eficienciaLaboratorio = await prisma.laboratorio.aggregate({
+        _avg: { eficiencia: true },
+      });
+
+      const ventasMes = await prisma.factura.aggregate({
+        _sum: { monto: true },
+        where: {
+          fecha: {
+            gte: new Date(new Date().getFullYear(), new Date().getMonth(), 1),
+            lte: new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0),
+          },
+        },
+      });
+
+      res.json({
+        obrasEnProceso,
+        muestrasEnLaboratorio,
+        presupuestosPendientes,
+        informesPorGenerar,
+        facturacionPendiente,
+        tiempoPromedioEnsayo: tiempoPromedioEnsayo._avg.duracionHoras || 0,
+        eficienciaLaboratorio: eficienciaLaboratorio._avg.eficiencia || 0,
+        ventasMes: ventasMes._sum.monto || 0,
+      });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.get("/api/empleado/alertas", async (_req, res) => {
+    try {
+      const alertas = await prisma.alerta.findMany({
+        orderBy: { fecha: "desc" },
+        take: 10,
+      });
+      res.json(alertas);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.get("/api/empleado/presupuestos-recientes", async (_req, res) => {
+    try {
+      const presupuestos = await prisma.presupuesto.findMany({
+        orderBy: { fechaSolicitud: "desc" },
+        take: 10,
+        select: {
+          id: true,
+          claveObra: true,
+          cliente: true,
+          estado: true,
+          total: true,
+          fechaSolicitud: true,
+        },
+      });
+      res.json(presupuestos);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
   });
 
   return Promise.resolve(server);

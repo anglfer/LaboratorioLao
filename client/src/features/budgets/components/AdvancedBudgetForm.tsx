@@ -838,7 +838,7 @@ export default function AdvancedBudgetForm({
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center space-x-2">
-              <User className="h-5 w-5 text-blue-600" />
+              <User className="h-5 w-5 text-green-600" />
               <span>Información del Cliente</span>
             </CardTitle>
           </CardHeader>
@@ -1061,7 +1061,7 @@ export default function AdvancedBudgetForm({
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center space-x-2">
-              <Building className="h-5 w-5 text-blue-600" />
+              <Building className="h-5 w-5 text-green-600" />
               <span>Información del Contratista</span>
             </CardTitle>
           </CardHeader>
@@ -1096,7 +1096,7 @@ export default function AdvancedBudgetForm({
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center space-x-2">
-              <MapPin className="h-5 w-5 text-blue-600" />
+              <MapPin className="h-5 w-5 text-green-600" />
               <span>Detalles de la Obra</span>
             </CardTitle>
           </CardHeader>
@@ -1169,7 +1169,7 @@ export default function AdvancedBudgetForm({
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center space-x-2">
-              <Calculator className="h-5 w-5 text-blue-600" />
+              <Calculator className="h-5 w-5 text-green-600" />
               <span>Conceptos del Presupuesto</span>
             </CardTitle>
           </CardHeader>
@@ -1250,7 +1250,7 @@ export default function AdvancedBudgetForm({
             <div className="space-y-4">
               {" "}
               <div className="flex justify-between items-center">
-                <h4 className="font-medium">Conceptos Disponibles</h4>
+                <h4 className="font-medium ">Conceptos Disponibles</h4>
                 <div className="text-sm text-gray-600">
                   {conceptosSeleccionados.length} seleccionado(s) de{" "}
                   {conceptosFiltrados.length} mostrado(s)
@@ -1473,7 +1473,7 @@ export default function AdvancedBudgetForm({
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center space-x-2">
-              <FileText className="h-5 w-5 text-blue-600" />
+              <FileText className="h-5 w-5 text-green-600" />
               <span>Totales y Forma de Pago</span>
             </CardTitle>
           </CardHeader>
@@ -1517,7 +1517,7 @@ export default function AdvancedBudgetForm({
               <Separator />
               <div className="flex justify-between items-center">
                 <span className="font-bold text-lg">Total:</span>
-                <span className="text-xl font-bold text-blue-600">
+                <span className="text-xl font-bold text-green-600">
                   $
                   {total.toLocaleString("es-MX", {
                     minimumFractionDigits: 2,

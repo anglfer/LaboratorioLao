@@ -16,12 +16,24 @@ const badgeVariants = cva(
         destructive:
           "border-transparent bg-destructive text-destructive-foreground hover:bg-destructive/80",
         outline: "text-foreground",
+        warning:
+          "border-transparent bg-[#F39C12] text-white hover:bg-[#F39C12]/80", // Amarillo Construcción
+        info: "border-transparent bg-[#2C3E50] text-white hover:bg-[#2C3E50]/80", // Azul Gris Oscuro
+        error:
+          "border-transparent bg-[#C0392B] text-white hover:bg-[#C0392B]/80", // Rojo Ladrillo
+        success:
+          "border-transparent bg-[#68A53B] text-white hover:bg-[#68A53B]/80", // Verde Corporativo
+        terracota:
+          "border-transparent bg-[#E67E22] text-white hover:bg-[#E67E22]/80", // Naranja Terracota
+        light:
+          "border-transparent bg-[#E7F2E0] text-[#4F7D2C] hover:bg-[#E7F2E0]/80", // Verde Claro con texto verde oscuro
+        gray: "border-transparent bg-[#F8F9FA] text-[#6C757D] hover:bg-[#F8F9FA]/80", // Gris Muy Claro con texto gris medio
       },
     },
     defaultVariants: {
       variant: "default",
     },
-  },
+  }
 );
 
 export interface BadgeProps
@@ -37,7 +49,7 @@ const Badge = React.forwardRef<HTMLSpanElement, BadgeProps>(
         {...props}
       />
     );
-  },
+  }
 );
 
 Badge.displayName = "Badge";

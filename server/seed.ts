@@ -14,6 +14,23 @@ async function seedTestData() {
       }
     });
 
+    // Inicializar contador de obras para el área PCC del año actual
+    const añoActual = new Date().getFullYear();
+    await prisma.contadorObras.upsert({
+      where: {
+        areaCodigo_año: {
+          areaCodigo: "PCC",
+          año: añoActual
+        }
+      },
+      update: {},
+      create: {
+        areaCodigo: "PCC",
+        año: añoActual,
+        contador: 1 // Empezamos en 1 porque ya vamos a crear PCC-25-001
+      }
+    });
+
     // Crear subáreas
     const subarea = await prisma.subarea.upsert({
       where: { id: 1 },
@@ -50,10 +67,10 @@ async function seedTestData() {
 
     // Crear obra
     const obra = await prisma.obra.upsert({
-      where: { clave: "PCC-2025-001" },
+      where: { clave: "PCC-25-001" },
       update: {},
       create: {
-        clave: "PCC-2025-001",
+        clave: "PCC-25-001",
         areaCodigo: "PCC",
         contratista: "Constructora ABC",
         estado: 1
@@ -199,7 +216,7 @@ async function seedTestData() {
         cantidadMuestras: 2,
         tipoRecoleccion: "sondeo",
         brigadistaId: brigadista1.id,
-        brigaistaApoyoId: brigadista2.id,
+        brigadistaApoyoId: brigadista2.id,
         vehiculoId: vehiculo1.id,
         estado: "completada",
         observaciones: "Trabajo completado exitosamente",

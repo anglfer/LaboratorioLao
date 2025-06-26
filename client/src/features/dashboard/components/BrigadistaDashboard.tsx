@@ -6,6 +6,7 @@ import {
 } from "../../../shared/components/ui/card";
 import { Badge } from "../../../shared/components/ui/badge";
 import { Button } from "../../../shared/components/ui/button";
+import { SafeDisplay } from "../../../shared/components/ui/safe-display";
 import {
   Clock,
   AlertTriangle,
@@ -16,6 +17,7 @@ import {
   Timer,
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
+import { mockBrigadistaStats, mockBrigadistaActividades } from "../mockData";
 
 interface BrigadistaActivity {
   id: number;
@@ -40,6 +42,11 @@ export function BrigadistaDashboard() {
   const { data: stats, isLoading: statsLoading } = useQuery<BrigadistaStats>({
     queryKey: ["/api/brigadista/stats"],
     queryFn: async () => {
+      // En desarrollo, usamos datos mock
+      if (process.env.NODE_ENV === "development") {
+        return mockBrigadistaStats;
+      }
+
       const response = await fetch("/api/brigadista/stats");
       if (!response.ok) throw new Error("Failed to fetch brigadista stats");
       return response.json();
@@ -51,6 +58,11 @@ export function BrigadistaDashboard() {
   >({
     queryKey: ["/api/brigadista/actividades"],
     queryFn: async () => {
+      // En desarrollo, usamos datos mock
+      if (process.env.NODE_ENV === "development") {
+        return mockBrigadistaActividades;
+      }
+
       const response = await fetch("/api/brigadista/actividades");
       if (!response.ok) throw new Error("Failed to fetch actividades");
       return response.json();

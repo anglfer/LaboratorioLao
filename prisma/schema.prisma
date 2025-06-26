@@ -120,6 +120,7 @@ model Presupuesto {
   estado           PresupuestoEstado?   @default(borrador)
   fechaSolicitud   DateTime?            @db.Timestamp(0) @default(now()) @map("fecha_solicitud")
   fechaInicio      DateTime?            @db.Timestamp(0) @map("fecha_inicio")
+  razonRechazo     String?              @db.Text @map("razon_rechazo")
   
   // Relaciones
   cliente          Cliente?             @relation(fields: [clienteId], references: [id])
@@ -193,7 +194,7 @@ model Programacion {
   cantidadMuestras      Int                  @map("cantidad_muestras")
   tipoRecoleccion       TipoRecoleccion      @map("tipo_recoleccion")
   brigadistaId          Int                  @map("brigadista_id")
-  brigaistaApoyoId      Int?                 @map("brigadista_apoyo_id")
+  brigadistaApoyoId     Int?                 @map("brigadista_apoyo_id")
   vehiculoId            Int                  @map("vehiculo_id")
   claveEquipo           String?              @db.VarChar(50) @map("clave_equipo")
   observaciones         String?              @db.Text
@@ -211,7 +212,7 @@ model Programacion {
   obra                  Obra                 @relation(fields: [claveObra], references: [clave])
   concepto              Concepto             @relation(fields: [conceptoCodigo], references: [codigo])
   brigadista            Brigadista           @relation(fields: [brigadistaId], references: [id])
-  brigaistaApoyo        Brigadista?          @relation("BrigadistaApoyo", fields: [brigaistaApoyoId], references: [id])
+  brigadistaApoyo       Brigadista?          @relation("BrigadistaApoyo", fields: [brigadistaApoyoId], references: [id])
   vehiculo              Vehiculo             @relation(fields: [vehiculoId], references: [id])
   
   @@index([claveObra], name: "idx_programacion_clave_obra")

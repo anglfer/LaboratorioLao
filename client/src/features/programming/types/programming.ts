@@ -49,7 +49,7 @@ export interface Programacion {
   cantidadMuestras: number;
   tipoRecoleccion: TipoRecoleccion;
   brigadistaId: number;
-  brigaistaApoyoId?: number;
+  brigadistaApoyoId?: number;
   vehiculoId: number;
   claveEquipo?: string;
   observaciones?: string;
@@ -80,7 +80,7 @@ export interface Programacion {
     p_u: number;
   };
   brigadista?: Brigadista;
-  brigaistaApoyo?: Brigadista;
+  brigadistaApoyo?: Brigadista;
   vehiculo?: Vehiculo;
 }
 
@@ -95,7 +95,7 @@ export interface CreateProgramacionData {
   cantidadMuestras: number;
   tipoRecoleccion: TipoRecoleccion;
   brigadistaId: number;
-  brigaistaApoyoId?: number;
+  brigadistaApoyoId?: number;
   vehiculoId: number;
   claveEquipo?: string;
   observaciones?: string;
@@ -151,5 +151,6 @@ export interface ObraAprobada {
     codigo: string;
     descripcion: string;
     unidad: string;
+    cantidad: number;
   }>;
 }
