@@ -69,7 +69,7 @@ export default function CalendarView() {
 
   const getProgramacionesForDay = (day: Date) => {
     return programaciones.filter((prog) =>
-      isSameDay(new Date(prog.fechaProgramada), day)
+      isSameDay(new Date(prog.fechaProgramada), day),
     );
   };
 

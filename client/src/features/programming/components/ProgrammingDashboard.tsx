@@ -1,5 +1,3 @@
-
-
 import { useState } from "react";
 import {
   Card,
@@ -35,7 +33,7 @@ export default function ProgrammingDashboard({
   className,
 }: ProgrammingDashboardProps) {
   const [fechaSemana, setFechaSemana] = useState(() =>
-    format(startOfWeek(new Date(), { weekStartsOn: 1 }), "yyyy-MM-dd")
+    format(startOfWeek(new Date(), { weekStartsOn: 1 }), "yyyy-MM-dd"),
   );
   const { data: estadisticas, isLoading: loadingEstadisticas } =
     useEstadisticasSemana(fechaSemana);
@@ -48,14 +46,14 @@ export default function ProgrammingDashboard({
   const handleSemanaAnterior = () => {
     const nuevaFecha = subWeeks(new Date(fechaSemana), 1);
     setFechaSemana(
-      format(startOfWeek(nuevaFecha, { weekStartsOn: 1 }), "yyyy-MM-dd")
+      format(startOfWeek(nuevaFecha, { weekStartsOn: 1 }), "yyyy-MM-dd"),
     );
   };
 
   const handleSemanaProxima = () => {
     const nuevaFecha = addWeeks(new Date(fechaSemana), 1);
     setFechaSemana(
-      format(startOfWeek(nuevaFecha, { weekStartsOn: 1 }), "yyyy-MM-dd")
+      format(startOfWeek(nuevaFecha, { weekStartsOn: 1 }), "yyyy-MM-dd"),
     );
   };
 
@@ -180,7 +178,7 @@ export default function ProgrammingDashboard({
           <CardContent>
             <div
               className={`text-2xl font-bold ${getRendimientoColor(
-                estadisticas?.rendimientoSemanal || 0
+                estadisticas?.rendimientoSemanal || 0,
               )}`}
             >
               {estadisticas?.rendimientoSemanal?.toFixed(1) || 0}%
@@ -240,7 +238,7 @@ export default function ProgrammingDashboard({
               </div>
               {getEstadoBadge(
                 "completadas",
-                estadisticas?.programacionesCompletadas || 0
+                estadisticas?.programacionesCompletadas || 0,
               )}
             </div>
             <p className="text-xs text-muted-foreground">
@@ -261,7 +259,7 @@ export default function ProgrammingDashboard({
               </div>
               {getEstadoBadge(
                 "pendientes",
-                estadisticas?.programacionesPendientes || 0
+                estadisticas?.programacionesPendientes || 0,
               )}
             </div>
             <p className="text-xs text-muted-foreground">
@@ -282,7 +280,7 @@ export default function ProgrammingDashboard({
               </div>
               {getEstadoBadge(
                 "canceladas",
-                estadisticas?.programacionesCanceladas || 0
+                estadisticas?.programacionesCanceladas || 0,
               )}
             </div>
             <p className="text-xs text-muted-foreground">
@@ -309,7 +307,7 @@ export default function ProgrammingDashboard({
                 (estadisticas?.programacionesTotales || 0) -
                   (estadisticas?.programacionesCompletadas || 0) -
                   (estadisticas?.programacionesCanceladas || 0) -
-                  (estadisticas?.programacionesPendientes || 0)
+                  (estadisticas?.programacionesPendientes || 0),
               )}
             </div>
             <p className="text-xs text-muted-foreground">

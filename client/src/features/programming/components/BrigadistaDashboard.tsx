@@ -65,7 +65,7 @@ export default function BrigadistaDashboard({
   const { data: actividadesHoy, isLoading: loadingHoy } =
     useProgramacionesBrigadista(
       brigadistaId,
-      new Date().toISOString().split("T")[0]
+      new Date().toISOString().split("T")[0],
     );
 
   const { data: proximasActividades, isLoading: loadingProximas } =
@@ -83,7 +83,7 @@ export default function BrigadistaDashboard({
       ?.filter(
         (p) =>
           !isToday(new Date(p.fechaProgramada)) &&
-          new Date(p.fechaProgramada) > new Date()
+          new Date(p.fechaProgramada) > new Date(),
       )
       .slice(0, 5) || [];
 
@@ -93,7 +93,7 @@ export default function BrigadistaDashboard({
         (p) =>
           p.estado === EstadoProgramacion.COMPLETADA &&
           new Date(p.fechaCompletado || p.fechaActualizacion) >
-            new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
+            new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
       )
       .slice(0, 3) || [];
 
@@ -101,11 +101,11 @@ export default function BrigadistaDashboard({
   const totalActividades = proximasActividades?.length || 0;
   const completadas =
     proximasActividades?.filter(
-      (p) => p.estado === EstadoProgramacion.COMPLETADA
+      (p) => p.estado === EstadoProgramacion.COMPLETADA,
     ).length || 0;
   const enProceso =
     proximasActividades?.filter(
-      (p) => p.estado === EstadoProgramacion.EN_PROCESO
+      (p) => p.estado === EstadoProgramacion.EN_PROCESO,
     ).length || 0;
   const rendimiento =
     totalActividades > 0 ? (completadas / totalActividades) * 100 : 0;
@@ -243,7 +243,7 @@ export default function BrigadistaDashboard({
             <p className="text-xs text-muted-foreground">
               {
                 actividadesDelDia.filter(
-                  (a) => a.estado === EstadoProgramacion.COMPLETADA
+                  (a) => a.estado === EstadoProgramacion.COMPLETADA,
                 ).length
               }{" "}
               completadas
@@ -277,8 +277,8 @@ export default function BrigadistaDashboard({
                 rendimiento >= 80
                   ? "text-green-600"
                   : rendimiento >= 60
-                  ? "text-yellow-600"
-                  : "text-red-600"
+                    ? "text-yellow-600"
+                    : "text-red-600"
               }`}
             >
               {rendimiento.toFixed(1)}%

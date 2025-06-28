@@ -69,8 +69,13 @@ export interface Concept {
   subarea?: Subarea;
 }
 
-export type BudgetStatus = 'borrador' | 'enviado' | 'aprobado' | 'rechazado' | 'finalizado';
-export type DetailStatus = 'en_proceso' | 'completado' | 'cancelado';
+export type BudgetStatus =
+  | "borrador"
+  | "enviado"
+  | "aprobado"
+  | "rechazado"
+  | "finalizado";
+export type DetailStatus = "en_proceso" | "completado" | "cancelado";
 
 export interface BudgetFormData {
   clienteId?: number;

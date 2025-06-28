@@ -2,10 +2,14 @@ import { z } from "zod";
 
 const img = "../assets/img/versionPresupuesto.png"; // Placeholder for the logo URL
 
-
-
 // Enums
-export const presupuestoEstadoEnum = z.enum(["borrador", "enviado", "aprobado", "rechazado", "finalizado"]);
+export const presupuestoEstadoEnum = z.enum([
+  "borrador",
+  "enviado",
+  "aprobado",
+  "rechazado",
+  "finalizado",
+]);
 export const detalleEstadoEnum = z.enum(["en_proceso", "hecho"]);
 
 // Regex patterns
@@ -21,12 +25,19 @@ export const insertClienteSchema = z.object({
 
 export const insertTelefonoSchema = z.object({
   clienteId: z.number({ required_error: "El cliente es requerido" }),
-  telefono: z.string().regex(phoneRegex, "El teléfono debe tener 10 dígitos (ej: 4771234567 o +524771234567)"),
+  telefono: z
+    .string()
+    .regex(
+      phoneRegex,
+      "El teléfono debe tener 10 dígitos (ej: 4771234567 o +524771234567)",
+    ),
 });
 
 export const insertCorreoSchema = z.object({
   clienteId: z.number({ required_error: "El cliente es requerido" }),
-  correo: z.string().email("El correo electrónico debe tener un formato válido"),
+  correo: z
+    .string()
+    .email("El correo electrónico debe tener un formato válido"),
 });
 
 export const insertAreaSchema = z.object({
@@ -44,8 +55,9 @@ export const insertConceptoSchema = z.object({
   subareaId: z.number({ required_error: "La subárea es requerida" }),
   descripcion: z.string().max(1000).optional(),
   unidad: z.string().min(1, "La unidad es requerida").max(50),
-  p_u: z.number({ required_error: "El precio unitario es requerido" })
-       .positive("El precio unitario debe ser mayor a cero"),
+  p_u: z
+    .number({ required_error: "El precio unitario es requerido" })
+    .positive("El precio unitario debe ser mayor a cero"),
 });
 
 export const insertObraSchema = z.object({
@@ -64,9 +76,13 @@ export const insertPresupuestoSchema = z.object({
 
 export const insertPresupuestoDetalleSchema = z.object({
   presupuestoId: z.number({ required_error: "El presupuesto es requerido" }),
-  conceptoCodigo: z.string().min(1, "El código del concepto es requerido").max(50),
-  precioUnitario: z.number({ required_error: "El precio unitario es requerido" })
-                  .positive("El precio unitario debe ser mayor a cero"),
+  conceptoCodigo: z
+    .string()
+    .min(1, "El código del concepto es requerido")
+    .max(50),
+  precioUnitario: z
+    .number({ required_error: "El precio unitario es requerido" })
+    .positive("El precio unitario debe ser mayor a cero"),
   estado: detalleEstadoEnum.default("en_proceso"),
 });
 
@@ -79,7 +95,9 @@ export type InsertSubarea = z.infer<typeof insertSubareaSchema>;
 export type InsertConcepto = z.infer<typeof insertConceptoSchema>;
 export type InsertObra = z.infer<typeof insertObraSchema>;
 export type InsertPresupuesto = z.infer<typeof insertPresupuestoSchema>;
-export type InsertPresupuestoDetalle = z.infer<typeof insertPresupuestoDetalleSchema>;
+export type InsertPresupuestoDetalle = z.infer<
+  typeof insertPresupuestoDetalleSchema
+>;
 
 // Constantes del sistema
 export const SYSTEM_CONSTANTS = {
@@ -101,6 +119,6 @@ export const SYSTEM_CONSTANTS = {
     "Los accesos al lugar de la obra, la ubicación de las exploraciones y los permisos necesarios para su realización correrán por cuenta del contratante.",
     "Para iniciar los trabajos se requiere la aceptación del presupuesto firmando la orden de servicio correspondiente, preferentemente por el representante legal. La entrega de información final con los resultados se realizará una vez liquidado el monto de los trabajos ejecutados.",
     "En caso de requerir cualquier tipo de modificación en el alcance de este presupuesto después de su firma, se realizará un nuevo presupuesto.",
-    "Anexo I. Métodos de prueba, Frecuencia de muestreo, Criterios de aceptación y Rechazo, Políticas de Laboratorio, Imparcialidad y Confidencialidad."
-  ]
+    "Anexo I. Métodos de prueba, Frecuencia de muestreo, Criterios de aceptación y Rechazo, Políticas de Laboratorio, Imparcialidad y Confidencialidad.",
+  ],
 };

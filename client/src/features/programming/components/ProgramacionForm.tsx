@@ -48,7 +48,7 @@ import {
 
 // Mapeo de unidades de concepto a TipoRecoleccion
 const mapUnidadToTipoRecoleccion = (
-  unidad: string
+  unidad: string,
 ): TipoRecoleccion | undefined => {
   const lowerUnidad = unidad.toLowerCase().trim();
   switch (lowerUnidad) {
@@ -137,16 +137,16 @@ export default function ProgramacionForm({
   // Queries condicionales para disponibilidad
   const { data: brigadistasDisponibles } = useBrigadistasDisponibles(
     fechaSeleccionada,
-    horaSeleccionada
+    horaSeleccionada,
   );
   const { data: vehiculosDisponibles } = useVehiculosDisponibles(
     fechaSeleccionada,
-    horaSeleccionada
+    horaSeleccionada,
   );
 
   // Encontrar la obra seleccionada para mostrar detalles
   const obraDetalles = obrasAprobadas?.find(
-    (obra) => obra.clave === obraSeleccionada
+    (obra) => obra.clave === obraSeleccionada,
   );
 
   // Watch para fecha y hora para actualizar disponibilidad
@@ -177,13 +177,13 @@ export default function ProgramacionForm({
   const handleConceptoChange = (codigoConcepto: string) => {
     form.setValue("conceptoCodigo", codigoConcepto);
     const conceptoSeleccionado = obraDetalles?.conceptos.find(
-      (c) => c.codigo === codigoConcepto
+      (c) => c.codigo === codigoConcepto,
     );
 
     if (conceptoSeleccionado) {
       form.setValue("cantidadMuestras", conceptoSeleccionado.cantidad);
       const tipoRecoleccion = mapUnidadToTipoRecoleccion(
-        conceptoSeleccionado.unidad
+        conceptoSeleccionado.unidad,
       );
 
       if (tipoRecoleccion) {
@@ -493,7 +493,7 @@ export default function ProgramacionForm({
                   ) : (
                     brigadistas?.map((brigadista) => {
                       const disponible = brigadistasDisponibles?.find(
-                        (b) => b.id === brigadista.id
+                        (b) => b.id === brigadista.id,
                       );
                       return (
                         <SelectItem
@@ -524,7 +524,7 @@ export default function ProgramacionForm({
                 onValueChange={(value) =>
                   form.setValue(
                     "brigadistaApoyoId",
-                    value === "none" ? undefined : parseInt(value)
+                    value === "none" ? undefined : parseInt(value),
                   )
                 }
               >
@@ -537,7 +537,7 @@ export default function ProgramacionForm({
                     ?.filter((b) => b.id !== form.watch("brigadistaId"))
                     .map((brigadista) => {
                       const disponible = brigadistasDisponibles?.find(
-                        (b) => b.id === brigadista.id
+                        (b) => b.id === brigadista.id,
                       );
                       return (
                         <SelectItem
@@ -574,7 +574,7 @@ export default function ProgramacionForm({
                   ) : (
                     vehiculos?.map((vehiculo) => {
                       const disponible = vehiculosDisponibles?.find(
-                        (v) => v.id === vehiculo.id
+                        (v) => v.id === vehiculo.id,
                       );
                       return (
                         <SelectItem

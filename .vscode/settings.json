@@ -1,18 +1,18 @@
 {
-    "sqltools.connections": [
-        {
-            "mysqlOptions": {
-                "authProtocol": "default",
-                "enableSsl": "Disabled"
-            },
-            "previewLimit": 50,
-            "server": "localhost",
-            "port": 3306,
-            "driver": "MySQL",
-            "name": "localhost",
-            "database": "laboratoriovv1",
-            "username": "root",
-            "askForPassword": true
-        }
-    ]
+  "sqltools.connections": [
+    {
+      "mysqlOptions": {
+        "authProtocol": "default",
+        "enableSsl": "Disabled"
+      },
+      "previewLimit": 50,
+      "server": "localhost",
+      "port": 3306,
+      "driver": "MySQL",
+      "name": "localhost",
+      "database": "laboratoriovv1",
+      "username": "root",
+      "askForPassword": true
+    }
+  ]
 }

@@ -16,25 +16,25 @@ export interface Vehiculo {
 }
 
 export enum TipoProgramacion {
-  OBRA_POR_VISITA = 'obra_por_visita',
-  OBRA_POR_ESTANCIA = 'obra_por_estancia'
+  OBRA_POR_VISITA = "obra_por_visita",
+  OBRA_POR_ESTANCIA = "obra_por_estancia",
 }
 
 export enum TipoRecoleccion {
-  METROS_CUADRADOS = 'metros_cuadrados',
-  METROS_CUBICOS = 'metros_cubicos',
-  METROS_LINEALES = 'metros_lineales',
-  SONDEO = 'sondeo',
-  PIEZAS = 'piezas',
-  CONDENSACION = 'condensacion'
+  METROS_CUADRADOS = "metros_cuadrados",
+  METROS_CUBICOS = "metros_cubicos",
+  METROS_LINEALES = "metros_lineales",
+  SONDEO = "sondeo",
+  PIEZAS = "piezas",
+  CONDENSACION = "condensacion",
 }
 
 export enum EstadoProgramacion {
-  PROGRAMADA = 'programada',
-  EN_PROCESO = 'en_proceso',
-  COMPLETADA = 'completada',
-  CANCELADA = 'cancelada',
-  REPROGRAMADA = 'reprogramada'
+  PROGRAMADA = "programada",
+  EN_PROCESO = "en_proceso",
+  COMPLETADA = "completada",
+  CANCELADA = "cancelada",
+  REPROGRAMADA = "reprogramada",
 }
 
 export interface Programacion {
@@ -62,7 +62,7 @@ export interface Programacion {
   muestrasObtenidas?: number;
   fechaInicio?: string;
   fechaCompletado?: string;
-  
+
   // Relaciones
   obra?: {
     clave: string;

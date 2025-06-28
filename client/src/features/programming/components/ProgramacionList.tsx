@@ -188,7 +188,7 @@ export default function ProgramacionList({
   const handleEliminar = (programacion: Programacion) => {
     if (
       confirm(
-        `¿Está seguro de eliminar la programación ${programacion.claveObra}?`
+        `¿Está seguro de eliminar la programación ${programacion.claveObra}?`,
       )
     ) {
       eliminarMutation.mutate(programacion.id);
@@ -411,7 +411,7 @@ export default function ProgramacionList({
                         {format(
                           new Date(programacion.fechaProgramada),
                           "dd/MM/yyyy",
-                          { locale: es }
+                          { locale: es },
                         )}
                       </TableCell>
                       <TableCell>{programacion.horaProgramada}</TableCell>

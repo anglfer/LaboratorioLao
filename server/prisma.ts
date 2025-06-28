@@ -1,5 +1,5 @@
 import { PrismaClient } from "../generated/prisma";
-import { config } from 'dotenv';
+import { config } from "dotenv";
 
 // Load environment variables from .env file
 config();
@@ -11,10 +11,10 @@ if (!process.env.DATABASE_URL) {
 }
 
 export const prisma = new PrismaClient({
-  log: ['query', 'info', 'warn', 'error'],
+  log: ["query", "info", "warn", "error"],
 });
 
 // Graceful shutdown
-process.on('beforeExit', async () => {
+process.on("beforeExit", async () => {
   await prisma.$disconnect();
 });

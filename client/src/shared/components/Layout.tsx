@@ -43,7 +43,7 @@ export default function Layout({ children }: LayoutProps) {
       <div
         className={cn(
           "fixed inset-0 flex z-40 md:hidden",
-          sidebarOpen ? "block" : "hidden"
+          sidebarOpen ? "block" : "hidden",
         )}
       >
         <div
@@ -116,7 +116,7 @@ function SidebarContent({ location }: { location: string }) {
                     "group flex items-center px-2 py-2 text-sm font-medium rounded-md transition-colors",
                     isActive
                       ? "bg-[#E7F2E0] text-[#4F7D2C] dark:bg-[#4F7D2C] dark:text-[#E7F2E0]"
-                      : "text-[#2C3E50] hover:bg-[#E7F2E0]/70 hover:text-[#4F7D2C] dark:text-[#E7F2E0]/90 dark:hover:bg-[#4F7D2C]/50 dark:hover:text-white"
+                      : "text-[#2C3E50] hover:bg-[#E7F2E0]/70 hover:text-[#4F7D2C] dark:text-[#E7F2E0]/90 dark:hover:bg-[#4F7D2C]/50 dark:hover:text-white",
                   )}
                 >
                   <item.icon
@@ -124,7 +124,7 @@ function SidebarContent({ location }: { location: string }) {
                       "mr-3 flex-shrink-0 h-5 w-5",
                       isActive
                         ? "text-[#68A53B] dark:text-[#68A53B]"
-                        : "text-[#2C3E50]/70 group-hover:text-[#68A53B] dark:text-[#E7F2E0]/70 dark:group-hover:text-[#68A53B]"
+                        : "text-[#2C3E50]/70 group-hover:text-[#68A53B] dark:text-[#E7F2E0]/70 dark:group-hover:text-[#68A53B]",
                     )}
                   />
                   {item.name}
@@ -140,7 +140,7 @@ function SidebarContent({ location }: { location: string }) {
                 onClick={() => setAdminOpen(!adminOpen)}
                 className={cn(
                   "group flex items-center w-full px-2 py-2 text-sm font-medium rounded-md transition-colors",
-                  "text-[#2C3E50] hover:bg-[#E7F2E0]/70 hover:text-[#4F7D2C] dark:text-[#E7F2E0]/90 dark:hover:bg-[#4F7D2C]/50 dark:hover:text-white"
+                  "text-[#2C3E50] hover:bg-[#E7F2E0]/70 hover:text-[#4F7D2C] dark:text-[#E7F2E0]/90 dark:hover:bg-[#4F7D2C]/50 dark:hover:text-white",
                 )}
               >
                 <Settings className="mr-3 flex-shrink-0 h-4 w-4" />
@@ -163,7 +163,7 @@ function SidebarContent({ location }: { location: string }) {
                             "group flex items-center pl-8 pr-2 py-2 text-sm rounded-md transition-colors",
                             isActive
                               ? "bg-[#E7F2E0] text-[#4F7D2C] dark:bg-[#4F7D2C]/50 dark:text-[#E7F2E0]"
-                              : "text-[#2C3E50]/80 hover:bg-[#E7F2E0]/70 hover:text-[#4F7D2C] dark:text-[#E7F2E0]/80 dark:hover:bg-[#4F7D2C]/40 dark:hover:text-[#E7F2E0]"
+                              : "text-[#2C3E50]/80 hover:bg-[#E7F2E0]/70 hover:text-[#4F7D2C] dark:text-[#E7F2E0]/80 dark:hover:bg-[#4F7D2C]/40 dark:hover:text-[#E7F2E0]",
                           )}
                         >
                           <item.icon
@@ -171,7 +171,7 @@ function SidebarContent({ location }: { location: string }) {
                               "mr-3 flex-shrink-0 h-4 w-4",
                               isActive
                                 ? "text-[#68A53B] dark:text-[#68A53B]"
-                                : "text-[#2C3E50]/60 group-hover:text-[#68A53B] dark:text-[#E7F2E0]/60 dark:group-hover:text-[#68A53B]"
+                                : "text-[#2C3E50]/60 group-hover:text-[#68A53B] dark:text-[#E7F2E0]/60 dark:group-hover:text-[#68A53B]",
                             )}
                           />
                           {item.name}

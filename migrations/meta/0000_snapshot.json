@@ -89,18 +89,12 @@
       "indexes": {
         "budget_service_idx": {
           "name": "budget_service_idx",
-          "columns": [
-            "budget_id",
-            "service_type"
-          ],
+          "columns": ["budget_id", "service_type"],
           "isUnique": false
         },
         "item_number_idx": {
           "name": "item_number_idx",
-          "columns": [
-            "budget_id",
-            "item_number"
-          ],
+          "columns": ["budget_id", "item_number"],
           "isUnique": false
         }
       },
@@ -109,12 +103,8 @@
           "name": "budget_items_budget_id_budgets_id_fk",
           "tableFrom": "budget_items",
           "tableTo": "budgets",
-          "columnsFrom": [
-            "budget_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["budget_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -122,9 +112,7 @@
       "compositePrimaryKeys": {
         "budget_items_id": {
           "name": "budget_items_id",
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "uniqueConstraints": {},
@@ -266,30 +254,22 @@
       "indexes": {
         "status_idx": {
           "name": "status_idx",
-          "columns": [
-            "status"
-          ],
+          "columns": ["status"],
           "isUnique": false
         },
         "date_idx": {
           "name": "date_idx",
-          "columns": [
-            "request_date"
-          ],
+          "columns": ["request_date"],
           "isUnique": false
         },
         "client_idx": {
           "name": "client_idx",
-          "columns": [
-            "client_name"
-          ],
+          "columns": ["client_name"],
           "isUnique": false
         },
         "email_idx": {
           "name": "email_idx",
-          "columns": [
-            "client_email"
-          ],
+          "columns": ["client_email"],
           "isUnique": false
         }
       },
@@ -297,17 +277,13 @@
       "compositePrimaryKeys": {
         "budgets_id": {
           "name": "budgets_id",
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "uniqueConstraints": {
         "budgets_budget_code_unique": {
           "name": "budgets_budget_code_unique",
-          "columns": [
-            "budget_code"
-          ]
+          "columns": ["budget_code"]
         }
       },
       "checkConstraint": {}
@@ -315,17 +291,62 @@
     "clients": {
       "name": "clients",
       "columns": {
-        "id": { "name": "id", "type": "serial", "primaryKey": false, "notNull": true, "autoincrement": true },
-        "name": { "name": "name", "type": "varchar(255)", "primaryKey": false, "notNull": true, "autoincrement": false },
-        "contact": { "name": "contact", "type": "varchar(255)", "primaryKey": false, "notNull": false, "autoincrement": false },
-        "phone": { "name": "phone", "type": "varchar(20)", "primaryKey": false, "notNull": false, "autoincrement": false },
-        "email": { "name": "email", "type": "varchar(255)", "primaryKey": false, "notNull": false, "autoincrement": false },
-        "address": { "name": "address", "type": "text", "primaryKey": false, "notNull": false, "autoincrement": false },
-        "created_at": { "name": "created_at", "type": "timestamp", "primaryKey": false, "notNull": false, "autoincrement": false, "default": "(now())" }
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": true
+        },
+        "name": {
+          "name": "name",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "contact": {
+          "name": "contact",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "phone": {
+          "name": "phone",
+          "type": "varchar(20)",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "email": {
+          "name": "email",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "address": {
+          "name": "address",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false,
+          "default": "(now())"
+        }
       },
       "indexes": {},
       "foreignKeys": {},
-      "compositePrimaryKeys": { "clients_id": { "name": "clients_id", "columns": ["id"] } },
+      "compositePrimaryKeys": {
+        "clients_id": { "name": "clients_id", "columns": ["id"] }
+      },
       "uniqueConstraints": {},
       "checkConstraint": {}
     },
@@ -437,24 +458,17 @@
       "indexes": {
         "status_idx": {
           "name": "status_idx",
-          "columns": [
-            "status"
-          ],
+          "columns": ["status"],
           "isUnique": false
         },
         "date_idx": {
           "name": "date_idx",
-          "columns": [
-            "report_date"
-          ],
+          "columns": ["report_date"],
           "isUnique": false
         },
         "order_type_idx": {
           "name": "order_type_idx",
-          "columns": [
-            "service_order_id",
-            "report_type"
-          ],
+          "columns": ["service_order_id", "report_type"],
           "isUnique": false
         }
       },
@@ -463,12 +477,8 @@
           "name": "field_reports_service_order_id_service_orders_id_fk",
           "tableFrom": "field_reports",
           "tableTo": "service_orders",
-          "columnsFrom": [
-            "service_order_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["service_order_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -476,17 +486,13 @@
       "compositePrimaryKeys": {
         "field_reports_id": {
           "name": "field_reports_id",
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "uniqueConstraints": {
         "field_reports_report_code_unique": {
           "name": "field_reports_report_code_unique",
-          "columns": [
-            "report_code"
-          ]
+          "columns": ["report_code"]
         }
       },
       "checkConstraint": {}
@@ -585,23 +591,17 @@
       "indexes": {
         "status_idx": {
           "name": "status_idx",
-          "columns": [
-            "status"
-          ],
+          "columns": ["status"],
           "isUnique": false
         },
         "date_idx": {
           "name": "date_idx",
-          "columns": [
-            "collection_date"
-          ],
+          "columns": ["collection_date"],
           "isUnique": false
         },
         "order_idx": {
           "name": "order_idx",
-          "columns": [
-            "service_order_id"
-          ],
+          "columns": ["service_order_id"],
           "isUnique": false
         }
       },
@@ -610,12 +610,8 @@
           "name": "samples_service_order_id_service_orders_id_fk",
           "tableFrom": "samples",
           "tableTo": "service_orders",
-          "columnsFrom": [
-            "service_order_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["service_order_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -623,17 +619,13 @@
       "compositePrimaryKeys": {
         "samples_id": {
           "name": "samples_id",
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "uniqueConstraints": {
         "samples_sample_code_unique": {
           "name": "samples_sample_code_unique",
-          "columns": [
-            "sample_code"
-          ]
+          "columns": ["sample_code"]
         }
       },
       "checkConstraint": {}
@@ -754,24 +746,17 @@
       "indexes": {
         "status_idx": {
           "name": "status_idx",
-          "columns": [
-            "status"
-          ],
+          "columns": ["status"],
           "isUnique": false
         },
         "date_idx": {
           "name": "date_idx",
-          "columns": [
-            "scheduled_date"
-          ],
+          "columns": ["scheduled_date"],
           "isUnique": false
         },
         "budget_test_idx": {
           "name": "budget_test_idx",
-          "columns": [
-            "budget_id",
-            "test_type"
-          ],
+          "columns": ["budget_id", "test_type"],
           "isUnique": false
         }
       },
@@ -780,12 +765,8 @@
           "name": "service_orders_budget_id_budgets_id_fk",
           "tableFrom": "service_orders",
           "tableTo": "budgets",
-          "columnsFrom": [
-            "budget_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["budget_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -793,17 +774,13 @@
       "compositePrimaryKeys": {
         "service_orders_id": {
           "name": "service_orders_id",
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "uniqueConstraints": {
         "service_orders_order_code_unique": {
           "name": "service_orders_order_code_unique",
-          "columns": [
-            "order_code"
-          ]
+          "columns": ["order_code"]
         }
       },
       "checkConstraint": {}
@@ -901,16 +878,12 @@
       "indexes": {
         "type_idx": {
           "name": "type_idx",
-          "columns": [
-            "test_type"
-          ],
+          "columns": ["test_type"],
           "isUnique": false
         },
         "active_idx": {
           "name": "active_idx",
-          "columns": [
-            "is_active"
-          ],
+          "columns": ["is_active"],
           "isUnique": false
         }
       },
@@ -918,17 +891,13 @@
       "compositePrimaryKeys": {
         "test_catalog_id": {
           "name": "test_catalog_id",
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "uniqueConstraints": {
         "test_catalog_test_code_unique": {
           "name": "test_catalog_test_code_unique",
-          "columns": [
-            "test_code"
-          ]
+          "columns": ["test_code"]
         }
       },
       "checkConstraint": {}
@@ -936,18 +905,68 @@
     "projects": {
       "name": "projects",
       "columns": {
-        "id": { "name": "id", "type": "serial", "primaryKey": false, "notNull": true, "autoincrement": true },
-        "project_code": { "name": "project_code", "type": "varchar(50)", "primaryKey": false, "notNull": true, "autoincrement": false },
-        "name": { "name": "name", "type": "varchar(255)", "primaryKey": false, "notNull": true, "autoincrement": false },
-        "client_name": { "name": "client_name", "type": "varchar(255)", "primaryKey": false, "notNull": true, "autoincrement": false },
-        "location": { "name": "location", "type": "text", "primaryKey": false, "notNull": true, "autoincrement": false },
-        "description": { "name": "description", "type": "text", "primaryKey": false, "notNull": false, "autoincrement": false },
-        "created_at": { "name": "created_at", "type": "timestamp", "primaryKey": false, "notNull": false, "autoincrement": false, "default": "(now())" }
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": true
+        },
+        "project_code": {
+          "name": "project_code",
+          "type": "varchar(50)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "name": {
+          "name": "name",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "client_name": {
+          "name": "client_name",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "location": {
+          "name": "location",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "description": {
+          "name": "description",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false,
+          "default": "(now())"
+        }
       },
       "indexes": {},
       "foreignKeys": {},
-      "compositePrimaryKeys": { "projects_id": { "name": "projects_id", "columns": ["id"] } },
-      "uniqueConstraints": { "projects_project_code_unique": { "name": "projects_project_code_unique", "columns": ["project_code"] } },
+      "compositePrimaryKeys": {
+        "projects_id": { "name": "projects_id", "columns": ["id"] }
+      },
+      "uniqueConstraints": {
+        "projects_project_code_unique": {
+          "name": "projects_project_code_unique",
+          "columns": ["project_code"]
+        }
+      },
       "checkConstraint": {}
     }
   },

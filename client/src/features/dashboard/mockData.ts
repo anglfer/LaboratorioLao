@@ -51,7 +51,7 @@ export const mockPresupuestosRecientes = [
     claveObra: "MXL-2025-0087",
     cliente: "Inmobiliaria Cortés",
     estado: "aprobado",
-    total: 84750.00,
+    total: 84750.0,
     fechaSolicitud: "24/06/2025",
   },
   {
@@ -59,7 +59,7 @@ export const mockPresupuestosRecientes = [
     claveObra: "ENS-2025-0023",
     cliente: "Municipio de Ensenada",
     estado: "borrador",
-    total: 12680.50,
+    total: 12680.5,
     fechaSolicitud: "23/06/2025",
   },
   {
@@ -67,7 +67,7 @@ export const mockPresupuestosRecientes = [
     claveObra: "TEC-2025-0015",
     cliente: "Universidad Autónoma de BC",
     estado: "rechazado",
-    total: 29750.00,
+    total: 29750.0,
     fechaSolicitud: "22/06/2025",
   },
 ];

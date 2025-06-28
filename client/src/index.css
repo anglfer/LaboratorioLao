@@ -14,7 +14,7 @@
   --card-foreground: 210 29% 24%; /* #2C3E50 Azul Gris Oscuro para textos principales */
   --border: 210 33% 98%; /* #F8F9FA Gris Muy Claro para bordes */
   --input: 210 33% 98%; /* #F8F9FA Gris Muy Claro para campos de entrada */
-  
+
   /* COLORES PRIMARIOS */
   --primary: 93 48% 44%; /* #68A53B Verde Corporativo para botones primarios */
   --primary-foreground: 0 0% 100%; /* #FFFFFF Blanco para texto sobre verde */
@@ -22,20 +22,20 @@
   --secondary-foreground: 0 0% 100%; /* #FFFFFF Blanco para texto sobre gris */
   --accent: 93 48% 33%; /* #4F7D2C Verde Oscuro */
   --accent-foreground: 0 0% 100%; /* #FFFFFF Blanco para texto sobre verde oscuro */
-  
+
   /* COLORES FUNCIONALES */
   --destructive: 7 65% 46%; /* #C0392B Rojo Ladrillo para errores */
   --destructive-foreground: 0 0% 100%; /* #FFFFFF Blanco */
   --ring: 93 48% 44%; /* #68A53B Verde Corporativo para enfoque */
   --radius: 0.5rem;
-  
+
   /* Colores para gráficos */
   --chart-1: 93 48% 44%; /* #68A53B Verde Corporativo */
   --chart-2: 210 29% 24%; /* #2C3E50 Azul Gris Oscuro */
   --chart-3: 21 69% 52%; /* #E67E22 Naranja Terracota */
   --chart-4: 7 65% 46%; /* #C0392B Rojo Ladrillo */
   --chart-5: 37 90% 51%; /* #F39C12 Amarillo Construcción */
-  
+
   /* LAO Brand Colors */
   --lao-green: 93 48% 44%; /* #68A53B Verde Corporativo */
   --lao-green-light: 90 34% 94%; /* #E7F2E0 Verde Claro */
@@ -44,7 +44,7 @@
   --lao-orange: 21 69% 52%; /* #E67E22 Naranja Terracota */
   --lao-yellow: 37 90% 51%; /* #F39C12 Amarillo Construcción */
   --lao-red: 7 65% 46%; /* #C0392B Rojo Ladrillo */
-  
+
   /* Sidebar variables */
   --sidebar-background: 0 0% 100%; /* #FFFFFF Blanco para la barra lateral */
   --sidebar-foreground: 210 29% 24%; /* #2C3E50 Azul Gris Oscuro para textos */
@@ -76,7 +76,7 @@
   --destructive: 7 65% 46%; /* #C0392B Rojo Ladrillo */
   --destructive-foreground: 0 0% 95%; /* Texto claro */
   --ring: 93 48% 44%; /* #68A53B Verde Corporativo */
-  
+
   /* Sidebar variables para modo oscuro */
   --sidebar-background: 210 29% 16%; /* Versión oscura del Azul Gris, ligeramente más clara que el fondo */
   --sidebar-foreground: 0 0% 95%; /* Texto claro */
@@ -96,20 +96,20 @@
   body {
     @apply font-sans antialiased bg-background text-foreground;
   }
-  
+
   /* Custom scrollbar */
   ::-webkit-scrollbar {
     width: 6px;
   }
-  
+
   ::-webkit-scrollbar-track {
     @apply bg-muted;
   }
-  
+
   ::-webkit-scrollbar-thumb {
     @apply bg-border rounded-full;
   }
-  
+
   ::-webkit-scrollbar-thumb:hover {
     @apply bg-muted-foreground;
   }
@@ -120,126 +120,126 @@
   .text-lao-green {
     color: hsl(var(--lao-green));
   }
-  
+
   .bg-lao-green {
     background-color: hsl(var(--lao-green));
   }
-  
+
   .border-lao-green {
     border-color: hsl(var(--lao-green));
   }
-  
+
   .text-lao-green-light {
     color: hsl(var(--lao-green-light));
   }
-  
+
   .bg-lao-green-light {
     background-color: hsl(var(--lao-green-light));
   }
-  
+
   .text-lao-green-dark {
     color: hsl(var(--lao-green-dark));
   }
-  
+
   .bg-lao-green-dark {
     background-color: hsl(var(--lao-green-dark));
   }
-  
+
   .text-lao-blue-gray {
     color: hsl(var(--lao-blue-gray));
   }
-  
+
   .bg-lao-blue-gray {
     background-color: hsl(var(--lao-blue-gray));
   }
-  
+
   .text-lao-orange {
     color: hsl(var(--lao-orange));
   }
-  
+
   .bg-lao-orange {
     background-color: hsl(var(--lao-orange));
   }
-  
+
   .text-lao-yellow {
     color: hsl(var(--lao-yellow));
   }
-  
+
   .bg-lao-yellow {
     background-color: hsl(var(--lao-yellow));
   }
-  
+
   .text-lao-red {
     color: hsl(var(--lao-red));
   }
-  
+
   .bg-lao-red {
     background-color: hsl(var(--lao-red));
   }
-  
+
   /* Status badges */
   .status-approved {
     @apply bg-[#E7F2E0] text-[#4F7D2C] dark:bg-[#4F7D2C]/30 dark:text-[#E7F2E0];
   }
-  
+
   .status-pending {
     @apply bg-[#FEF5E7] text-[#F39C12] dark:bg-[#F39C12]/30 dark:text-[#F8F9FA];
   }
-  
+
   .status-active {
     @apply bg-[#EBF5FB] text-[#2C3E50] dark:bg-[#2C3E50]/30 dark:text-[#F8F9FA];
   }
-  
+
   .status-completed {
     @apply bg-[#E7F2E0] text-[#4F7D2C] dark:bg-[#4F7D2C]/30 dark:text-[#E7F2E0];
   }
-  
+
   .status-rejected {
     @apply bg-[#F9EBEA] text-[#C0392B] dark:bg-[#C0392B]/30 dark:text-[#F8F9FA];
   }
-  
+
   .status-cancelled {
     @apply bg-[#F8F9FA] text-[#6C757D] dark:bg-[#6C757D]/30 dark:text-[#F8F9FA];
   }
-  
+
   /* Priority indicators */
   .priority-critical {
     @apply text-[#C0392B] dark:text-[#F9EBEA];
   }
-  
+
   .priority-high {
     @apply text-[#E67E22] dark:text-[#FEF5E7];
   }
-  
+
   .priority-medium {
     @apply text-[#F39C12] dark:text-[#FEF5E7];
   }
-  
+
   .priority-low {
     @apply text-[#68A53B] dark:text-[#E7F2E0];
   }
-  
+
   /* Test type colors */
   .test-pcc {
     @apply bg-[#EBF5FB] text-[#2C3E50] dark:bg-[#2C3E50]/30 dark:text-[#F8F9FA];
   }
-  
+
   .test-pms {
     @apply bg-[#E7F2E0] text-[#4F7D2C] dark:bg-[#4F7D2C]/30 dark:text-[#E7F2E0];
   }
-  
+
   .test-pdp {
     @apply bg-[#EBF5FB] text-[#2C3E50] dark:bg-[#2C3E50]/30 dark:text-[#F8F9FA];
   }
-  
+
   .test-asfalto {
     @apply bg-[#FBE5D6] text-[#E67E22] dark:bg-[#E67E22]/30 dark:text-[#F8F9FA];
   }
-  
+
   .test-acero {
     @apply bg-[#F8F9FA] text-[#6C757D] dark:bg-[#6C757D]/30 dark:text-[#F8F9FA];
   }
-  
+
   .test-compactacion {
     @apply bg-[#FEF5E7] text-[#F39C12] dark:bg-[#F39C12]/30 dark:text-[#F8F9FA];
   }
@@ -250,11 +250,11 @@
   .animate-fade-in {
     animation: fadeIn 0.5s ease-in-out;
   }
-  
+
   .animate-slide-up {
     animation: slideUp 0.3s ease-out;
   }
-  
+
   @keyframes fadeIn {
     from {
       opacity: 0;
@@ -263,7 +263,7 @@
       opacity: 1;
     }
   }
-  
+
   @keyframes slideUp {
     from {
       transform: translateY(10px);
@@ -274,12 +274,12 @@
       opacity: 1;
     }
   }
-  
+
   /* Loading states */
   .loading-pulse {
     @apply animate-pulse bg-gray-200 dark:bg-gray-700 rounded;
   }
-  
+
   /* Focus states for accessibility */
   .focus-visible {
     @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2;

@@ -132,7 +132,7 @@ export default function BrigadistaPage() {
               {loadingHoy
                 ? "..."
                 : programacionesHoy.filter(
-                    (p) => p.estado === EstadoProgramacion.COMPLETADA
+                    (p) => p.estado === EstadoProgramacion.COMPLETADA,
                   ).length}
             </div>
             <p className="text-xs text-muted-foreground">Hoy</p>
@@ -149,14 +149,14 @@ export default function BrigadistaPage() {
               {loadingHoy
                 ? "..."
                 : programacionesHoy.length > 0
-                ? `${Math.round(
-                    (programacionesHoy.filter(
-                      (p) => p.estado === EstadoProgramacion.COMPLETADA
-                    ).length /
-                      programacionesHoy.length) *
-                      100
-                  )}%`
-                : "0%"}
+                  ? `${Math.round(
+                      (programacionesHoy.filter(
+                        (p) => p.estado === EstadoProgramacion.COMPLETADA,
+                      ).length /
+                        programacionesHoy.length) *
+                        100,
+                    )}%`
+                  : "0%"}
             </div>
             <p className="text-xs text-muted-foreground">Eficiencia</p>
           </CardContent>

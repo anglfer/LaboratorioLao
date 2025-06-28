@@ -34,7 +34,7 @@ export function ConceptForm() {
   const [selectedSubareaName, setSelectedSubareaName] = useState<string>("");
   const { data: areas = [], isLoading: areasLoading } = useAreas();
   const { data: subareas = [], isLoading: subareasLoading } = useSubareasByArea(
-    selectedArea || null
+    selectedArea || null,
   );
   const createConcepto = useCreateConcepto();
   const {

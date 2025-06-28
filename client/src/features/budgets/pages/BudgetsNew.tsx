@@ -186,7 +186,7 @@ export default function BudgetsNew() {
   const startIndex = (currentPage - 1) * itemsPerPage;
   const paginatedBudgets = filteredAndSortedBudgets.slice(
     startIndex,
-    startIndex + itemsPerPage
+    startIndex + itemsPerPage,
   );
 
   // Mutations
@@ -202,7 +202,7 @@ export default function BudgetsNew() {
         const errorData = await response.json().catch(() => ({}));
         throw new Error(
           errorData.message ||
-            `Error ${response.status}: ${response.statusText}`
+            `Error ${response.status}: ${response.statusText}`,
         );
       }
 
@@ -310,7 +310,7 @@ export default function BudgetsNew() {
       setShowForm(true);
 
       console.log(
-        "[BudgetsNew] State updated - showForm: true, editingBudget set"
+        "[BudgetsNew] State updated - showForm: true, editingBudget set",
       );
     } catch (error) {
       console.error("[BudgetsNew] Error loading budget for editing:", error);
@@ -401,7 +401,7 @@ export default function BudgetsNew() {
     } catch (error) {
       console.error("Error al exportar PDF:", error);
       alert(
-        "Ocurrió un error al exportar el PDF. Inténtalo de nuevo más tarde."
+        "Ocurrió un error al exportar el PDF. Inténtalo de nuevo más tarde.",
       );
     }
   };
@@ -660,7 +660,7 @@ export default function BudgetsNew() {
               Mostrando {startIndex + 1}-
               {Math.min(
                 startIndex + itemsPerPage,
-                filteredAndSortedBudgets.length
+                filteredAndSortedBudgets.length,
               )}{" "}
               de {filteredAndSortedBudgets.length} presupuestos
             </p>
@@ -768,8 +768,8 @@ export default function BudgetsNew() {
                               } else {
                                 setSelectedBudgets(
                                   selectedBudgets.filter(
-                                    (id) => id !== budget.id
-                                  )
+                                    (id) => id !== budget.id,
+                                  ),
                                 );
                               }
                             }}
@@ -804,7 +804,7 @@ export default function BudgetsNew() {
                             ? format(
                                 new Date(budget.fechaSolicitud),
                                 "dd/MM/yyyy",
-                                { locale: es }
+                                { locale: es },
                               )
                             : "-"}
                         </TableCell>

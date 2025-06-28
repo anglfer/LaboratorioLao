@@ -11,7 +11,7 @@ async function seedTestData() {
       create: {
         codigo: "PCC",
         nombre: "Control de Calidad",
-      }
+      },
     });
 
     // Inicializar contador de obras para el área PCC del año actual
@@ -20,15 +20,15 @@ async function seedTestData() {
       where: {
         areaCodigo_año: {
           areaCodigo: "PCC",
-          año: añoActual
-        }
+          año: añoActual,
+        },
       },
       update: {},
       create: {
         areaCodigo: "PCC",
         año: añoActual,
-        contador: 1 // Empezamos en 1 porque ya vamos a crear PCC-25-001
-      }
+        contador: 1, // Empezamos en 1 porque ya vamos a crear PCC-25-001
+      },
     });
 
     // Crear subáreas
@@ -37,8 +37,8 @@ async function seedTestData() {
       update: {},
       create: {
         nombre: "Concretos",
-        areaCodigo: "PCC"
-      }
+        areaCodigo: "PCC",
+      },
     });
 
     // Crear conceptos
@@ -49,9 +49,9 @@ async function seedTestData() {
         codigo: "CON-01",
         descripcion: "Concreto hidráulico",
         unidad: "m3",
-        p_u: 750.00,
-        subareaId: subarea.id
-      }
+        p_u: 750.0,
+        subareaId: subarea.id,
+      },
     });
 
     // Crear cliente
@@ -61,8 +61,8 @@ async function seedTestData() {
       create: {
         nombre: "Constructora ABC S.A. de C.V.",
         direccion: "Av. Principal #123, Col. Centro",
-        activo: true
-      }
+        activo: true,
+      },
     });
 
     // Crear obra
@@ -73,8 +73,8 @@ async function seedTestData() {
         clave: "PCC-25-001",
         areaCodigo: "PCC",
         contratista: "Constructora ABC",
-        estado: 1
-      }
+        estado: 1,
+      },
     });
 
     // Crear presupuesto aprobado
@@ -91,11 +91,11 @@ async function seedTestData() {
         calle: "Av. Principal",
         contactoResponsable: "Ing. Juan Pérez",
         estado: "aprobado",
-        subtotal: 4500.00,
-        ivaMonto: 720.00,
-        total: 5220.00,
-        formaPago: "Transferencia bancaria"
-      }
+        subtotal: 4500.0,
+        ivaMonto: 720.0,
+        total: 5220.0,
+        formaPago: "Transferencia bancaria",
+      },
     });
 
     // Crear detalle del presupuesto
@@ -106,10 +106,10 @@ async function seedTestData() {
         presupuestoId: presupuesto.id,
         conceptoCodigo: concepto.codigo,
         cantidad: 10,
-        precioUnitario: 450.00,
-        subtotal: 4500.00,
-        estado: "hecho"
-      }
+        precioUnitario: 450.0,
+        subtotal: 4500.0,
+        estado: "hecho",
+      },
     });
 
     // Crear brigadistas
@@ -120,8 +120,8 @@ async function seedTestData() {
         nombre: "Mario González",
         telefono: "555-0101",
         email: "mario.gonzalez@laboratorio.com",
-        activo: true
-      }
+        activo: true,
+      },
     });
 
     const brigadista2 = await prisma.brigadista.upsert({
@@ -131,8 +131,8 @@ async function seedTestData() {
         nombre: "Ana Rodríguez",
         telefono: "555-0102",
         email: "ana.rodriguez@laboratorio.com",
-        activo: true
-      }
+        activo: true,
+      },
     });
 
     // Crear vehículos
@@ -142,18 +142,18 @@ async function seedTestData() {
       create: {
         clave: "VEH-001",
         descripcion: "Camioneta Nissan NP300 2022",
-        activo: true
-      }
+        activo: true,
+      },
     });
 
     const vehiculo2 = await prisma.vehiculo.upsert({
       where: { id: 2 },
       update: {},
       create: {
-        clave: "VEH-002", 
+        clave: "VEH-002",
         descripcion: "Camioneta Toyota Hilux 2023",
-        activo: true
-      }
+        activo: true,
+      },
     });
 
     // Crear programaciones de prueba
@@ -177,8 +177,8 @@ async function seedTestData() {
         brigadistaId: brigadista1.id,
         vehiculoId: vehiculo1.id,
         estado: "programada",
-        observaciones: "Acceso por entrada principal"
-      }
+        observaciones: "Acceso por entrada principal",
+      },
     });
 
     await prisma.programacion.upsert({
@@ -198,8 +198,8 @@ async function seedTestData() {
         vehiculoId: vehiculo2.id,
         estado: "en_proceso",
         observaciones: "Zona norte del terreno",
-        fechaInicio: new Date()
-      }
+        fechaInicio: new Date(),
+      },
     });
 
     await prisma.programacion.upsert({
@@ -222,8 +222,8 @@ async function seedTestData() {
         observaciones: "Trabajo completado exitosamente",
         fechaInicio: new Date(fechaHoy.getTime() - 86400000), // Ayer
         fechaCompletado: new Date(fechaHoy.getTime() - 82800000), // Ayer + 1 hora
-        muestrasObtenidas: 2
-      }
+        muestrasObtenidas: 2,
+      },
     });
 
     console.log("✅ Datos de prueba creados exitosamente:");
@@ -234,9 +234,10 @@ async function seedTestData() {
     console.log(`- Obra: ${obra.clave}`);
     console.log(`- Presupuesto: ${presupuesto.id} (${presupuesto.estado})`);
     console.log(`- Brigadistas: ${brigadista1.nombre}, ${brigadista2.nombre}`);
-    console.log(`- Vehículos: ${vehiculo1.descripcion}, ${vehiculo2.descripcion}`);
+    console.log(
+      `- Vehículos: ${vehiculo1.descripcion}, ${vehiculo2.descripcion}`,
+    );
     console.log("- 3 programaciones de prueba");
-
   } catch (error) {
     console.error("❌ Error creando datos de prueba:", error);
     throw error;

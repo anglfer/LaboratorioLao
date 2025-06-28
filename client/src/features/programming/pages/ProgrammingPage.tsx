@@ -58,7 +58,7 @@ export default function ProgrammingPage() {
           </CardHeader>{" "}
           <CardContent>
             <div className="text-2xl font-bold">
-              {loadingStats ? "..." : quickStats?.programacionesActivas ?? 0}
+              {loadingStats ? "..." : (quickStats?.programacionesActivas ?? 0)}
             </div>
             <p className="text-xs text-muted-foreground">Esta semana</p>
           </CardContent>
@@ -71,7 +71,7 @@ export default function ProgrammingPage() {
           </CardHeader>{" "}
           <CardContent>
             <div className="text-2xl font-bold">
-              {loadingStats ? "..." : quickStats?.enProceso ?? 0}
+              {loadingStats ? "..." : (quickStats?.enProceso ?? 0)}
             </div>
             <p className="text-xs text-muted-foreground">
               Actividades en campo
@@ -86,7 +86,7 @@ export default function ProgrammingPage() {
           </CardHeader>{" "}
           <CardContent>
             <div className="text-2xl font-bold">
-              {loadingStats ? "..." : quickStats?.completadasMes ?? 0}
+              {loadingStats ? "..." : (quickStats?.completadasMes ?? 0)}
             </div>
             <p className="text-xs text-muted-foreground">Este mes</p>
           </CardContent>

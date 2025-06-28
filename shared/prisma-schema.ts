@@ -1,22 +1,60 @@
 import { z } from "zod";
 
 // Enums
-export const budgetStatusEnum = z.enum(["draft", "pending", "approved", "rejected", "active", "completed"]);
-export const serviceOrderStatusEnum = z.enum(["scheduled", "in_field", "in_lab", "completed", "cancelled"]);
-export const sampleStatusEnum = z.enum(["collected", "in_lab", "tested", "completed"]);
-export const reportStatusEnum = z.enum(["draft", "in_review", "completed", "signed"]);
+export const budgetStatusEnum = z.enum([
+  "draft",
+  "pending",
+  "approved",
+  "rejected",
+  "active",
+  "completed",
+]);
+export const serviceOrderStatusEnum = z.enum([
+  "scheduled",
+  "in_field",
+  "in_lab",
+  "completed",
+  "cancelled",
+]);
+export const sampleStatusEnum = z.enum([
+  "collected",
+  "in_lab",
+  "tested",
+  "completed",
+]);
+export const reportStatusEnum = z.enum([
+  "draft",
+  "in_review",
+  "completed",
+  "signed",
+]);
 export const priorityEnum = z.enum(["low", "medium", "high", "critical"]);
 export const testTypeEnum = z.enum([
   // Control de Calidad (PCC)
-  "PCC_CONCRETO", "PCC_ACERO", "PCC_SOLDADURA", "PCC_COMPACTACION",
+  "PCC_CONCRETO",
+  "PCC_ACERO",
+  "PCC_SOLDADURA",
+  "PCC_COMPACTACION",
   // Mecánica de Suelos (PMS)
-  "PMS_CLASIFICACION", "PMS_COMPACTACION", "PMS_CBR", "PMS_PROCTOR",
+  "PMS_CLASIFICACION",
+  "PMS_COMPACTACION",
+  "PMS_CBR",
+  "PMS_PROCTOR",
   // Diseño de Pavimentos (PDP)
-  "PDP_ASFALTO", "PDP_BASES", "PDP_SUBBASES",
+  "PDP_ASFALTO",
+  "PDP_BASES",
+  "PDP_SUBBASES",
   // Otros
-  "OTRO"
+  "OTRO",
 ]);
-export const serviceTypeEnum = z.enum(["PCC", "PMS", "PDP", "ASFALTO", "ACERO", "COMPACTACION"]);
+export const serviceTypeEnum = z.enum([
+  "PCC",
+  "PMS",
+  "PDP",
+  "ASFALTO",
+  "ACERO",
+  "COMPACTACION",
+]);
 
 // Regex patterns
 const phoneRegex = /^(?:\+52|52)?[1-9][0-9]{9}$/;
@@ -25,9 +63,21 @@ const emailRegex = /^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
 // Insert schemas for validation
 export const insertClientSchema = z.object({
   name: z.string().min(2, "El nombre del cliente es requerido"),
-  contact: z.string().min(2, "El nombre del responsable es requerido").optional(),
-  phone: z.string().regex(phoneRegex, "El teléfono debe tener 10 dígitos y ser un número válido de México").optional(),
-  email: z.string().email("El correo electrónico debe tener un formato válido").optional(),
+  contact: z
+    .string()
+    .min(2, "El nombre del responsable es requerido")
+    .optional(),
+  phone: z
+    .string()
+    .regex(
+      phoneRegex,
+      "El teléfono debe tener 10 dígitos y ser un número válido de México",
+    )
+    .optional(),
+  email: z
+    .string()
+    .email("El correo electrónico debe tener un formato válido")
+    .optional(),
   address: z.string().optional(),
 });
 
@@ -40,85 +90,143 @@ export const insertProjectSchema = z.object({
 });
 
 export const insertTestConceptSchema = z.object({
-  conceptCode: z.string({ required_error: "El código del concepto es requerido" })
-               .min(1, "El código del concepto no puede estar vacío"),
-  name: z.string({ required_error: "El nombre del concepto es requerido" })
-        .min(2, "El nombre debe tener al menos 2 caracteres"),
+  conceptCode: z
+    .string({ required_error: "El código del concepto es requerido" })
+    .min(1, "El código del concepto no puede estar vacío"),
+  name: z
+    .string({ required_error: "El nombre del concepto es requerido" })
+    .min(2, "El nombre debe tener al menos 2 caracteres"),
   description: z.string().optional(),
   unit: z.string({ required_error: "La unidad de medida es requerida" }),
-  basePrice: z.number({ required_error: "El precio base es requerido" })
-             .positive("El precio base debe ser mayor a cero"),
+  basePrice: z
+    .number({ required_error: "El precio base es requerido" })
+    .positive("El precio base debe ser mayor a cero"),
   serviceType: serviceTypeEnum,
   subarea: z.string({ required_error: "La subárea es requerida" }),
   isActive: z.boolean().default(true),
 });
 
 const baseBudgetSchema = z.object({
-  budgetCode: z.string({ required_error: "El código de presupuesto es requerido" })
-              .min(1, "El código de presupuesto no puede estar vacío"),
+  budgetCode: z
+    .string({ required_error: "El código de presupuesto es requerido" })
+    .min(1, "El código de presupuesto no puede estar vacío"),
   clientId: z.number({ required_error: "El cliente es requerido" }),
   contractorName: z.string().optional(),
   contractorContact: z.string().optional(),
-  contractorPhone: z.string().regex(phoneRegex, "El teléfono debe tener 10 dígitos y ser un número válido de México").optional(),
-  contractorEmail: z.string().email("El correo electrónico debe tener un formato válido").optional(),
-  projectName: z.string({ required_error: "El nombre del proyecto es requerido" })
-               .min(2, "El nombre del proyecto debe tener al menos 2 caracteres"),
-  projectDescription: z.string({ required_error: "La descripción del proyecto es requerida" })
-                      .min(10, "La descripción debe ser más específica"),
+  contractorPhone: z
+    .string()
+    .regex(
+      phoneRegex,
+      "El teléfono debe tener 10 dígitos y ser un número válido de México",
+    )
+    .optional(),
+  contractorEmail: z
+    .string()
+    .email("El correo electrónico debe tener un formato válido")
+    .optional(),
+  projectName: z
+    .string({ required_error: "El nombre del proyecto es requerido" })
+    .min(2, "El nombre del proyecto debe tener al menos 2 caracteres"),
+  projectDescription: z
+    .string({ required_error: "La descripción del proyecto es requerida" })
+    .min(10, "La descripción debe ser más específica"),
   projectStartDate: z.coerce.date().optional(),
   projectSection: z.string().optional(),
   projectNeighborhood: z.string().optional(),
   projectStreet: z.string().optional(),
   projectResponsible: z.string().optional(),
-  location: z.string({ required_error: "La ubicación es requerida" })
-            .min(5, "La ubicación debe ser más específica"),
-  requestDate: z.coerce.date({ required_error: "La fecha de solicitud es requerida" })
-                 .refine(date => date <= new Date(), { message: "La fecha de solicitud no puede ser futura" }),
-  subtotalAmount: z.number({ required_error: "El subtotal es requerido", invalid_type_error: "El subtotal debe ser un número" })
-                  .positive("El subtotal debe ser mayor a cero"),
-  ivaAmount: z.number({ required_error: "El monto de IVA es requerido", invalid_type_error: "El IVA debe ser un número" })
-             .min(0, "El IVA no puede ser negativo"),
-  totalAmount: z.number({ required_error: "El monto total es requerido", invalid_type_error: "El monto total debe ser un número" })
-               .positive("El monto total debe ser mayor a cero"),
+  location: z
+    .string({ required_error: "La ubicación es requerida" })
+    .min(5, "La ubicación debe ser más específica"),
+  requestDate: z.coerce
+    .date({ required_error: "La fecha de solicitud es requerida" })
+    .refine((date) => date <= new Date(), {
+      message: "La fecha de solicitud no puede ser futura",
+    }),
+  subtotalAmount: z
+    .number({
+      required_error: "El subtotal es requerido",
+      invalid_type_error: "El subtotal debe ser un número",
+    })
+    .positive("El subtotal debe ser mayor a cero"),
+  ivaAmount: z
+    .number({
+      required_error: "El monto de IVA es requerido",
+      invalid_type_error: "El IVA debe ser un número",
+    })
+    .min(0, "El IVA no puede ser negativo"),
+  totalAmount: z
+    .number({
+      required_error: "El monto total es requerido",
+      invalid_type_error: "El monto total debe ser un número",
+    })
+    .positive("El monto total debe ser mayor a cero"),
   paymentMethod: z.string().optional(),
   status: budgetStatusEnum.default("draft"),
 });
 
-export const insertBudgetSchema = baseBudgetSchema.refine((data) => {
-  if (typeof data.subtotalAmount !== 'number' || typeof data.ivaAmount !== 'number' || typeof data.totalAmount !== 'number') {
-    return true; // Let individual field validations catch type errors
-  }
-  const calculatedIva = Number((data.subtotalAmount * SYSTEM_CONSTANTS.IVA_RATE).toFixed(2));
-  const calculatedTotal = Number((data.subtotalAmount + calculatedIva).toFixed(2));
-  // Allow for small floating point discrepancies
-  return Math.abs(data.ivaAmount - calculatedIva) < 0.01 && Math.abs(data.totalAmount - calculatedTotal) < 0.01;
-}, {
-  message: "Los montos de IVA y total no coinciden con el cálculo esperado",
-  path: ["totalAmount"]
-});
+export const insertBudgetSchema = baseBudgetSchema.refine(
+  (data) => {
+    if (
+      typeof data.subtotalAmount !== "number" ||
+      typeof data.ivaAmount !== "number" ||
+      typeof data.totalAmount !== "number"
+    ) {
+      return true; // Let individual field validations catch type errors
+    }
+    const calculatedIva = Number(
+      (data.subtotalAmount * SYSTEM_CONSTANTS.IVA_RATE).toFixed(2),
+    );
+    const calculatedTotal = Number(
+      (data.subtotalAmount + calculatedIva).toFixed(2),
+    );
+    // Allow for small floating point discrepancies
+    return (
+      Math.abs(data.ivaAmount - calculatedIva) < 0.01 &&
+      Math.abs(data.totalAmount - calculatedTotal) < 0.01
+    );
+  },
+  {
+    message: "Los montos de IVA y total no coinciden con el cálculo esperado",
+    path: ["totalAmount"],
+  },
+);
 
 const baseBudgetItemSchema = z.object({
   budgetId: z.number({ required_error: "El presupuesto es requerido" }),
   conceptId: z.number({ required_error: "El concepto es requerido" }),
-  itemNumber: z.number({ required_error: "El número de concepto es requerido" }),
-  quantity: z.number({ required_error: "La cantidad es requerida" })
-            .positive("La cantidad debe ser mayor a cero"),
-  unitPrice: z.number({ required_error: "El precio unitario es requerido" })
-             .positive("El precio unitario debe ser mayor a cero"),
-  totalPrice: z.number({ required_error: "El precio total es requerido" })
-              .positive("El precio total debe ser mayor a cero"),
+  itemNumber: z.number({
+    required_error: "El número de concepto es requerido",
+  }),
+  quantity: z
+    .number({ required_error: "La cantidad es requerida" })
+    .positive("La cantidad debe ser mayor a cero"),
+  unitPrice: z
+    .number({ required_error: "El precio unitario es requerido" })
+    .positive("El precio unitario debe ser mayor a cero"),
+  totalPrice: z
+    .number({ required_error: "El precio total es requerido" })
+    .positive("El precio total debe ser mayor a cero"),
 });
 
-export const insertBudgetItemSchema = baseBudgetItemSchema.refine((data) => {
-  if (typeof data.quantity !== 'number' || typeof data.unitPrice !== 'number' || typeof data.totalPrice !== 'number') {
-    return true; // Let individual field validations catch type errors
-  }
-  const calculatedTotal = Number((data.quantity * data.unitPrice).toFixed(2));
-  return Math.abs(data.totalPrice - calculatedTotal) < 0.01;
-}, {
-  message: "El precio total no coincide con el cálculo cantidad × precio unitario",
-  path: ["totalPrice"]
-});
+export const insertBudgetItemSchema = baseBudgetItemSchema.refine(
+  (data) => {
+    if (
+      typeof data.quantity !== "number" ||
+      typeof data.unitPrice !== "number" ||
+      typeof data.totalPrice !== "number"
+    ) {
+      return true; // Let individual field validations catch type errors
+    }
+    const calculatedTotal = Number((data.quantity * data.unitPrice).toFixed(2));
+    return Math.abs(data.totalPrice - calculatedTotal) < 0.01;
+  },
+  {
+    message:
+      "El precio total no coincide con el cálculo cantidad × precio unitario",
+    path: ["totalPrice"],
+  },
+);
 
 export const insertServiceOrderSchema = z.object({
   orderCode: z.string().min(1, "El código de orden es requerido"),
@@ -130,17 +238,25 @@ export const insertServiceOrderSchema = z.object({
   status: serviceOrderStatusEnum.default("scheduled"),
   fieldManager: z.string().optional(),
   assignedTechnician: z.string().optional(),
-  scheduledDate: z.coerce.date().refine(date => date >= new Date(), {
-    message: "La fecha programada debe ser futura"
-  }).optional(),
-  dueDate: z.coerce.date().refine(date => date > new Date(), {
-    message: "La fecha de vencimiento debe ser futura"
-  }).optional(),
+  scheduledDate: z.coerce
+    .date()
+    .refine((date) => date >= new Date(), {
+      message: "La fecha programada debe ser futura",
+    })
+    .optional(),
+  dueDate: z.coerce
+    .date()
+    .refine((date) => date > new Date(), {
+      message: "La fecha de vencimiento debe ser futura",
+    })
+    .optional(),
 });
 
 export const insertSampleSchema = z.object({
   sampleCode: z.string().min(1, "El código de muestra es requerido"),
-  serviceOrderId: z.number({ required_error: "La orden de servicio es requerida" }),
+  serviceOrderId: z.number({
+    required_error: "La orden de servicio es requerida",
+  }),
   description: z.string().min(1, "La descripción es requerida"),
   collectionDate: z.coerce.date().optional(),
   collectionLocation: z.string().optional(),
@@ -152,7 +268,9 @@ export const insertSampleSchema = z.object({
 
 export const insertFieldReportSchema = z.object({
   reportCode: z.string().min(1, "El código de reporte es requerido"),
-  serviceOrderId: z.number({ required_error: "La orden de servicio es requerida" }),
+  serviceOrderId: z.number({
+    required_error: "La orden de servicio es requerida",
+  }),
   reportType: z.string().min(1, "El tipo de reporte es requerido"),
   title: z.string().min(1, "El título es requerido"),
   reportDate: z.coerce.date(),
@@ -170,7 +288,10 @@ export const insertTestCatalogSchema = z.object({
   testType: z.string().min(1, "El tipo de prueba es requerido"),
   description: z.string().optional(),
   unit: z.string().min(1, "La unidad es requerida"),
-  standardPrice: z.number().positive("El precio estándar debe ser mayor a cero").optional(),
+  standardPrice: z
+    .number()
+    .positive("El precio estándar debe ser mayor a cero")
+    .optional(),
   duration: z.number().positive("La duración debe ser mayor a cero").optional(),
   equipment: z.string().optional(),
   standards: z.string().optional(),
@@ -191,18 +312,19 @@ export type InsertTestCatalog = z.infer<typeof insertTestCatalogSchema>;
 // Constantes del sistema
 export const SYSTEM_CONSTANTS = {
   IVA_RATE: 0.16,
-  EXTRA_HOUR_RATE: 394.70,
+  EXTRA_HOUR_RATE: 394.7,
   BUSINESS_HOURS: {
     weekday: {
       start: "08:00",
-      end: "17:00"
+      end: "17:00",
     },
     saturday: {
       start: "08:00",
-      end: "14:00"
-    }
+      end: "14:00",
+    },
   },
-  SAMPLE_RETENTION_DAYS: 30,  COMPANY_INFO: {
+  SAMPLE_RETENTION_DAYS: 30,
+  COMPANY_INFO: {
     name: "Laboratorio y Consultoría Loa S.A. de C.V.",
     manager: "Ing. Luis Recendis Martínez",
     position: "Gerente General",
@@ -219,6 +341,6 @@ export const SYSTEM_CONSTANTS = {
     "Los accesos al lugar de la obra, la ubicación de las exploraciones y los permisos necesarios para su realización correrán por cuenta del contratante.",
     "Para iniciar los trabajos se requiere la aceptación del presupuesto firmando la orden de servicio correspondiente, preferentemente por el representante legal. La entrega de información final con los resultados se realizará una vez liquidado el monto de los trabajos ejecutados.",
     "En caso de requerir cualquier tipo de modificación en el alcance de este presupuesto después de su firma, se realizará un nuevo presupuesto.",
-    "Anexo I. Métodos de prueba, Frecuencia de muestreo, Criterios de aceptación y Rechazo, Políticas de Laboratorio, Imparcialidad y Confidencialidad."
-  ]
+    "Anexo I. Métodos de prueba, Frecuencia de muestreo, Criterios de aceptación y Rechazo, Políticas de Laboratorio, Imparcialidad y Confidencialidad.",
+  ],
 };

@@ -23,31 +23,36 @@ import puppeteer from "puppeteer";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-function generatePresupuestoHTML(presupuesto: any, detalles: any[], forPDF = false) {
+function generatePresupuestoHTML(
+  presupuesto: any,
+  detalles: any[],
+  forPDF = false,
+) {
   const subtotal = presupuesto.subtotal || 0;
   const iva = presupuesto.ivaMonto || 0;
   const total = presupuesto.total || 0;
-  const fechaGeneracion = new Date().toLocaleDateString('es-MX', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric'
+  const fechaGeneracion = new Date().toLocaleDateString("es-MX", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
   });
 
   // Obtener el estado del presupuesto con color apropiado
   const estadoColors = {
-    'borrador': { bg: '#fef3c7', text: '#92400e', border: '#f59e0b' },
-    'enviado': { bg: '#dbeafe', text: '#1e40af', border: '#3b82f6' },
-    'aprobado': { bg: '#dcfce7', text: '#166534', border: '#22c55e' },
-    'rechazado': { bg: '#fee2e2', text: '#dc2626', border: '#ef4444' },
-    'finalizado': { bg: '#f3f4f6', text: '#374151', border: '#6b7280' },
+    borrador: { bg: "#fef3c7", text: "#92400e", border: "#f59e0b" },
+    enviado: { bg: "#dbeafe", text: "#1e40af", border: "#3b82f6" },
+    aprobado: { bg: "#dcfce7", text: "#166534", border: "#22c55e" },
+    rechazado: { bg: "#fee2e2", text: "#dc2626", border: "#ef4444" },
+    finalizado: { bg: "#f3f4f6", text: "#374151", border: "#6b7280" },
   };
 
-  const estadoConfig = estadoColors[presupuesto.estado] || estadoColors['borrador'];
+  const estadoConfig =
+    estadoColors[presupuesto.estado] || estadoColors["borrador"];
 
   // Agrupar conceptos por área y subárea para el resumen ejecutivo
   const conceptosPorArea = detalles.reduce((acc, detalle) => {
-    const area = detalle.concepto?.subarea?.area?.nombre || 'Sin área';
-    const subarea = detalle.concepto?.subarea?.nombre || 'Sin subárea';
+    const area = detalle.concepto?.subarea?.area?.nombre || "Sin área";
+    const subarea = detalle.concepto?.subarea?.nombre || "Sin subárea";
 
     if (!acc[area]) {
       acc[area] = new Set();
@@ -331,12 +336,12 @@ function generatePresupuestoHTML(presupuesto: any, detalles: any[], forPDF = fal
             </div>
         </div>
         <div class="document-info">
-            <div class="budget-code">PRESUPUESTO ${presupuesto.claveObra || 'SIN-ASIGNAR'}</div>
-            <div class="status-badge">${presupuesto.estado || 'borrador'}</div>
+            <div class="budget-code">PRESUPUESTO ${presupuesto.claveObra || "SIN-ASIGNAR"}</div>
+            <div class="status-badge">${presupuesto.estado || "borrador"}</div>
             <div style="margin-top: 15px; font-size: 10px;">
                 <strong>Fecha de Generación:</strong><br>
                 ${fechaGeneracion}<br><br>
-                <strong>Folio:</strong> ${presupuesto.id || 'N/A'}
+                <strong>Folio:</strong> ${presupuesto.id || "N/A"}
             </div>
         </div>
     </div>
@@ -348,39 +353,43 @@ function generatePresupuestoHTML(presupuesto: any, detalles: any[], forPDF = fal
         <div class="info-grid">
             <div>
                 <div class="info-item">
-                    <span class="info-label">Dirigido a:</span> ${presupuesto.cliente?.nombre || 'Cliente no especificado'}
+                    <span class="info-label">Dirigido a:</span> ${presupuesto.cliente?.nombre || "Cliente no especificado"}
                 </div>
                 <div class="info-item">
-                    <span class="info-label">Dirección:</span> ${presupuesto.cliente?.direccion || 'No especificada'}
+                    <span class="info-label">Dirección:</span> ${presupuesto.cliente?.direccion || "No especificada"}
                 </div>
                 <div class="info-item">
-                    <span class="info-label">Atención:</span> ${presupuesto.contactoResponsable || 'No especificado'}
+                    <span class="info-label">Atención:</span> ${presupuesto.contactoResponsable || "No especificado"}
                 </div>
             </div>
             <div>
                 <div class="info-item">
-                    <span class="info-label">Contratista:</span> ${presupuesto.nombreContratista || 'No especificado'}
+                    <span class="info-label">Contratista:</span> ${presupuesto.nombreContratista || "No especificado"}
                 </div>
                 <div class="info-item">
-                    <span class="info-label">Fecha de Solicitud:</span> ${presupuesto.fechaSolicitud ? new Date(presupuesto.fechaSolicitud).toLocaleDateString('es-MX') : 'No especificada'}
+                    <span class="info-label">Fecha de Solicitud:</span> ${presupuesto.fechaSolicitud ? new Date(presupuesto.fechaSolicitud).toLocaleDateString("es-MX") : "No especificada"}
                 </div>
                 <div class="info-item">
-                    <span class="info-label">Fecha Propuesta de Inicio:</span> ${presupuesto.fechaInicio ? new Date(presupuesto.fechaInicio).toLocaleDateString('es-MX') : 'Por definir'}
+                    <span class="info-label">Fecha Propuesta de Inicio:</span> ${presupuesto.fechaInicio ? new Date(presupuesto.fechaInicio).toLocaleDateString("es-MX") : "Por definir"}
                 </div>
             </div>
         </div>
         
         <div class="info-item">
             <span class="info-label">Descripción de la Obra:</span><br>
-            ${presupuesto.descripcionObra || 'No especificada'}
+            ${presupuesto.descripcionObra || "No especificada"}
         </div>
         
-        ${presupuesto.tramo || presupuesto.colonia || presupuesto.calle ? `
+        ${
+          presupuesto.tramo || presupuesto.colonia || presupuesto.calle
+            ? `
         <div class="info-item" style="margin-top: 15px;">
             <span class="info-label">Ubicación:</span><br>
-            ${[presupuesto.tramo, presupuesto.colonia, presupuesto.calle].filter(Boolean).join(', ')}
+            ${[presupuesto.tramo, presupuesto.colonia, presupuesto.calle].filter(Boolean).join(", ")}
         </div>
-        ` : ''}
+        `
+            : ""
+        }
     </div>
 
     <!-- DESGLOSE DE SERVICIOS -->
@@ -398,19 +407,23 @@ function generatePresupuestoHTML(presupuesto: any, detalles: any[], forPDF = fal
             </tr>
         </thead>
         <tbody>
-            ${detalles.map((detalle, index) => `
+            ${detalles
+              .map(
+                (detalle, index) => `
                 <tr>
                     <td class="text-center">${index + 1}</td>
                     <td>
-                        <strong>${detalle.concepto?.codigo || 'N/A'}</strong><br>
-                        ${detalle.concepto?.descripcion || 'Descripción no disponible'}
+                        <strong>${detalle.concepto?.codigo || "N/A"}</strong><br>
+                        ${detalle.concepto?.descripcion || "Descripción no disponible"}
                     </td>
-                    <td class="text-center">${detalle.concepto?.unidad || 'N/A'}</td>
-                    <td class="text-center">${Number(detalle.cantidad || 0).toLocaleString('es-MX', { minimumFractionDigits: 2 })}</td>
-                    <td class="text-right">$${Number(detalle.precioUnitario || 0).toLocaleString('es-MX', { minimumFractionDigits: 2 })}</td>
-                    <td class="text-right">$${Number(detalle.subtotal || 0).toLocaleString('es-MX', { minimumFractionDigits: 2 })}</td>
+                    <td class="text-center">${detalle.concepto?.unidad || "N/A"}</td>
+                    <td class="text-center">${Number(detalle.cantidad || 0).toLocaleString("es-MX", { minimumFractionDigits: 2 })}</td>
+                    <td class="text-right">$${Number(detalle.precioUnitario || 0).toLocaleString("es-MX", { minimumFractionDigits: 2 })}</td>
+                    <td class="text-right">$${Number(detalle.subtotal || 0).toLocaleString("es-MX", { minimumFractionDigits: 2 })}</td>
                 </tr>
-            `).join('')}
+            `,
+              )
+              .join("")}
         </tbody>
     </table>
 
@@ -419,23 +432,27 @@ function generatePresupuestoHTML(presupuesto: any, detalles: any[], forPDF = fal
         <table class="totals-table">
             <tr>
                 <td style="width: 70%; text-align: right; font-weight: bold;">SUBTOTAL:</td>
-                <td style="width: 30%; text-align: right; font-weight: bold;">$${Number(subtotal).toLocaleString('es-MX', { minimumFractionDigits: 2 })}</td>
+                <td style="width: 30%; text-align: right; font-weight: bold;">$${Number(subtotal).toLocaleString("es-MX", { minimumFractionDigits: 2 })}</td>
             </tr>
             <tr>
                 <td style="text-align: right; font-weight: bold;">IVA (16%):</td>
-                <td style="text-align: right; font-weight: bold;">$${Number(iva).toLocaleString('es-MX', { minimumFractionDigits: 2 })}</td>
+                <td style="text-align: right; font-weight: bold;">$${Number(iva).toLocaleString("es-MX", { minimumFractionDigits: 2 })}</td>
             </tr>
             <tr style="border-top: 2px solid #0066cc;">
                 <td style="text-align: right;" class="total-final">TOTAL:</td>
-                <td style="text-align: right;" class="total-final">$${Number(total).toLocaleString('es-MX', { minimumFractionDigits: 2 })}</td>
+                <td style="text-align: right;" class="total-final">$${Number(total).toLocaleString("es-MX", { minimumFractionDigits: 2 })}</td>
             </tr>
         </table>
         
-        ${presupuesto.formaPago ? `
+        ${
+          presupuesto.formaPago
+            ? `
         <div style="margin-top: 15px;">
             <span class="info-label">Forma de Pago:</span> ${presupuesto.formaPago}
         </div>
-        ` : ''}
+        `
+            : ""
+        }
     </div>
 
     <!-- PÁGINA 2: RESUMEN EJECUTIVO Y TÉRMINOS -->
@@ -449,18 +466,26 @@ function generatePresupuestoHTML(presupuesto: any, detalles: any[], forPDF = fal
         </p>
         
         <div class="areas-list">
-            ${Object.entries(conceptosPorArea).map(([area, subareas]) => `
+            ${Object.entries(conceptosPorArea)
+              .map(
+                ([area, subareas]) => `
                 <div class="area-item">
                     <div class="area-name">${area}</div>
                     <div class="subarea-list">
-                        ${Array.from(subareas).map(subarea => `
+                        ${Array.from(subareas)
+                          .map(
+                            (subarea) => `
                             <div class="subarea-item">
                                 <span class="subarea-included">✓ ${subarea}</span>
                             </div>
-                        `).join('')}
+                        `,
+                          )
+                          .join("")}
                     </div>
                 </div>
-            `).join('')}
+            `,
+              )
+              .join("")}
         </div>
     </div>
 
@@ -509,7 +534,7 @@ function generatePresupuestoHTML(presupuesto: any, detalles: any[], forPDF = fal
         <div class="signature-box">
             <div style="margin-bottom: 20px;">
                 <strong>CLIENTE</strong><br>
-                <small>${presupuesto.cliente?.nombre || 'Nombre del Cliente'}</small>
+                <small>${presupuesto.cliente?.nombre || "Nombre del Cliente"}</small>
             </div>
             <div class="signature-line"></div>
             <div style="margin-top: 10px;">
@@ -527,45 +552,45 @@ function generatePresupuestoHTML(presupuesto: any, detalles: any[], forPDF = fal
 // HTML validation function to prevent PDF corruption
 function validateHTML(html: string): { isValid: boolean; errors: string[] } {
   const errors: string[] = [];
-  
+
   // Check for basic HTML structure
-  if (!html.includes('<!DOCTYPE html>')) {
-    errors.push('Missing DOCTYPE declaration');
+  if (!html.includes("<!DOCTYPE html>")) {
+    errors.push("Missing DOCTYPE declaration");
   }
-  if (!html.includes('<html') || !html.includes('</html>')) {
-    errors.push('Missing html tags');
+  if (!html.includes("<html") || !html.includes("</html>")) {
+    errors.push("Missing html tags");
   }
-  
-  if (!html.includes('<head>') || !html.includes('</head>')) {
-    errors.push('Missing head tags');
+
+  if (!html.includes("<head>") || !html.includes("</head>")) {
+    errors.push("Missing head tags");
   }
-  
-  if (!html.includes('<body>') || !html.includes('</body>')) {
-    errors.push('Missing body tags');
+
+  if (!html.includes("<body>") || !html.includes("</body>")) {
+    errors.push("Missing body tags");
   }
-  
+
   // Check for unclosed tags that can cause rendering issues
   const openTags = html.match(/<[^/][^>]*>/g) || [];
   const closeTags = html.match(/<\/[^>]*>/g) || [];
-  
+
   if (openTags.length === 0) {
-    errors.push('No opening tags found');
+    errors.push("No opening tags found");
   }
-  
+
   // Check for problematic characters that might cause encoding issues
   const problematicChars = /[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/;
   if (problematicChars.test(html)) {
-    errors.push('Contains control characters that may cause corruption');
+    errors.push("Contains control characters that may cause corruption");
   }
-  
+
   // Check minimum length
   if (html.length < 1000) {
-    errors.push('HTML content seems tooshort');
+    errors.push("HTML content seems tooshort");
   }
-  
+
   return {
     isValid: errors.length === 0,
-    errors
+    errors,
   };
 }
 
@@ -577,13 +602,13 @@ export function registerRoutes(app: Express): Promise<Server> {
       const [totalClientes, totalPresupuestos, totalObras] = await Promise.all([
         storage.getAllClientes(),
         storage.getAllPresupuestos(),
-        storage.getAllObras()
+        storage.getAllObras(),
       ]);
-      
+
       const stats = {
         totalClientes: totalClientes.length,
         totalPresupuestos: totalPresupuestos.length,
-        totalObras: totalObras.length
+        totalObras: totalObras.length,
       };
       res.json(stats);
     } catch (error: any) {
@@ -605,7 +630,9 @@ export function registerRoutes(app: Express): Promise<Server> {
     try {
       const result = insertAreaSchema.safeParse(req.body);
       if (!result.success) {
-        return res.status(400).json({ message: "Validation error", errors: result.error.errors });
+        return res
+          .status(400)
+          .json({ message: "Validation error", errors: result.error.errors });
       }
       const area = await storage.createArea(result.data);
       res.status(201).json(area);
@@ -618,7 +645,7 @@ export function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/subareas", async (req, res) => {
     try {
       const areaCodigo = req.query.area as string;
-      const subareas = areaCodigo 
+      const subareas = areaCodigo
         ? await storage.getSubareasByArea(areaCodigo)
         : await storage.getAllSubareas();
       res.json(subareas);
@@ -631,7 +658,9 @@ export function registerRoutes(app: Express): Promise<Server> {
     try {
       const result = insertSubareaSchema.safeParse(req.body);
       if (!result.success) {
-        return res.status(400).json({ message: "Validation error", errors: result.error.errors });
+        return res
+          .status(400)
+          .json({ message: "Validation error", errors: result.error.errors });
       }
       const subarea = await storage.createSubarea(result.data);
       res.status(201).json(subarea);
@@ -643,8 +672,10 @@ export function registerRoutes(app: Express): Promise<Server> {
   // Conceptos routes
   app.get("/api/conceptos", async (req, res) => {
     try {
-      const subareaId = req.query.subarea ? parseInt(req.query.subarea as string) : undefined;
-      const conceptos = subareaId 
+      const subareaId = req.query.subarea
+        ? parseInt(req.query.subarea as string)
+        : undefined;
+      const conceptos = subareaId
         ? await storage.getConceptosBySubarea(subareaId)
         : await storage.getAllConceptos();
       res.json(conceptos);
@@ -657,7 +688,9 @@ export function registerRoutes(app: Express): Promise<Server> {
     try {
       const result = insertConceptoSchema.safeParse(req.body);
       if (!result.success) {
-        return res.status(400).json({ message: "Validation error", errors: result.error.errors });
+        return res
+          .status(400)
+          .json({ message: "Validation error", errors: result.error.errors });
       }
       const concepto = await storage.createConcepto(result.data);
       res.status(201).json(concepto);
@@ -717,51 +750,69 @@ export function registerRoutes(app: Express): Promise<Server> {
     try {
       const result = insertClienteSchema.safeParse(req.body);
       if (!result.success) {
-        return res.status(400).json({ message: "Validation error", errors: result.error.errors });
+        return res
+          .status(400)
+          .json({ message: "Validation error", errors: result.error.errors });
       }
       const cliente = await storage.createCliente(result.data);
       res.status(201).json(cliente);
     } catch (error: any) {
       res.status(500).json({ message: error.message });
     }
-  });  app.post("/api/clientes/:id/telefonos", async (req, res) => {
+  });
+  app.post("/api/clientes/:id/telefonos", async (req, res) => {
     try {
       const clienteId = parseInt(req.params.id);
-      console.log('[API] Agregando teléfono para cliente:', clienteId, 'Datos:', req.body);
-      
+      console.log(
+        "[API] Agregando teléfono para cliente:",
+        clienteId,
+        "Datos:",
+        req.body,
+      );
+
       // Agregar clienteId al body antes de validar
       const dataToValidate = { ...req.body, clienteId };
       const result = insertTelefonoSchema.safeParse(dataToValidate);
-      
+
       if (!result.success) {
-        console.log('[API] Error de validación teléfono:', result.error.errors);
-        return res.status(400).json({ message: "Validation error", errors: result.error.errors });
+        console.log("[API] Error de validación teléfono:", result.error.errors);
+        return res
+          .status(400)
+          .json({ message: "Validation error", errors: result.error.errors });
       }
       const telefono = await storage.createTelefono(result.data);
-      console.log('[API] Teléfono creado exitosamente:', telefono);
+      console.log("[API] Teléfono creado exitosamente:", telefono);
       res.status(201).json(telefono);
     } catch (error: any) {
-      console.error('[API] Error al crear teléfono:', error);
+      console.error("[API] Error al crear teléfono:", error);
       res.status(500).json({ message: error.message });
     }
-  });  app.post("/api/clientes/:id/correos", async (req, res) => {
+  });
+  app.post("/api/clientes/:id/correos", async (req, res) => {
     try {
       const clienteId = parseInt(req.params.id);
-      console.log('[API] Agregando correo para cliente:', clienteId, 'Datos:', req.body);
-      
+      console.log(
+        "[API] Agregando correo para cliente:",
+        clienteId,
+        "Datos:",
+        req.body,
+      );
+
       // Agregar clienteId al body antes de validar
       const dataToValidate = { ...req.body, clienteId };
       const result = insertCorreoSchema.safeParse(dataToValidate);
-      
+
       if (!result.success) {
-        console.log('[API] Error de validación correo:', result.error.errors);
-        return res.status(400).json({ message: "Validation error", errors: result.error.errors });
+        console.log("[API] Error de validación correo:", result.error.errors);
+        return res
+          .status(400)
+          .json({ message: "Validation error", errors: result.error.errors });
       }
       const correo = await storage.createCorreo(result.data);
-      console.log('[API] Correo creado exitosamente:', correo);
+      console.log("[API] Correo creado exitosamente:", correo);
       res.status(201).json(correo);
     } catch (error: any) {
-      console.error('[API] Error al crear correo:', error);
+      console.error("[API] Error al crear correo:", error);
       res.status(500).json({ message: error.message });
     }
   });
@@ -770,7 +821,7 @@ export function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/obras", async (req, res) => {
     try {
       const areaCodigo = req.query.area as string;
-      const obras = areaCodigo 
+      const obras = areaCodigo
         ? await storage.getObrasByArea(areaCodigo)
         : await storage.getAllObras();
       res.json(obras);
@@ -796,15 +847,17 @@ export function registerRoutes(app: Express): Promise<Server> {
     try {
       const result = insertObraSchema.safeParse(req.body);
       if (!result.success) {
-        return res.status(400).json({ message: "Validation error", errors: result.error.errors });
+        return res
+          .status(400)
+          .json({ message: "Validation error", errors: result.error.errors });
       }
-      
+
       // Generate clave for obra based on area and year
       const year = new Date().getFullYear();
       const obras = await storage.getObrasByArea(result.data.areaCodigo);
       const nextNumber = obras.length + 1;
-      const clave = `${result.data.areaCodigo}-${year}-${nextNumber.toString().padStart(4, '0')}`;
-      
+      const clave = `${result.data.areaCodigo}-${year}-${nextNumber.toString().padStart(4, "0")}`;
+
       const obra = await storage.createObra({ ...result.data, clave });
       res.status(201).json(obra);
     } catch (error: any) {
@@ -847,121 +900,155 @@ export function registerRoutes(app: Express): Promise<Server> {
     } catch (error: any) {
       res.status(500).json({ message: error.message });
     }
-  });  app.post("/api/presupuestos", async (req, res) => {
+  });
+  app.post("/api/presupuestos", async (req, res) => {
     try {
       const { conceptos, areaCodigo, ...presupuestoData } = req.body;
-      console.log('[POST /api/presupuestos] Request body:', req.body);
-      
+      console.log("[POST /api/presupuestos] Request body:", req.body);
+
       // Validar límites de valores antes de procesamiento
       if (conceptos && conceptos.length > 0) {
         for (const concepto of conceptos) {
           // Validar cantidad
           if (concepto.cantidad > 999999) {
-            return res.status(400).json({ 
-              message: `La cantidad para el concepto ${concepto.conceptoCodigo} excede el límite permitido (999,999)` 
+            return res.status(400).json({
+              message: `La cantidad para el concepto ${concepto.conceptoCodigo} excede el límite permitido (999,999)`,
             });
           }
-          
+
           // Validar precio unitario
           if (concepto.precioUnitario > 9999999.99) {
-            return res.status(400).json({ 
-              message: `El precio unitario para el concepto ${concepto.conceptoCodigo} excede el límite permitido ($9,999,999.99)` 
+            return res.status(400).json({
+              message: `El precio unitario para el concepto ${concepto.conceptoCodigo} excede el límite permitido ($9,999,999.99)`,
             });
           }
-          
+
           // Validar subtotal individual
           const subtotalConcepto = concepto.cantidad * concepto.precioUnitario;
           if (subtotalConcepto > 9999999999.99) {
-            return res.status(400).json({ 
-              message: `El subtotal para el concepto ${concepto.conceptoCodigo} excede el límite permitido ($9,999,999,999.99)` 
+            return res.status(400).json({
+              message: `El subtotal para el concepto ${concepto.conceptoCodigo} excede el límite permitido ($9,999,999,999.99)`,
             });
           }
         }
-        
+
         // Validar subtotal total
-        const subtotalTotal = conceptos.reduce((sum: number, concepto: any) => 
-          sum + (concepto.cantidad * concepto.precioUnitario), 0);
-        
+        const subtotalTotal = conceptos.reduce(
+          (sum: number, concepto: any) =>
+            sum + concepto.cantidad * concepto.precioUnitario,
+          0,
+        );
+
         if (subtotalTotal > 9999999999.99) {
-          return res.status(400).json({ 
-            message: 'El subtotal total del presupuesto excede el límite permitido ($9,999,999,999.99)' 
+          return res.status(400).json({
+            message:
+              "El subtotal total del presupuesto excede el límite permitido ($9,999,999,999.99)",
           });
         }
-        
+
         // Validar total con IVA
-        const ivaMonto = subtotalTotal * (presupuestoData.iva || SYSTEM_CONSTANTS.IVA_RATE);
+        const ivaMonto =
+          subtotalTotal * (presupuestoData.iva || SYSTEM_CONSTANTS.IVA_RATE);
         const totalConIva = subtotalTotal + ivaMonto;
-        
+
         if (totalConIva > 9999999999.99) {
-          return res.status(400).json({ 
-            message: 'El total del presupuesto (incluyendo IVA) excede el límite permitido ($9,999,999,999.99)' 
-          });        }
+          return res.status(400).json({
+            message:
+              "El total del presupuesto (incluyendo IVA) excede el límite permitido ($9,999,999,999.99)",
+          });
+        }
       }
-      
+
       // Si se proporciona areaCodigo, necesitamos crear o encontrar una obra
       let claveObra = presupuestoData.claveObra;
-      
+
       if (areaCodigo && !claveObra) {
         // Generar clave de obra automáticamente
         try {
           claveObra = await storage.generateClaveObra(areaCodigo);
-          console.log('[POST /api/presupuestos] Generated claveObra:', claveObra);
-          
+          console.log(
+            "[POST /api/presupuestos] Generated claveObra:",
+            claveObra,
+          );
+
           // Crear la obra si no existe
-          const existingObra = await storage.getObraById(claveObra);          if (!existingObra) {
+          const existingObra = await storage.getObraById(claveObra);
+          if (!existingObra) {
             await storage.createObra({
               clave: claveObra,
               areaCodigo: areaCodigo,
               contratista: presupuestoData.nombreContratista,
-              estado: 1
+              estado: 1,
             });
-            console.log('[POST /api/presupuestos] Created new obra:', claveObra);
+            console.log(
+              "[POST /api/presupuestos] Created new obra:",
+              claveObra,
+            );
           }
         } catch (error) {
-          console.error('[POST /api/presupuestos] Error creating obra:', error);
-          const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-          return res.status(500).json({ message: 'Error creating obra: ' + errorMessage });
+          console.error("[POST /api/presupuestos] Error creating obra:", error);
+          const errorMessage =
+            error instanceof Error ? error.message : "Unknown error";
+          return res
+            .status(500)
+            .json({ message: "Error creating obra: " + errorMessage });
         }
       }
-      
+
       // Preparar datos del presupuesto (sin areaCodigo que no existe en el modelo)
       const finalPresupuestoData = {
         ...presupuestoData,
-        claveObra: claveObra
+        claveObra: claveObra,
       };
-      
-      console.log('[POST /api/presupuestos] Final presupuesto data:', finalPresupuestoData);
-      
+
+      console.log(
+        "[POST /api/presupuestos] Final presupuesto data:",
+        finalPresupuestoData,
+      );
+
       // Crear el presupuesto principal
       const presupuesto = await storage.createPresupuesto(finalPresupuestoData);
-      console.log('[POST /api/presupuestos] Created presupuesto:', presupuesto.id);
-      
+      console.log(
+        "[POST /api/presupuestos] Created presupuesto:",
+        presupuesto.id,
+      );
+
       // Crear los detalles del presupuesto
       if (conceptos && conceptos.length > 0) {
-        console.log('[POST /api/presupuestos] Creating', conceptos.length, 'detalles');
+        console.log(
+          "[POST /api/presupuestos] Creating",
+          conceptos.length,
+          "detalles",
+        );
         for (const concepto of conceptos) {
           await storage.createPresupuestoDetalle({
             presupuestoId: presupuesto.id,
             conceptoCodigo: concepto.conceptoCodigo,
             cantidad: concepto.cantidad,
             precioUnitario: concepto.precioUnitario,
-            subtotal: concepto.subtotal || (concepto.cantidad * concepto.precioUnitario),
-            estado: 'en_proceso'
+            subtotal:
+              concepto.subtotal || concepto.cantidad * concepto.precioUnitario,
+            estado: "en_proceso",
           });
         }
-        
+
         // Recalcular totales
         await storage.recalcularTotalesPresupuesto(presupuesto.id);
-        console.log('[POST /api/presupuestos] Recalculated totals');
+        console.log("[POST /api/presupuestos] Recalculated totals");
       }
-      
+
       // Obtener el presupuesto completo con detalles
-      const presupuestoCompleto = await storage.getPresupuestoById(presupuesto.id);
-      
-      console.log('[POST /api/presupuestos] Success, returning presupuesto:', presupuestoCompleto?.id);
+      const presupuestoCompleto = await storage.getPresupuestoById(
+        presupuesto.id,
+      );
+
+      console.log(
+        "[POST /api/presupuestos] Success, returning presupuesto:",
+        presupuestoCompleto?.id,
+      );
       res.status(201).json(presupuestoCompleto);
     } catch (error: any) {
-      console.error('[POST /api/presupuestos] Error:', error);
+      console.error("[POST /api/presupuestos] Error:", error);
       res.status(500).json({ message: error.message });
     }
   });
@@ -969,25 +1056,35 @@ export function registerRoutes(app: Express): Promise<Server> {
     try {
       const id = parseInt(req.params.id);
       const { conceptos, areaCodigo, ...presupuestoData } = req.body;
-      console.log('[PUT /api/presupuestos/:id] Request body:', req.body);
-      
+      console.log("[PUT /api/presupuestos/:id] Request body:", req.body);
+
       // Validar datos del presupuesto (sin conceptos)
-      const result = insertPresupuestoSchema.partial().safeParse(presupuestoData);
+      const result = insertPresupuestoSchema
+        .partial()
+        .safeParse(presupuestoData);
       if (!result.success) {
-        return res.status(400).json({ message: "Validation error", errors: result.error.errors });
+        return res
+          .status(400)
+          .json({ message: "Validation error", errors: result.error.errors });
       }
-      
+
       // Actualizar el presupuesto principal
       const presupuesto = await storage.updatePresupuesto(id, result.data);
-      console.log('[PUT /api/presupuestos/:id] Updated presupuesto:', presupuesto.id);
-      
+      console.log(
+        "[PUT /api/presupuestos/:id] Updated presupuesto:",
+        presupuesto.id,
+      );
+
       // Si hay conceptos, actualizar los detalles
       if (conceptos && conceptos.length > 0) {
-        console.log('[PUT /api/presupuestos/:id] Updating conceptos, count:', conceptos.length);
-        
+        console.log(
+          "[PUT /api/presupuestos/:id] Updating conceptos, count:",
+          conceptos.length,
+        );
+
         // Eliminar todos los detalles existentes
         await storage.deletePresupuestoDetallesByPresupuestoId(id);
-        
+
         // Crear los nuevos detalles
         for (const concepto of conceptos) {
           await storage.createPresupuestoDetalle({
@@ -995,34 +1092,35 @@ export function registerRoutes(app: Express): Promise<Server> {
             conceptoCodigo: concepto.conceptoCodigo,
             cantidad: concepto.cantidad,
             precioUnitario: concepto.precioUnitario,
-            subtotal: concepto.subtotal || (concepto.cantidad * concepto.precioUnitario),
-            estado: 'en_proceso'
+            subtotal:
+              concepto.subtotal || concepto.cantidad * concepto.precioUnitario,
+            estado: "en_proceso",
           });
         }
-          // Recalcular totales
+        // Recalcular totales
         const detalles = await storage.getPresupuestoDetalles(id);
         const subtotal = detalles.reduce((sum, detalle) => {
           const cantidad = Number(detalle.cantidad);
           const precio = Number(detalle.precioUnitario);
-          return sum + (cantidad * precio);
+          return sum + cantidad * precio;
         }, 0);
         const iva = Number(presupuesto.iva) || 0;
         const ivaMonto = subtotal * iva;
         const total = subtotal + ivaMonto;
-        
+
         // Actualizar totales del presupuesto
         await storage.updatePresupuesto(id, {
           subtotal,
           ivaMonto,
-          total
+          total,
         });
       }
-      
+
       // Obtener el presupuesto actualizado con todos los datos
       const updatedPresupuesto = await storage.getPresupuestoById(id);
       res.json(updatedPresupuesto);
     } catch (error: any) {
-      console.error('[PUT /api/presupuestos/:id] Error:', error);
+      console.error("[PUT /api/presupuestos/:id] Error:", error);
       res.status(500).json({ message: error.message });
     }
   });
@@ -1050,19 +1148,21 @@ export function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/presupuestos/:id/detalles", async (req, res) => {
     try {
       const presupuestoId = parseInt(req.params.id);
-      
+
       // Agregar presupuestoId al body antes de validar
       const dataToValidate = { ...req.body, presupuestoId };
       const result = insertPresupuestoDetalleSchema.safeParse(dataToValidate);
-      
+
       if (!result.success) {
-        return res.status(400).json({ message: "Validation error", errors: result.error.errors });
+        return res
+          .status(400)
+          .json({ message: "Validation error", errors: result.error.errors });
       }
       const detalle = await storage.createPresupuestoDetalle(result.data);
-      
+
       // Recalcular totales después de agregar detalle
       await storage.recalcularTotalesPresupuesto(presupuestoId);
-      
+
       res.status(201).json(detalle);
     } catch (error: any) {
       res.status(500).json({ message: error.message });
@@ -1073,15 +1173,22 @@ export function registerRoutes(app: Express): Promise<Server> {
     try {
       const presupuestoId = parseInt(req.params.id);
       const detalleId = parseInt(req.params.detalleId);
-      const result = insertPresupuestoDetalleSchema.partial().safeParse(req.body);
+      const result = insertPresupuestoDetalleSchema
+        .partial()
+        .safeParse(req.body);
       if (!result.success) {
-        return res.status(400).json({ message: "Validation error", errors: result.error.errors });
+        return res
+          .status(400)
+          .json({ message: "Validation error", errors: result.error.errors });
       }
-      const detalle = await storage.updatePresupuestoDetalle(detalleId, result.data);
-      
+      const detalle = await storage.updatePresupuestoDetalle(
+        detalleId,
+        result.data,
+      );
+
       // Recalcular totales después de actualizar detalle
       await storage.recalcularTotalesPresupuesto(presupuestoId);
-      
+
       res.json(detalle);
     } catch (error: any) {
       res.status(500).json({ message: error.message });
@@ -1093,21 +1200,21 @@ export function registerRoutes(app: Express): Promise<Server> {
       const presupuestoId = parseInt(req.params.id);
       const detalleId = parseInt(req.params.detalleId);
       await storage.deletePresupuestoDetalle(detalleId);
-      
+
       // Recalcular totales después de eliminar detalle
       await storage.recalcularTotalesPresupuesto(presupuestoId);
-      
+
       res.status(204).send();
     } catch (error: any) {
       res.status(500).json({ message: error.message });
     }
-  });  // PDF generation route
+  }); // PDF generation route
   app.get("/api/presupuestos/:id/pdf", async (req, res) => {
     let browser;
     try {
       const id = parseInt(req.params.id);
       console.log(`[PDF] Generating PDF for presupuesto ${id}`);
-      
+
       const presupuesto = await storage.getPresupuestoById(id);
       if (!presupuesto) {
         return res.status(404).json({ message: "Presupuesto not found" });
@@ -1117,95 +1224,114 @@ export function registerRoutes(app: Express): Promise<Server> {
       console.log(`[PDF] Found ${detalles.length} detalles`);
       const html = generatePresupuestoHTML(presupuesto, detalles, true);
       console.log(`[PDF] Generated HTML, length: ${html.length}`);
-      
+
       // Validate HTML before processing
       const validation = validateHTML(html);
       if (!validation.isValid) {
-        console.error('[PDF] HTML validation failed:', validation.errors);
-        throw new Error(`HTML validation failed: ${validation.errors.join(', ')}`);
+        console.error("[PDF] HTML validation failed:", validation.errors);
+        throw new Error(
+          `HTML validation failed: ${validation.errors.join(", ")}`,
+        );
       }
-      console.log('[PDF] HTML validation passed');
+      console.log("[PDF] HTML validation passed");
 
       // Validate HTML before generating PDF
       const { isValid, errors } = validateHTML(html);
       if (!isValid) {
-        return res.status(500).json({ message: 'Invalid HTML generated', errors });
+        return res
+          .status(500)
+          .json({ message: "Invalid HTML generated", errors });
       }
 
       // Improved puppeteer configuration for PDF corruption issues
-      browser = await puppeteer.launch({ 
+      browser = await puppeteer.launch({
         headless: true,
         args: [
-          '--no-sandbox',
-          '--disable-setuid-sandbox',
-          '--disable-dev-shm-usage',
-          '--disable-accelerated-2d-canvas',
-          '--no-first-run',
-          '--no-zygote',
-          '--disable-gpu'
-        ]
+          "--no-sandbox",
+          "--disable-setuid-sandbox",
+          "--disable-dev-shm-usage",
+          "--disable-accelerated-2d-canvas",
+          "--no-first-run",
+          "--no-zygote",
+          "--disable-gpu",
+        ],
       });
-      
+
       const page = await browser.newPage();
-      
+
       // Set viewport and user agent to ensure consistent rendering
       await page.setViewport({ width: 1280, height: 720 });
-      await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36');
-      
+      await page.setUserAgent(
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+      );
+
       console.log(`[PDF] Setting page content...`);
-      await page.setContent(html, { 
-        waitUntil: ['load', 'domcontentloaded', 'networkidle0'],
-        timeout: 60000 
+      await page.setContent(html, {
+        waitUntil: ["load", "domcontentloaded", "networkidle0"],
+        timeout: 60000,
       });
-        // Wait for fonts and styles to load
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
+      // Wait for fonts and styles to load
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+
       console.log(`[PDF] Generating PDF...`);
       const pdf = await page.pdf({
-        format: 'A4',
+        format: "A4",
         printBackground: true,
         preferCSSPageSize: false,
         displayHeaderFooter: false,
         margin: {
-          top: '20mm',
-          right: '20mm',
-          bottom: '20mm',
-          left: '20mm'
+          top: "20mm",
+          right: "20mm",
+          bottom: "20mm",
+          left: "20mm",
         },
-        timeout: 60000
+        timeout: 60000,
       });
 
-      console.log(`[PDF] Generated PDF successfully, size: ${pdf.length} bytes`);
+      console.log(
+        `[PDF] Generated PDF successfully, size: ${pdf.length} bytes`,
+      );
 
       // Verify PDF is not empty or corrupted
       if (!pdf || pdf.length === 0) {
-        throw new Error('Generated PDF is empty');
-      }      // Check if PDF starts with valid PDF header
-      if (!(pdf[0] === 0x25 && pdf[1] === 0x50 && pdf[2] === 0x44 && pdf[3] === 0x46)) {
-        throw new Error('Generated PDF has invalid header');
+        throw new Error("Generated PDF is empty");
+      } // Check if PDF starts with valid PDF header
+      if (
+        !(
+          pdf[0] === 0x25 &&
+          pdf[1] === 0x50 &&
+          pdf[2] === 0x44 &&
+          pdf[3] === 0x46
+        )
+      ) {
+        throw new Error("Generated PDF has invalid header");
       }
 
       // Set proper headers for PDF download
-      res.setHeader('Content-Type', 'application/pdf');
-      res.setHeader('Content-Disposition', `attachment; filename="presupuesto-${presupuesto.claveObra || presupuesto.id}.pdf"`);
-      res.setHeader('Content-Length', pdf.length.toString());
-      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-      res.setHeader('Pragma', 'no-cache');
-      res.setHeader('Expires', '0');
-      
+      res.setHeader("Content-Type", "application/pdf");
+      res.setHeader(
+        "Content-Disposition",
+        `attachment; filename="presupuesto-${presupuesto.claveObra || presupuesto.id}.pdf"`,
+      );
+      res.setHeader("Content-Length", pdf.length.toString());
+      res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+      res.setHeader("Pragma", "no-cache");
+      res.setHeader("Expires", "0");
+
       // Send PDF as binary data
-      res.end(pdf, 'binary');
-      
+      res.end(pdf, "binary");
     } catch (error: any) {
-      console.error('[PDF] Error generating PDF:', error);
-      res.status(500).json({ message: `Error generating PDF: ${error.message}` });
+      console.error("[PDF] Error generating PDF:", error);
+      res
+        .status(500)
+        .json({ message: `Error generating PDF: ${error.message}` });
     } finally {
       if (browser) {
         try {
           await browser.close();
-          console.log('[PDF] Browser closed successfully');
+          console.log("[PDF] Browser closed successfully");
         } catch (closeError) {
-          console.error('[PDF] Error closing browser:', closeError);
+          console.error("[PDF] Error closing browser:", closeError);
         }
       }
     }
@@ -1222,8 +1348,8 @@ export function registerRoutes(app: Express): Promise<Server> {
 
       const detalles = presupuesto.detalles || [];
       const html = generatePresupuestoHTML(presupuesto, detalles);
-      
-      res.setHeader('Content-Type', 'text/html; charset=utf-8');
+
+      res.setHeader("Content-Type", "text/html; charset=utf-8");
       res.send(html);
     } catch (error: any) {
       res.status(500).json({ message: error.message });
@@ -1236,7 +1362,7 @@ export function registerRoutes(app: Express): Promise<Server> {
     try {
       const id = parseInt(req.params.id);
       console.log(`[PDF-TEST] Testing PDF generation for presupuesto ${id}`);
-      
+
       const presupuesto = await storage.getPresupuestoById(id);
       if (!presupuesto) {
         return res.status(404).json({ message: "Presupuesto not found" });
@@ -1244,50 +1370,52 @@ export function registerRoutes(app: Express): Promise<Server> {
 
       const detalles = presupuesto.detalles || [];
       const html = generatePresupuestoHTML(presupuesto, detalles, true);
-      
+
       // Validate HTML
       const validation = validateHTML(html);
-      
-      browser = await puppeteer.launch({ 
+
+      browser = await puppeteer.launch({
         headless: true,
         args: [
-          '--no-sandbox',
-          '--disable-setuid-sandbox',
-          '--disable-dev-shm-usage',
-          '--disable-accelerated-2d-canvas',
-          '--no-first-run',
-          '--no-zygote',
-          '--disable-gpu'
-        ]
+          "--no-sandbox",
+          "--disable-setuid-sandbox",
+          "--disable-dev-shm-usage",
+          "--disable-accelerated-2d-canvas",
+          "--no-first-run",
+          "--no-zygote",
+          "--disable-gpu",
+        ],
       });
-      
+
       const page = await browser.newPage();
       await page.setViewport({ width: 1280, height: 720 });
-      await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36');
-      
-      await page.setContent(html, { 
-        waitUntil: ['load', 'domcontentloaded', 'networkidle0'],
-        timeout: 60000 
+      await page.setUserAgent(
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+      );
+
+      await page.setContent(html, {
+        waitUntil: ["load", "domcontentloaded", "networkidle0"],
+        timeout: 60000,
       });
-      
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
+
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+
       const pdf = await page.pdf({
-        format: 'A4',
+        format: "A4",
         printBackground: true,
         preferCSSPageSize: false,
         displayHeaderFooter: false,
         margin: {
-          top: '20mm',
-          right: '20mm',
-          bottom: '20mm',
-          left: '20mm'
+          top: "20mm",
+          right: "20mm",
+          bottom: "20mm",
+          left: "20mm",
         },
-        timeout: 60000
-      });      // PDF integrity checks
+        timeout: 60000,
+      }); // PDF integrity checks
       const pdfHeader = pdf.slice(0, 5).toString();
       const pdfFooter = pdf.slice(-5).toString();
-      
+
       const result = {
         success: true,
         htmlValidation: validation,
@@ -1295,10 +1423,18 @@ export function registerRoutes(app: Express): Promise<Server> {
           size: pdf.length,
           header: pdfHeader,
           footer: pdfFooter,
-          hasValidHeader: pdf[0] === 0x25 && pdf[1] === 0x50 && pdf[2] === 0x44 && pdf[3] === 0x46, // %PDF
+          hasValidHeader:
+            pdf[0] === 0x25 &&
+            pdf[1] === 0x50 &&
+            pdf[2] === 0x44 &&
+            pdf[3] === 0x46, // %PDF
           isEmpty: pdf.length === 0,
-          firstBytes: Array.from(pdf.slice(0, 20)).map(b => b.toString(16).padStart(2, '0')).join(' '),
-          lastBytes: Array.from(pdf.slice(-20)).map(b => b.toString(16).padStart(2, '0')).join(' ')
+          firstBytes: Array.from(pdf.slice(0, 20))
+            .map((b) => b.toString(16).padStart(2, "0"))
+            .join(" "),
+          lastBytes: Array.from(pdf.slice(-20))
+            .map((b) => b.toString(16).padStart(2, "0"))
+            .join(" "),
         },
         presupuestoData: {
           id: presupuesto.id,
@@ -1306,18 +1442,17 @@ export function registerRoutes(app: Express): Promise<Server> {
           detallesCount: detalles.length,
           estado: presupuesto.estado,
           subtotal: presupuesto.subtotal,
-          total: presupuesto.total
-        }
+          total: presupuesto.total,
+        },
       };
-      
+
       res.json(result);
-      
     } catch (error: any) {
-      console.error('[PDF-TEST] Error:', error);
-      res.status(500).json({ 
+      console.error("[PDF-TEST] Error:", error);
+      res.status(500).json({
         success: false,
         error: error.message,
-        stack: error.stack
+        stack: error.stack,
       });
     } finally {
       if (browser) {
@@ -1327,22 +1462,24 @@ export function registerRoutes(app: Express): Promise<Server> {
   });
 
   // ============ ENDPOINTS DE PROGRAMACIONES ============
-  
+
   // Obtener programaciones con filtros
   app.get("/api/programming/programaciones", async (req, res) => {
     try {
       const filters = {
         fechaDesde: req.query.fechaDesde as string,
         fechaHasta: req.query.fechaHasta as string,
-        brigadistaId: req.query.brigadistaId ? parseInt(req.query.brigadistaId as string) : undefined,
+        brigadistaId: req.query.brigadistaId
+          ? parseInt(req.query.brigadistaId as string)
+          : undefined,
         estado: req.query.estado as string,
-        claveObra: req.query.claveObra as string
+        claveObra: req.query.claveObra as string,
       };
 
       const programaciones = await storage.getAllProgramaciones(filters);
       res.json(programaciones);
     } catch (error: any) {
-      console.error('Error obteniendo programaciones:', error);
+      console.error("Error obteniendo programaciones:", error);
       res.status(500).json({ message: error.message });
     }
   });
@@ -1352,14 +1489,14 @@ export function registerRoutes(app: Express): Promise<Server> {
     try {
       const id = parseInt(req.params.id);
       const programacion = await storage.getProgramacionById(id);
-      
+
       if (!programacion) {
-        return res.status(404).json({ message: 'Programación no encontrada' });
+        return res.status(404).json({ message: "Programación no encontrada" });
       }
-      
+
       res.json(programacion);
     } catch (error: any) {
-      console.error('Error obteniendo programación:', error);
+      console.error("Error obteniendo programación:", error);
       res.status(500).json({ message: error.message });
     }
   });
@@ -1369,11 +1506,11 @@ export function registerRoutes(app: Express): Promise<Server> {
     try {
       const programacion = await storage.createProgramacion({
         ...req.body,
-        fechaProgramada: new Date(req.body.fechaProgramada)
+        fechaProgramada: new Date(req.body.fechaProgramada),
       });
       res.status(201).json(programacion);
     } catch (error: any) {
-      console.error('Error creando programación:', error);
+      console.error("Error creando programación:", error);
       res.status(500).json({ message: error.message });
     }
   });
@@ -1383,15 +1520,15 @@ export function registerRoutes(app: Express): Promise<Server> {
     try {
       const id = parseInt(req.params.id);
       const data = { ...req.body };
-      
+
       if (data.fechaProgramada) {
         data.fechaProgramada = new Date(data.fechaProgramada);
       }
-      
+
       const programacion = await storage.updateProgramacion(id, data);
       res.json(programacion);
     } catch (error: any) {
-      console.error('Error actualizando programación:', error);
+      console.error("Error actualizando programación:", error);
       res.status(500).json({ message: error.message });
     }
   });
@@ -1403,7 +1540,7 @@ export function registerRoutes(app: Express): Promise<Server> {
       await storage.deleteProgramacion(id);
       res.status(204).send();
     } catch (error: any) {
-      console.error('Error eliminando programación:', error);
+      console.error("Error eliminando programación:", error);
       res.status(500).json({ message: error.message });
     }
   });
@@ -1413,14 +1550,19 @@ export function registerRoutes(app: Express): Promise<Server> {
     try {
       const brigadistaId = parseInt(req.query.brigadistaId as string);
       const fecha = req.query.fecha as string;
-      
+
       // Construir filtros según la fecha proporcionada
-      const filters = fecha ? { fechaDesde: fecha, fechaHasta: fecha } : undefined;
-      
-      const programaciones = await storage.getProgramacionesByBrigadista(brigadistaId, filters);
+      const filters = fecha
+        ? { fechaDesde: fecha, fechaHasta: fecha }
+        : undefined;
+
+      const programaciones = await storage.getProgramacionesByBrigadista(
+        brigadistaId,
+        filters,
+      );
       res.json(programaciones);
     } catch (error: any) {
-      console.error('Error obteniendo programaciones del brigadista:', error);
+      console.error("Error obteniendo programaciones del brigadista:", error);
       res.status(500).json({ message: error.message });
     }
   });
@@ -1435,7 +1577,7 @@ export function registerRoutes(app: Express): Promise<Server> {
       }
       res.json(brigadista);
     } catch (error: any) {
-      console.error('Error obteniendo perfil del brigadista:', error);
+      console.error("Error obteniendo perfil del brigadista:", error);
       res.status(500).json({ message: error.message });
     }
   });
@@ -1444,107 +1586,121 @@ export function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/programming/brigadista/programaciones", async (req, res) => {
     try {
       const { fechaDesde, fechaHasta, estado } = req.query;
-      
+
       // Por ahora usamos brigadista ID 1 como ejemplo
       const programaciones = await storage.getProgramacionesByBrigadista(1, {
         fechaDesde: fechaDesde as string,
         fechaHasta: fechaHasta as string,
         estado: estado as string,
       });
-      
+
       res.json(programaciones);
     } catch (error: any) {
-      console.error('Error obteniendo programaciones del brigadista:', error);
+      console.error("Error obteniendo programaciones del brigadista:", error);
       res.status(500).json({ message: error.message });
     }
   });
 
   // ============ ACCIONES DE PROGRAMACIONES ============
-  
+
   // Iniciar actividad
   app.post("/api/programming/programaciones/:id/iniciar", async (req, res) => {
     try {
       const { id } = req.params;
       const { muestrasObtenidas, fechaInicio } = req.body;
-      
+
       const programacion = await storage.iniciarProgramacion(Number(id), {
         muestrasObtenidas,
-        fechaInicio: fechaInicio ? new Date(fechaInicio) : undefined
+        fechaInicio: fechaInicio ? new Date(fechaInicio) : undefined,
       });
-      
+
       res.json(programacion);
     } catch (error: any) {
-      console.error('Error iniciando programación:', error);
+      console.error("Error iniciando programación:", error);
       res.status(500).json({ message: error.message });
     }
   });
 
   // Completar actividad
-  app.post("/api/programming/programaciones/:id/completar", async (req, res) => {
-    try {
-      const { id } = req.params;
-      const { muestrasObtenidas, fechaCompletado, observaciones } = req.body;
-      
-      const programacion = await storage.completarProgramacion(Number(id), {
-        muestrasObtenidas,
-        fechaCompletado: fechaCompletado ? new Date(fechaCompletado) : undefined,
-        observaciones
-      });
-      
-      res.json(programacion);
-    } catch (error: any) {
-      console.error('Error completando programación:', error);
-      res.status(500).json({ message: error.message });
-    }
-  });
+  app.post(
+    "/api/programming/programaciones/:id/completar",
+    async (req, res) => {
+      try {
+        const { id } = req.params;
+        const { muestrasObtenidas, fechaCompletado, observaciones } = req.body;
+
+        const programacion = await storage.completarProgramacion(Number(id), {
+          muestrasObtenidas,
+          fechaCompletado: fechaCompletado
+            ? new Date(fechaCompletado)
+            : undefined,
+          observaciones,
+        });
+
+        res.json(programacion);
+      } catch (error: any) {
+        console.error("Error completando programación:", error);
+        res.status(500).json({ message: error.message });
+      }
+    },
+  );
 
   // Cancelar actividad
   app.post("/api/programming/programaciones/:id/cancelar", async (req, res) => {
     try {
       const { id } = req.params;
       const { motivoCancelacion } = req.body;
-      
+
       const programacion = await storage.cancelarProgramacion(Number(id), {
-        motivoCancelacion
+        motivoCancelacion,
       });
-      
+
       res.json(programacion);
     } catch (error: any) {
-      console.error('Error cancelando programación:', error);
+      console.error("Error cancelando programación:", error);
       res.status(500).json({ message: error.message });
     }
   });
 
   // Reprogramar actividad
-  app.post("/api/programming/programaciones/:id/reprogramar", async (req, res) => {
-    try {
-      const { id } = req.params;
-      const { fechaProgramada, horaProgramada, brigadistaId, vehiculoId, motivoCancelacion } = req.body;
-      
-      const programacion = await storage.reprogramarProgramacion(Number(id), {
-        fechaProgramada: new Date(fechaProgramada),
-        horaProgramada,
-        brigadistaId,
-        vehiculoId,
-        motivoCancelacion
-      });
-      
-      res.json(programacion);
-    } catch (error: any) {
-      console.error('Error reprogramando:', error);
-      res.status(500).json({ message: error.message });
-    }
-  });
+  app.post(
+    "/api/programming/programaciones/:id/reprogramar",
+    async (req, res) => {
+      try {
+        const { id } = req.params;
+        const {
+          fechaProgramada,
+          horaProgramada,
+          brigadistaId,
+          vehiculoId,
+          motivoCancelacion,
+        } = req.body;
+
+        const programacion = await storage.reprogramarProgramacion(Number(id), {
+          fechaProgramada: new Date(fechaProgramada),
+          horaProgramada,
+          brigadistaId,
+          vehiculoId,
+          motivoCancelacion,
+        });
+
+        res.json(programacion);
+      } catch (error: any) {
+        console.error("Error reprogramando:", error);
+        res.status(500).json({ message: error.message });
+      }
+    },
+  );
 
   // ============ ENDPOINTS DE BRIGADISTAS Y VEHÍCULOS ============
-  
+
   // Obtener brigadistas
   app.get("/api/programming/brigadistas", async (_req, res) => {
     try {
       const brigadistas = await storage.getAllBrigadistas();
       res.json(brigadistas);
     } catch (error: any) {
-      console.error('Error obteniendo brigadistas:', error);
+      console.error("Error obteniendo brigadistas:", error);
       res.status(500).json({ message: error.message });
     }
   });
@@ -1553,12 +1709,12 @@ export function registerRoutes(app: Express): Promise<Server> {
     try {
       const { fecha, hora } = req.query;
       const brigadistas = await storage.getBrigadistasDisponibles(
-        fecha as string, 
-        hora as string
+        fecha as string,
+        hora as string,
       );
       res.json(brigadistas);
     } catch (error: any) {
-      console.error('Error obteniendo brigadistas disponibles:', error);
+      console.error("Error obteniendo brigadistas disponibles:", error);
       res.status(500).json({ message: error.message });
     }
   });
@@ -1569,7 +1725,7 @@ export function registerRoutes(app: Express): Promise<Server> {
       const vehiculos = await storage.getAllVehiculos();
       res.json(vehiculos);
     } catch (error: any) {
-      console.error('Error obteniendo vehículos:', error);
+      console.error("Error obteniendo vehículos:", error);
       res.status(500).json({ message: error.message });
     }
   });
@@ -1578,12 +1734,12 @@ export function registerRoutes(app: Express): Promise<Server> {
     try {
       const { fecha, hora } = req.query;
       const vehiculos = await storage.getVehiculosDisponibles(
-        fecha as string, 
-        hora as string
+        fecha as string,
+        hora as string,
       );
       res.json(vehiculos);
     } catch (error: any) {
-      console.error('Error obteniendo vehículos disponibles:', error);
+      console.error("Error obteniendo vehículos disponibles:", error);
       res.status(500).json({ message: error.message });
     }
   });
@@ -1592,42 +1748,52 @@ export function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/programming/obras-aprobadas", async (_req, res) => {
     try {
       const presupuestosAprobados = await storage.getPresupuestosAprobados();
-      
+
       // Agrupar presupuestos por clave de obra para consolidar conceptos
       const obrasMap = new Map();
-      
-      presupuestosAprobados.forEach(presupuesto => {
+
+      presupuestosAprobados.forEach((presupuesto) => {
         const claveObra = presupuesto.claveObra || `OBRA-${presupuesto.id}`;
-        
+
         if (!obrasMap.has(claveObra)) {
           const ubicacion = [
             presupuesto.tramo,
             presupuesto.colonia,
-            presupuesto.calle
-          ].filter(Boolean).join(' ');
+            presupuesto.calle,
+          ]
+            .filter(Boolean)
+            .join(" ");
 
           obrasMap.set(claveObra, {
             clave: claveObra,
-            clienteNombre: presupuesto.cliente?.nombre || 'Cliente no especificado',
-            descripcionObra: presupuesto.descripcionObra || 'Descripción no disponible',
-            ubicacion: ubicacion || 'Ubicación no especificada',
-            contratista: presupuesto.nombreContratista || presupuesto.cliente?.nombre || 'Contratista no especificado',
-            conceptos: []
+            clienteNombre:
+              presupuesto.cliente?.nombre || "Cliente no especificado",
+            descripcionObra:
+              presupuesto.descripcionObra || "Descripción no disponible",
+            ubicacion: ubicacion || "Ubicación no especificada",
+            contratista:
+              presupuesto.nombreContratista ||
+              presupuesto.cliente?.nombre ||
+              "Contratista no especificado",
+            conceptos: [],
           });
         }
-        
+
         // Agregar conceptos de este presupuesto a la obra
         const obra = obrasMap.get(claveObra);
         if (presupuesto.detalles) {
-          presupuesto.detalles.forEach(detalle => {
+          presupuesto.detalles.forEach((detalle) => {
             // Verificar que el concepto no esté ya agregado
-            const conceptoExiste = obra.conceptos.some((c: any) => c.codigo === detalle.concepto.codigo);
+            const conceptoExiste = obra.conceptos.some(
+              (c: any) => c.codigo === detalle.concepto.codigo,
+            );
             if (!conceptoExiste) {
               obra.conceptos.push({
                 codigo: detalle.concepto.codigo,
-                descripcion: detalle.concepto.descripcion || 'Descripción no disponible',
-                unidad: detalle.concepto.unidad || 'pza',
-                cantidad: detalle.cantidad || 1
+                descripcion:
+                  detalle.concepto.descripcion || "Descripción no disponible",
+                unidad: detalle.concepto.unidad || "pza",
+                cantidad: detalle.cantidad || 1,
               });
             }
           });
@@ -1639,7 +1805,7 @@ export function registerRoutes(app: Express): Promise<Server> {
 
       res.json(obrasAprobadas);
     } catch (error: any) {
-      console.error('Error obteniendo obras aprobadas:', error);
+      console.error("Error obteniendo obras aprobadas:", error);
       res.status(500).json({ message: error.message });
     }
   });
@@ -1649,17 +1815,19 @@ export function registerRoutes(app: Express): Promise<Server> {
       const stats = await storage.getDashboardStats();
       res.json(stats);
     } catch (error: any) {
-      console.error('Error obteniendo estadísticas:', error);
+      console.error("Error obteniendo estadísticas:", error);
       res.status(500).json({ message: error.message });
     }
-  });  // Obtener datos de gráfica del dashboard de programming
+  }); // Obtener datos de gráfica del dashboard de programming
   app.get("/api/programming/dashboard/grafica", async (req, res) => {
     try {
       const { fechaInicio } = req.query;
-      const graficaData = await storage.getDashboardGrafica(fechaInicio as string);
+      const graficaData = await storage.getDashboardGrafica(
+        fechaInicio as string,
+      );
       res.json(graficaData);
     } catch (error: any) {
-      console.error('Error obteniendo datos de gráfica:', error);
+      console.error("Error obteniendo datos de gráfica:", error);
       res.status(500).json({ message: error.message });
     }
   });
@@ -1670,20 +1838,26 @@ export function registerRoutes(app: Express): Promise<Server> {
       const stats = await storage.getQuickStats();
       res.json(stats);
     } catch (error: any) {
-      console.error('Error obteniendo estadísticas rápidas:', error);
+      console.error("Error obteniendo estadísticas rápidas:", error);
       res.status(500).json({ message: error.message });
     }
   });
 
   // Cliente routes - serve static files from client/dist
-  app.use('*', (req, res, next) => {
+  app.use("*", (req, res, next) => {
     // Let vite handle client-side routing
     next();
   });
 
   app.get("/api/empleado/stats", async (_req, res) => {
     try {
-      const [obrasEnProceso, muestrasEnLaboratorio, presupuestosPendientes, informesPorGenerar, facturacionPendiente] = await Promise.all([
+      const [
+        obrasEnProceso,
+        muestrasEnLaboratorio,
+        presupuestosPendientes,
+        informesPorGenerar,
+        facturacionPendiente,
+      ] = await Promise.all([
         prisma.obra.count({ where: { estado: "en_proceso" } }),
         prisma.muestra.count({ where: { estado: "en_laboratorio" } }),
         prisma.presupuesto.count({ where: { estado: "pendiente" } }),
@@ -1704,7 +1878,11 @@ export function registerRoutes(app: Express): Promise<Server> {
         where: {
           fecha: {
             gte: new Date(new Date().getFullYear(), new Date().getMonth(), 1),
-            lte: new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0),
+            lte: new Date(
+              new Date().getFullYear(),
+              new Date().getMonth() + 1,
+              0,
+            ),
           },
         },
       });

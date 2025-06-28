@@ -3,7 +3,7 @@ export interface Usuario {
   id: number;
   email: string;
   nombre: string;
-  rol: 'empleado' | 'brigadista' | 'admin';
+  rol: "empleado" | "brigadista" | "admin";
   activo: boolean;
   fechaCreacion: Date;
 }
@@ -16,33 +16,33 @@ export interface PermisoRol {
 // Configuración de permisos por rol
 export const ROLES_PERMISOS: PermisoRol[] = [
   {
-    rol: 'empleado',
+    rol: "empleado",
     permisos: [
-      'ver_dashboard_empleado',
-      'crear_presupuesto',
-      'editar_presupuesto',
-      'ver_presupuestos',
-      'crear_programacion',
-      'ver_programaciones',
-      'gestionar_conceptos'
-    ]
+      "ver_dashboard_empleado",
+      "crear_presupuesto",
+      "editar_presupuesto",
+      "ver_presupuestos",
+      "crear_programacion",
+      "ver_programaciones",
+      "gestionar_conceptos",
+    ],
   },
   {
-    rol: 'brigadista', 
+    rol: "brigadista",
     permisos: [
-      'ver_dashboard_brigadista',
-      'ver_programaciones_asignadas',
-      'iniciar_programacion',
-      'completar_programacion',
-      'cancelar_programacion'
-    ]
+      "ver_dashboard_brigadista",
+      "ver_programaciones_asignadas",
+      "iniciar_programacion",
+      "completar_programacion",
+      "cancelar_programacion",
+    ],
   },
   {
-    rol: 'admin',
+    rol: "admin",
     permisos: [
-      '*' // Todos los permisos
-    ]
-  }
+      "*", // Todos los permisos
+    ],
+  },
 ];
 
 // TODO: Implementar middleware de autenticación

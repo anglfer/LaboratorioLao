@@ -33,7 +33,7 @@ export default function BudgetPrint() {
 
   const subtotal = items.reduce(
     (sum, item) => sum + parseFloat(item.totalPrice || 0),
-    0
+    0,
   );
   const iva = subtotal * 0.16;
   const total = subtotal + iva;
@@ -112,18 +112,18 @@ export default function BudgetPrint() {
             {budget.estimationDate
               ? new Date(budget.estimationDate).toLocaleDateString("es-MX")
               : budget.createdAt
-              ? new Date(budget.createdAt).toLocaleDateString("es-MX")
-              : "-"}
+                ? new Date(budget.createdAt).toLocaleDateString("es-MX")
+                : "-"}
           </div>
           <div>
             <b>Estado:</b>{" "}
             {budget.status === "draft"
               ? "Borrador"
               : budget.status === "pending"
-              ? "Pendiente"
-              : budget.status === "approved"
-              ? "Aprobado"
-              : budget.status}
+                ? "Pendiente"
+                : budget.status === "approved"
+                  ? "Aprobado"
+                  : budget.status}
           </div>
         </div>
       </div>

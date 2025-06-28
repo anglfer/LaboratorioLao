@@ -5,14 +5,14 @@ import { useToast } from "../../../shared/hooks/use-toast";
 
 export function useBudgets() {
   return useQuery({
-    queryKey: ['budgets'],
+    queryKey: ["budgets"],
     queryFn: budgetService.getAll,
   });
 }
 
 export function useBudget(id: number) {
   return useQuery({
-    queryKey: ['budgets', id],
+    queryKey: ["budgets", id],
     queryFn: () => budgetService.getById(id),
     enabled: !!id,
   });
@@ -29,7 +29,7 @@ export function useCreateBudget() {
         title: "Presupuesto Creado",
         description: "El presupuesto se ha creado exitosamente",
       });
-      queryClient.invalidateQueries({ queryKey: ['budgets'] });
+      queryClient.invalidateQueries({ queryKey: ["budgets"] });
     },
     onError: () => {
       toast({
@@ -46,14 +46,14 @@ export function useUpdateBudget() {
   const { toast } = useToast();
 
   return useMutation({
-    mutationFn: ({ id, data }: { id: number; data: any }) => 
+    mutationFn: ({ id, data }: { id: number; data: any }) =>
       budgetService.update(id, data),
     onSuccess: () => {
       toast({
         title: "Presupuesto Actualizado",
         description: "Los cambios se han guardado correctamente",
       });
-      queryClient.invalidateQueries({ queryKey: ['budgets'] });
+      queryClient.invalidateQueries({ queryKey: ["budgets"] });
     },
     onError: () => {
       toast({
@@ -76,7 +76,7 @@ export function useDeleteBudget() {
         title: "Presupuesto Eliminado",
         description: "El presupuesto se ha eliminado correctamente",
       });
-      queryClient.invalidateQueries({ queryKey: ['budgets'] });
+      queryClient.invalidateQueries({ queryKey: ["budgets"] });
     },
     onError: () => {
       toast({
