@@ -50,13 +50,13 @@ const budgetSchema = z
           .array(z.string())
           .optional()
           .transform((arr) =>
-            arr ? arr.filter((tel) => tel && tel.trim().length > 0) : [],
+            arr ? arr.filter((tel) => tel && tel.trim().length > 0) : []
           ),
         correos: z
           .array(z.string())
           .optional()
           .transform((arr) =>
-            arr ? arr.filter((email) => email && email.trim().length > 0) : [],
+            arr ? arr.filter((email) => email && email.trim().length > 0) : []
           )
           .refine(
             (arr) => {
@@ -64,7 +64,7 @@ const budgetSchema = z
               const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
               return arr.every((email) => emailRegex.test(email));
             },
-            { message: "Uno o más correos tienen formato inválido" },
+            { message: "Uno o más correos tienen formato inválido" }
           ),
       })
       .optional(),
@@ -101,7 +101,7 @@ const budgetSchema = z
             .number()
             .min(0.01, "El precio debe ser mayor a 0")
             .max(9999999.99, "El precio no puede exceder $9,999,999.99"),
-        }),
+        })
       )
       .min(1, "Debe agregar al menos un concepto")
       .refine(
@@ -110,14 +110,14 @@ const budgetSchema = z
           const subtotalTotal = conceptos.reduce(
             (sum, concepto) =>
               sum + concepto.cantidad * concepto.precioUnitario,
-            0,
+            0
           );
           return subtotalTotal <= 9999999999.99; // Límite para Decimal(12,2)
         },
         {
           message:
             "El subtotal total del presupuesto excede el límite permitido ($9,999,999,999.99)",
-        },
+        }
       ),
 
     // Forma de pago
@@ -142,7 +142,7 @@ const budgetSchema = z
       message:
         "Debe seleccionar un cliente existente o crear uno nuevo con nombre",
       path: ["clienteId"], // Asociar el error al campo clienteId
-    },
+    }
   );
 
 type BudgetFormData = z.infer<typeof budgetSchema>;
@@ -193,7 +193,7 @@ export default function AdvancedBudgetForm({
   initialData,
 }: AdvancedBudgetFormProps) {
   const [selectedClienteId, setSelectedClienteId] = useState<number | null>(
-    null,
+    null
   );
   const [selectedArea, setSelectedArea] = useState<string>("");
   const [selectedSubarea, setSelectedSubarea] = useState<number | null>(null);
@@ -201,6 +201,7 @@ export default function AdvancedBudgetForm({
     string[]
   >([]);
   const [busquedaConcepto, setBusquedaConcepto] = useState<string>("");
+  const [busquedaCliente, setBusquedaCliente] = useState<string>("");
   const [clienteNuevo, setClienteNuevo] = useState(false);
   const [copiarDeCliente, setCopiarDeCliente] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
@@ -210,7 +211,7 @@ export default function AdvancedBudgetForm({
     if (initialData) {
       console.log(
         "[AdvancedBudgetForm] EDIT MODE ACTIVATED with data:",
-        initialData,
+        initialData
       );
       setIsEditMode(true);
     } else {
@@ -260,7 +261,7 @@ export default function AdvancedBudgetForm({
       if (!Array.isArray(data)) {
         console.error(
           "[AdvancedBudgetForm] Clientes response is not an array:",
-          data,
+          data
         );
         return [];
       }
@@ -278,7 +279,7 @@ export default function AdvancedBudgetForm({
       if (!Array.isArray(data)) {
         console.error(
           "[AdvancedBudgetForm] Areas response is not an array:",
-          data,
+          data
         );
         return [];
       }
@@ -297,7 +298,7 @@ export default function AdvancedBudgetForm({
       if (!Array.isArray(data)) {
         console.error(
           "[AdvancedBudgetForm] Subareas response is not an array:",
-          data,
+          data
         );
         return [];
       }
@@ -317,7 +318,7 @@ export default function AdvancedBudgetForm({
       if (!Array.isArray(data)) {
         console.error(
           "[AdvancedBudgetForm] Conceptos response is not an array:",
-          data,
+          data
         );
         return [];
       }
@@ -355,18 +356,18 @@ export default function AdvancedBudgetForm({
     if (errors.clienteNuevo) {
       console.log(
         "[AdvancedBudgetForm] Cliente nuevo errors:",
-        errors.clienteNuevo,
+        errors.clienteNuevo
       );
       if (errors.clienteNuevo.telefonos) {
         console.log(
           "[AdvancedBudgetForm] Telefonos errors:",
-          errors.clienteNuevo.telefonos,
+          errors.clienteNuevo.telefonos
         );
       }
       if (errors.clienteNuevo.correos) {
         console.log(
           "[AdvancedBudgetForm] Correos errors:",
-          errors.clienteNuevo.correos,
+          errors.clienteNuevo.correos
         );
       }
     }
@@ -410,22 +411,22 @@ export default function AdvancedBudgetForm({
       // Asegurar que los clientes estén cargados
       console.log(
         "[AdvancedBudgetForm] Loading initial data for editing:",
-        initialData,
+        initialData
       );
       console.log("[AdvancedBudgetForm] Available clientes:", clientes);
       console.log(
         "[AdvancedBudgetForm] initialData.detalles:",
-        initialData.detalles,
+        initialData.detalles
       );
 
       // Cargar datos del cliente
       if (initialData.clienteId) {
         console.log(
           "[AdvancedBudgetForm] Setting clienteId:",
-          initialData.clienteId,
+          initialData.clienteId
         );
         const clienteExists = clientes.find(
-          (c) => c.id === initialData.clienteId,
+          (c) => c.id === initialData.clienteId
         );
         if (clienteExists) {
           setSelectedClienteId(initialData.clienteId);
@@ -434,7 +435,7 @@ export default function AdvancedBudgetForm({
         } else {
           console.warn(
             "[AdvancedBudgetForm] Cliente not found in list:",
-            initialData.clienteId,
+            initialData.clienteId
           );
         }
       }
@@ -442,13 +443,13 @@ export default function AdvancedBudgetForm({
       if (initialData.nombreContratista) {
         console.log(
           "[AdvancedBudgetForm] Setting nombreContratista from main field:",
-          initialData.nombreContratista,
+          initialData.nombreContratista
         );
         setValue("nombreContratista", initialData.nombreContratista);
       } else if (initialData.obra?.contratista) {
         console.log(
           "[AdvancedBudgetForm] Setting nombreContratista from obra.contratista:",
-          initialData.obra.contratista,
+          initialData.obra.contratista
         );
         setValue("nombreContratista", initialData.obra.contratista);
       }
@@ -457,7 +458,7 @@ export default function AdvancedBudgetForm({
       if (initialData.descripcionObra) {
         console.log(
           "[AdvancedBudgetForm] Setting descripcionObra:",
-          initialData.descripcionObra,
+          initialData.descripcionObra
         );
         setValue("descripcionObra", initialData.descripcionObra);
       }
@@ -468,7 +469,7 @@ export default function AdvancedBudgetForm({
       if (initialData.colonia) {
         console.log(
           "[AdvancedBudgetForm] Setting colonia:",
-          initialData.colonia,
+          initialData.colonia
         );
         setValue("colonia", initialData.colonia);
       }
@@ -479,7 +480,7 @@ export default function AdvancedBudgetForm({
       if (initialData.contactoResponsable) {
         console.log(
           "[AdvancedBudgetForm] Setting contactoResponsable:",
-          initialData.contactoResponsable,
+          initialData.contactoResponsable
         );
         setValue("contactoResponsable", initialData.contactoResponsable);
       }
@@ -494,11 +495,11 @@ export default function AdvancedBudgetForm({
       if (initialData.obra?.areaCodigo && areas) {
         console.log(
           "[AdvancedBudgetForm] Setting areaCodigo:",
-          initialData.obra.areaCodigo,
+          initialData.obra.areaCodigo
         );
         console.log("[AdvancedBudgetForm] Available areas:", areas);
         const areaExists = areas.find(
-          (a) => a.codigo === initialData.obra.areaCodigo,
+          (a) => a.codigo === initialData.obra.areaCodigo
         );
         if (areaExists) {
           setValue("areaCodigo", initialData.obra.areaCodigo);
@@ -506,7 +507,7 @@ export default function AdvancedBudgetForm({
         } else {
           console.warn(
             "[AdvancedBudgetForm] Area not found in list:",
-            initialData.obra.areaCodigo,
+            initialData.obra.areaCodigo
           );
         }
       }
@@ -515,14 +516,14 @@ export default function AdvancedBudgetForm({
       if (initialData.formaPago) {
         console.log(
           "[AdvancedBudgetForm] Setting formaPago:",
-          initialData.formaPago,
+          initialData.formaPago
         );
         setValue("formaPago", initialData.formaPago);
       } // Cargar conceptos desde detalles
       if (initialData.detalles && initialData.detalles.length > 0) {
         console.log(
           "[AdvancedBudgetForm] Loading conceptos from detalles:",
-          initialData.detalles,
+          initialData.detalles
         );
 
         // Primero, obtener la subárea del primer concepto para establecer el contexto
@@ -531,7 +532,7 @@ export default function AdvancedBudgetForm({
           const subareaId = primerDetalle.concepto.subarea.id;
           console.log(
             "[AdvancedBudgetForm] Setting selectedSubarea from first concepto:",
-            subareaId,
+            subareaId
           );
           setSelectedSubarea(subareaId);
         }
@@ -542,7 +543,7 @@ export default function AdvancedBudgetForm({
             detalle.concepto?.codigo || detalle.conceptoCodigo;
           console.log(
             "[AdvancedBudgetForm] Extracted conceptoCodigo:",
-            conceptoCodigo,
+            conceptoCodigo
           );
           return {
             conceptoCodigo,
@@ -556,7 +557,7 @@ export default function AdvancedBudgetForm({
           .filter((codigo: string) => codigo);
         console.log(
           "[AdvancedBudgetForm] Setting conceptosSeleccionados:",
-          codigosConceptos,
+          codigosConceptos
         );
         setConceptosSeleccionados(codigosConceptos);
         setValue("conceptosSeleccionados", codigosConceptos);
@@ -568,7 +569,7 @@ export default function AdvancedBudgetForm({
       }
     } else {
       console.log(
-        "[AdvancedBudgetForm] No initialData provided or waiting for data",
+        "[AdvancedBudgetForm] No initialData provided or waiting for data"
       );
     }
   }, [initialData, setValue, setSelectedArea, clientes, areas]);
@@ -596,7 +597,7 @@ export default function AdvancedBudgetForm({
   useEffect(() => {
     if (!initialData) {
       console.log(
-        "[AdvancedBudgetForm] No initialData - resetting form to defaults",
+        "[AdvancedBudgetForm] No initialData - resetting form to defaults"
       );
       reset({
         conceptos: [{ conceptoCodigo: "", cantidad: 1, precioUnitario: 0 }],
@@ -610,6 +611,7 @@ export default function AdvancedBudgetForm({
       setSelectedArea("");
       setSelectedSubarea(null);
       setConceptosSeleccionados([]);
+      setBusquedaCliente("");
       setClienteNuevo(false);
       setCopiarDeCliente(false);
     }
@@ -645,7 +647,7 @@ export default function AdvancedBudgetForm({
     if (conceptosSeleccionados.includes(conceptoCodigo)) {
       // Remover concepto
       const newConceptos = currentConceptos.filter(
-        (c) => c.conceptoCodigo !== conceptoCodigo,
+        (c) => c.conceptoCodigo !== conceptoCodigo
       );
       setValue("conceptos", newConceptos);
     } else {
@@ -665,11 +667,11 @@ export default function AdvancedBudgetForm({
   const updateConceptoInForm = (
     conceptoCodigo: string,
     field: "cantidad" | "precioUnitario",
-    value: number,
+    value: number
   ) => {
     const currentConceptos = watch("conceptos") || [];
     const conceptoIndex = currentConceptos.findIndex(
-      (c) => c.conceptoCodigo === conceptoCodigo,
+      (c) => c.conceptoCodigo === conceptoCodigo
     );
 
     if (conceptoIndex !== -1) {
@@ -695,18 +697,59 @@ export default function AdvancedBudgetForm({
       );
     }) || [];
 
+  // Función para filtrar clientes por búsqueda (ID, nombre, correo, teléfono)
+  const clientesFiltrados =
+    clientes?.filter((cliente) => {
+      if (!busquedaCliente.trim()) return true;
+
+      const terminoBusqueda = busquedaCliente.toLowerCase();
+
+      // Buscar por ID
+      if (cliente.id.toString().includes(terminoBusqueda)) return true;
+
+      // Buscar por nombre
+      if (cliente.nombre.toLowerCase().includes(terminoBusqueda)) return true;
+
+      // Buscar por dirección
+      if (
+        cliente.direccion &&
+        cliente.direccion.toLowerCase().includes(terminoBusqueda)
+      )
+        return true;
+
+      // Buscar por teléfonos
+      if (
+        cliente.telefonos &&
+        cliente.telefonos.some((t) =>
+          t.telefono.toLowerCase().includes(terminoBusqueda)
+        )
+      )
+        return true;
+
+      // Buscar por correos
+      if (
+        cliente.correos &&
+        cliente.correos.some((c) =>
+          c.correo.toLowerCase().includes(terminoBusqueda)
+        )
+      )
+        return true;
+
+      return false;
+    }) || [];
+
   const handleFormSubmit = async (data: BudgetFormData) => {
     console.log(
       "[AdvancedBudgetForm] handleFormSubmit called with data:",
-      data,
+      data
     );
     console.log(
       "[AdvancedBudgetForm] Cliente nuevo teléfonos:",
-      data.clienteNuevo?.telefonos,
+      data.clienteNuevo?.telefonos
     );
     console.log(
       "[AdvancedBudgetForm] Cliente nuevo correos:",
-      data.clienteNuevo?.correos,
+      data.clienteNuevo?.correos
     );
     try {
       let clienteId = data.clienteId;
@@ -730,7 +773,7 @@ export default function AdvancedBudgetForm({
         clienteId = nuevoCliente.id; // Agregar teléfonos
         if (data.clienteNuevo.telefonos) {
           for (const telefono of data.clienteNuevo.telefonos.filter(
-            (t) => t && t.trim(),
+            (t) => t && t.trim()
           )) {
             const response = await fetch(
               `/api/clientes/${clienteId}/telefonos`,
@@ -738,7 +781,7 @@ export default function AdvancedBudgetForm({
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ telefono: telefono.trim() }),
-              },
+              }
             );
             if (!response.ok) {
               const errorData = await response.json();
@@ -746,7 +789,7 @@ export default function AdvancedBudgetForm({
               throw new Error(
                 `Error al agregar teléfono: ${
                   errorData.message || "Error desconocido"
-                }`,
+                }`
               );
             }
           }
@@ -755,7 +798,7 @@ export default function AdvancedBudgetForm({
         // Agregar correos
         if (data.clienteNuevo.correos) {
           for (const correo of data.clienteNuevo.correos.filter(
-            (c) => c && c.trim(),
+            (c) => c && c.trim()
           )) {
             const response = await fetch(`/api/clientes/${clienteId}/correos`, {
               method: "POST",
@@ -768,7 +811,7 @@ export default function AdvancedBudgetForm({
               throw new Error(
                 `Error al agregar correo: ${
                   errorData.message || "Error desconocido"
-                }`,
+                }`
               );
             }
           }
@@ -851,6 +894,7 @@ export default function AdvancedBudgetForm({
                   onChange={() => {
                     setClienteNuevo(false);
                     setValue("clienteId", undefined);
+                    setBusquedaCliente(""); // Limpiar búsqueda al cambiar modo
                   }}
                 />
                 <span>Cliente existente</span>
@@ -862,14 +906,39 @@ export default function AdvancedBudgetForm({
                   onChange={() => {
                     setClienteNuevo(true);
                     setSelectedClienteId(null);
+                    setBusquedaCliente(""); // Limpiar búsqueda al cambiar modo
                   }}
                 />
                 <span>Cliente nuevo</span>
               </Label>
             </div>{" "}
             {!clienteNuevo ? (
-              <div className="space-y-2">
-                <Label htmlFor="clienteId">Seleccionar Cliente</Label>{" "}
+              <div className="space-y-4">
+                <Label htmlFor="clienteId">Seleccionar Cliente</Label>
+
+                {/* Campo de búsqueda */}
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                  <Input
+                    placeholder="Buscar por ID, nombre, correo o teléfono..."
+                    value={busquedaCliente}
+                    onChange={(e) => setBusquedaCliente(e.target.value)}
+                    className="pl-10 pr-8"
+                  />
+                  {busquedaCliente && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="absolute right-1 top-1/2 transform -translate-y-1/2 h-6 w-6 p-0"
+                      onClick={() => setBusquedaCliente("")}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  )}
+                </div>
+
+                {/* Selector de cliente */}
                 <Select
                   value={selectedClienteId?.toString()}
                   onValueChange={(value) => {
@@ -880,18 +949,29 @@ export default function AdvancedBudgetForm({
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Seleccionar cliente" />
-                  </SelectTrigger>{" "}
-                  <SelectContent>
-                    {Array.isArray(clientes) && clientes.length > 0 ? (
-                      clientes.map((cliente) => (
+                  </SelectTrigger>
+                  <SelectContent className="max-h-60">
+                    {Array.isArray(clientesFiltrados) &&
+                    clientesFiltrados.length > 0 ? (
+                      clientesFiltrados.map((cliente) => (
                         <SelectItem
                           key={cliente.id}
                           value={cliente.id.toString()}
                         >
-                          <div className="flex flex-col">
-                            <span className="font-medium">
-                              {cliente.nombre}
-                            </span>
+                          <div className="flex flex-col w-full">
+                            <div className="flex items-center justify-between">
+                              <span className="font-medium">
+                                {cliente.nombre}
+                              </span>
+                              <span className="text-xs text-gray-400 ml-2">
+                                ID: {cliente.id}
+                              </span>
+                            </div>
+                            {cliente.direccion && (
+                              <span className="text-xs text-gray-500">
+                                📍 {cliente.direccion}
+                              </span>
+                            )}
                             {cliente.telefonos &&
                               cliente.telefonos.length > 0 && (
                                 <span className="text-xs text-gray-500">
@@ -912,6 +992,11 @@ export default function AdvancedBudgetForm({
                           </div>
                         </SelectItem>
                       ))
+                    ) : busquedaCliente ? (
+                      <SelectItem value="__no_results__" disabled>
+                        No se encontraron clientes que coincidan con "
+                        {busquedaCliente}"
+                      </SelectItem>
                     ) : (
                       <SelectItem value="__no_clientes__" disabled>
                         {clientesError
@@ -921,6 +1006,16 @@ export default function AdvancedBudgetForm({
                     )}
                   </SelectContent>
                 </Select>
+
+                {/* Mostrar resultados de búsqueda */}
+                {busquedaCliente && (
+                  <div className="text-sm text-gray-600">
+                    {clientesFiltrados.length > 0
+                      ? `${clientesFiltrados.length} cliente(s) encontrado(s)`
+                      : "No se encontraron clientes"}
+                  </div>
+                )}
+
                 {errors.clienteId && (
                   <p className="text-sm text-red-600">
                     {errors.clienteId.message}
@@ -1292,7 +1387,7 @@ export default function AdvancedBudgetForm({
                         <Checkbox
                           id={`concepto-${concepto.codigo}`}
                           checked={conceptosSeleccionados.includes(
-                            concepto.codigo,
+                            concepto.codigo
                           )}
                           onCheckedChange={() =>
                             handleConceptoToggle(concepto.codigo)
@@ -1349,10 +1444,10 @@ export default function AdvancedBudgetForm({
 
                 {conceptosSeleccionados.map((conceptoCodigo) => {
                   const concepto = conceptos?.find(
-                    (c) => c.codigo === conceptoCodigo,
+                    (c) => c.codigo === conceptoCodigo
                   );
                   const conceptoEnForm = watch("conceptos")?.find(
-                    (c) => c.conceptoCodigo === conceptoCodigo,
+                    (c) => c.conceptoCodigo === conceptoCodigo
                   );
 
                   if (!concepto) return null;
@@ -1384,7 +1479,7 @@ export default function AdvancedBudgetForm({
                               updateConceptoInForm(
                                 conceptoCodigo,
                                 "cantidad",
-                                parseFloat(e.target.value) || 1,
+                                parseFloat(e.target.value) || 1
                               )
                             }
                             className={
@@ -1416,7 +1511,7 @@ export default function AdvancedBudgetForm({
                               updateConceptoInForm(
                                 conceptoCodigo,
                                 "precioUnitario",
-                                parseFloat(e.target.value) || 0,
+                                parseFloat(e.target.value) || 0
                               )
                             }
                             className={
@@ -1587,8 +1682,8 @@ export default function AdvancedBudgetForm({
                 ? "Actualizando..."
                 : "Creando..."
               : isEditMode
-                ? "Actualizar Presupuesto"
-                : "Crear Presupuesto"}
+              ? "Actualizar Presupuesto"
+              : "Crear Presupuesto"}
           </Button>
         </div>
       </form>
