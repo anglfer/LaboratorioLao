@@ -43,9 +43,14 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "../../../shared/components/ui/dropdown-menu";
-import { Textarea } from "../../../shared/components/ui/textarea"; // Importando Textarea para la opción "Otra razón"
+import { Textarea } from "../../../shared/components/ui/textarea";
 import { useToast } from "../../../shared/hooks/use-toast";
 import AdvancedBudgetForm from "../components/AdvancedBudgetForm";
+import {
+  BRAND_COLORS,
+  STATUS_COLORS,
+  UI_GUIDELINES,
+} from "../../../shared/constants/brandColors";
 import {
   FileText,
   Plus,
@@ -69,6 +74,7 @@ import {
   Hash,
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
   CheckSquare,
   X,
   Check,
@@ -90,6 +96,9 @@ export default function BudgetsNew() {
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(10);
+  const [expandedDescriptions, setExpandedDescriptions] = useState<Set<number>>(
+    new Set()
+  );
 
   // Estados para el modal de rechazo
   const [showRejectModal, setShowRejectModal] = useState(false);
@@ -186,8 +195,46 @@ export default function BudgetsNew() {
   const startIndex = (currentPage - 1) * itemsPerPage;
   const paginatedBudgets = filteredAndSortedBudgets.slice(
     startIndex,
-    startIndex + itemsPerPage,
+    startIndex + itemsPerPage
   );
+
+  // Functions for description expansion
+  const toggleDescription = (budgetId: number) => {
+    setExpandedDescriptions((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(budgetId)) {
+        newSet.delete(budgetId);
+      } else {
+        newSet.add(budgetId);
+      }
+      return newSet;
+    });
+  };
+
+  const truncateText = (text: string, maxLength: number = 100) => {
+    if (!text) return "Sin descripción";
+    if (text.length <= maxLength) return text;
+    return text.substring(0, maxLength) + "...";
+  };
+
+  const shouldShowExpandButton = (text: string) => {
+    if (!text) return false;
+
+    // Mostrar botón si:
+    // 1. Más de 20 caracteres Y más de 3 palabras (texto denso)
+    // 2. O más de 40 caracteres (texto medio-largo)
+    // 3. O contiene saltos de línea
+    // 4. O más de 6 palabras (independientemente de caracteres)
+    const wordCount = text.trim().split(/\s+/).length;
+    const hasLineBreaks = text.includes("\n") || text.includes("\r");
+
+    return (
+      (text.length > 20 && wordCount >= 3) ||
+      text.length > 40 ||
+      hasLineBreaks ||
+      wordCount > 6
+    );
+  };
 
   // Mutations
   const createMutation = useMutation({
@@ -202,7 +249,7 @@ export default function BudgetsNew() {
         const errorData = await response.json().catch(() => ({}));
         throw new Error(
           errorData.message ||
-            `Error ${response.status}: ${response.statusText}`,
+            `Error ${response.status}: ${response.statusText}`
         );
       }
 
@@ -310,7 +357,7 @@ export default function BudgetsNew() {
       setShowForm(true);
 
       console.log(
-        "[BudgetsNew] State updated - showForm: true, editingBudget set",
+        "[BudgetsNew] State updated - showForm: true, editingBudget set"
       );
     } catch (error) {
       console.error("[BudgetsNew] Error loading budget for editing:", error);
@@ -401,7 +448,7 @@ export default function BudgetsNew() {
     } catch (error) {
       console.error("Error al exportar PDF:", error);
       alert(
-        "Ocurrió un error al exportar el PDF. Inténtalo de nuevo más tarde.",
+        "Ocurrió un error al exportar el PDF. Inténtalo de nuevo más tarde."
       );
     }
   };
@@ -439,13 +486,39 @@ export default function BudgetsNew() {
     }
   };
 
-  const getStatusBadge = (status: string) => {
+  // 🔴 ESTADOS DE DATOS - Aplicando colores funcionales empresariales
+  const getStatusBudget = (status: string) => {
     const statusConfig = {
-      borrador: { label: "Borrador", variant: "secondary", icon: Edit },
-      enviado: { label: "Enviado", variant: "default", icon: Clock },
-      aprobado: { label: "Aprobado", variant: "success", icon: CheckCircle },
-      rechazado: { label: "Rechazado", variant: "destructive", icon: X },
-      finalizado: { label: "Finalizado", variant: "success", icon: Check },
+      borrador: {
+        label: "Borrador",
+        color: BRAND_COLORS.textSecondary,
+        bgColor: `${BRAND_COLORS.textSecondary}15`, // 15% opacidad
+        icon: Edit,
+      },
+      enviado: {
+        label: "Enviado",
+        color: BRAND_COLORS.warning,
+        bgColor: `${BRAND_COLORS.warning}15`,
+        icon: Clock,
+      },
+      aprobado: {
+        label: "Aprobado",
+        color: BRAND_COLORS.success,
+        bgColor: `${BRAND_COLORS.success}15`,
+        icon: CheckCircle,
+      },
+      rechazado: {
+        label: "Rechazado",
+        color: BRAND_COLORS.error,
+        bgColor: `${BRAND_COLORS.error}15`,
+        icon: X,
+      },
+      finalizado: {
+        label: "Finalizado",
+        color: BRAND_COLORS.success,
+        bgColor: `${BRAND_COLORS.success}15`,
+        icon: Check,
+      },
     };
 
     const config =
@@ -454,13 +527,16 @@ export default function BudgetsNew() {
     const Icon = config.icon;
 
     return (
-      <Badge
-        variant={config.variant as any}
-        className="flex items-center gap-1"
+      <div
+        className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium"
+        style={{
+          color: config.color,
+          backgroundColor: config.bgColor,
+        }}
       >
         <Icon className="h-3 w-3" />
         {config.label}
-      </Badge>
+      </div>
     );
   };
 
@@ -544,16 +620,29 @@ export default function BudgetsNew() {
 
   // Main list view
   return (
-    <div className="space-y-6">
-      {/* Header */}
+    <div
+      className="space-y-6"
+      style={{
+        backgroundColor: BRAND_COLORS.backgroundLight,
+        minHeight: "100vh",
+        padding: "24px",
+      }}
+    >
+      {/* 🔴 HEADER/ENCABEZADO - Aplicando paleta empresarial */}
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-3">
-          <FileText className="h-8 w-8 text-green-600 dark:text-green-400" />
+          <FileText
+            className="h-8 w-8"
+            style={{ color: BRAND_COLORS.primary }}
+          />
           <div>
-            <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">
+            <h1
+              className="text-2xl font-bold"
+              style={{ color: BRAND_COLORS.textPrimary }}
+            >
               Gestión de Presupuestos
             </h1>
-            <p className="text-slate-600 dark:text-slate-400">
+            <p style={{ color: BRAND_COLORS.textSecondary }}>
               Administre presupuestos, obras y estimaciones del laboratorio
             </p>
           </div>
@@ -564,13 +653,25 @@ export default function BudgetsNew() {
             variant="outline"
             disabled={selectedBudgets.length === 0}
             className="flex items-center space-x-2"
+            style={{
+              borderColor: BRAND_COLORS.textSecondary,
+              color:
+                selectedBudgets.length === 0
+                  ? BRAND_COLORS.textSecondary
+                  : BRAND_COLORS.textPrimary,
+            }}
           >
             <FileDown className="h-4 w-4" />
             <span>Exportar Seleccionados ({selectedBudgets.length})</span>
           </Button>
           <Button
             onClick={() => setShowForm(true)}
-            className="bg-green-600 hover:bg-green-700 dark:bg-green-700 dark:hover:bg-green-800 flex items-center space-x-2"
+            className="flex items-center space-x-2 hover:opacity-90 transition-opacity"
+            style={{
+              backgroundColor: BRAND_COLORS.primary,
+              color: BRAND_COLORS.white,
+              border: "none",
+            }}
           >
             <Plus className="h-4 w-4" />
             <span>Crear Nuevo Presupuesto</span>
@@ -578,11 +679,22 @@ export default function BudgetsNew() {
         </div>
       </div>
 
-      {/* Filters and Search */}
-      <Card>
+      {/* 🔴 TARJETAS - Aplicando fondos y estructura */}
+      <Card
+        style={{
+          backgroundColor: BRAND_COLORS.white,
+          border: `1px solid ${BRAND_COLORS.border}`,
+        }}
+      >
         <CardHeader>
-          <CardTitle className="flex items-center space-x-2">
-            <Filter className="h-5 w-5" />
+          <CardTitle
+            className="flex items-center space-x-2"
+            style={{ color: BRAND_COLORS.textPrimary }}
+          >
+            <Filter
+              className="h-5 w-5"
+              style={{ color: BRAND_COLORS.primary }}
+            />
             <span>Filtros y Búsqueda</span>
           </CardTitle>
         </CardHeader>
@@ -660,7 +772,7 @@ export default function BudgetsNew() {
               Mostrando {startIndex + 1}-
               {Math.min(
                 startIndex + itemsPerPage,
-                filteredAndSortedBudgets.length,
+                filteredAndSortedBudgets.length
               )}{" "}
               de {filteredAndSortedBudgets.length} presupuestos
             </p>
@@ -681,243 +793,403 @@ export default function BudgetsNew() {
           </div>
 
           {/* Table */}
+          {/* 🔴 TABLAS - Aplicando estructura de colores empresariales */}
           {filteredAndSortedBudgets.length > 0 ? (
-            <Card>
+            <Card
+              style={{
+                backgroundColor: BRAND_COLORS.white,
+                border: `1px solid ${BRAND_COLORS.border}`,
+              }}
+            >
               <CardContent className="p-0">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="w-12">
-                        <Checkbox
-                          checked={
-                            selectedBudgets.length ===
-                              paginatedBudgets.length &&
-                            paginatedBudgets.length > 0
-                          }
-                          onCheckedChange={handleSelectAll}
-                        />
-                      </TableHead>
-                      <TableHead
-                        className="cursor-pointer"
-                        onClick={() => handleSort("claveObra")}
-                      >
-                        <div className="flex items-center space-x-1">
-                          <Hash className="h-4 w-4" />
-                          <span>Clave de Obra</span>
-                          <ArrowUpDown className="h-3 w-3" />
-                        </div>
-                      </TableHead>
-                      <TableHead
-                        className="cursor-pointer"
-                        onClick={() => handleSort("cliente")}
-                      >
-                        <div className="flex items-center space-x-1">
-                          <User className="h-4 w-4" />
-                          <span>Cliente</span>
-                          <ArrowUpDown className="h-3 w-3" />
-                        </div>
-                      </TableHead>
-                      <TableHead>Descripción</TableHead>
-                      <TableHead
-                        className="cursor-pointer"
-                        onClick={() => handleSort("estado")}
-                      >
-                        <div className="flex items-center space-x-1">
-                          <AlertCircle className="h-4 w-4" />
-                          <span>Estado</span>
-                          <ArrowUpDown className="h-3 w-3" />
-                        </div>
-                      </TableHead>
-                      <TableHead
-                        className="cursor-pointer"
-                        onClick={() => handleSort("fechaSolicitud")}
-                      >
-                        <div className="flex items-center space-x-1">
-                          <CalendarIcon className="h-4 w-4" />
-                          <span>Creado</span>
-                          <ArrowUpDown className="h-3 w-3" />
-                        </div>
-                      </TableHead>
-                      <TableHead
-                        className="cursor-pointer"
-                        onClick={() => handleSort("total")}
-                      >
-                        <div className="flex items-center space-x-1">
-                          <span>Total</span>
-                          <ArrowUpDown className="h-3 w-3" />
-                        </div>
-                      </TableHead>
-                      <TableHead className="text-center">Acciones</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {paginatedBudgets.map((budget) => (
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
                       <TableRow
-                        key={budget.id}
-                        className="hover:bg-slate-50 dark:hover:bg-slate-800/50"
+                        style={{
+                          backgroundColor: BRAND_COLORS.backgroundLight,
+                        }}
                       >
-                        <TableCell>
+                        <TableHead className="w-12">
                           <Checkbox
-                            checked={selectedBudgets.includes(budget.id)}
-                            onCheckedChange={(checked) => {
-                              if (checked) {
-                                setSelectedBudgets([
-                                  ...selectedBudgets,
-                                  budget.id,
-                                ]);
-                              } else {
-                                setSelectedBudgets(
-                                  selectedBudgets.filter(
-                                    (id) => id !== budget.id,
-                                  ),
-                                );
-                              }
-                            }}
+                            checked={
+                              selectedBudgets.length ===
+                                paginatedBudgets.length &&
+                              paginatedBudgets.length > 0
+                            }
+                            onCheckedChange={handleSelectAll}
                           />
-                        </TableCell>
-                        <TableCell className="font-mono text-sm">
-                          {budget.claveObra || (
-                            <span className="text-gray-400">Sin asignar</span>
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          <div>
-                            <p className="font-medium">
-                              {budget.cliente?.nombre || "Sin cliente"}
-                            </p>
-                            <p className="text-sm text-slate-500">
-                              {budget.nombreContratista}
-                            </p>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <p
-                            className="text-sm truncate max-w-xs"
-                            title={budget.descripcionObra}
-                          >
-                            {budget.descripcionObra || "Sin descripción"}
-                          </p>
-                        </TableCell>
-                        <TableCell>{getStatusBadge(budget.estado)}</TableCell>
-                        <TableCell className="text-sm">
-                          {budget.fechaSolicitud
-                            ? format(
-                                new Date(budget.fechaSolicitud),
-                                "dd/MM/yyyy",
-                                { locale: es },
-                              )
-                            : "-"}
-                        </TableCell>
-                        <TableCell className="font-medium">
-                          $
-                          {Number(budget.total || 0).toLocaleString("es-MX", {
-                            minimumFractionDigits: 2,
-                          })}
-                        </TableCell>
-                        <TableCell>
+                        </TableHead>
+                        <TableHead
+                          className="cursor-pointer hover:opacity-75 transition-opacity w-32"
+                          onClick={() => handleSort("claveObra")}
+                          style={{ color: BRAND_COLORS.textPrimary }}
+                        >
                           <div className="flex items-center space-x-1">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleExportPDF(budget.id)}
-                              title="Exportar PDF"
-                            >
-                              <Download className="h-4 w-4" />
-                            </Button>
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="sm">
-                                  <MoreHorizontal className="h-4 w-4" />
-                                </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end">
-                                <DropdownMenuLabel>Acciones</DropdownMenuLabel>
-                                <DropdownMenuSeparator />
-                                <DropdownMenuItem
-                                  onClick={() => handleEdit(budget)}
+                            <Hash
+                              className="h-4 w-4"
+                              style={{ color: BRAND_COLORS.primary }}
+                            />
+                            <span>Clave de Obra</span>
+                            <ArrowUpDown
+                              className="h-3 w-3"
+                              style={{ color: BRAND_COLORS.textSecondary }}
+                            />
+                          </div>
+                        </TableHead>
+                        <TableHead
+                          className="cursor-pointer hover:opacity-75 transition-opacity w-48"
+                          onClick={() => handleSort("cliente")}
+                          style={{ color: BRAND_COLORS.textPrimary }}
+                        >
+                          <div className="flex items-center space-x-1">
+                            <User
+                              className="h-4 w-4"
+                              style={{ color: BRAND_COLORS.primary }}
+                            />
+                            <span>Cliente</span>
+                            <ArrowUpDown
+                              className="h-3 w-3"
+                              style={{ color: BRAND_COLORS.textSecondary }}
+                            />
+                          </div>
+                        </TableHead>
+                        <TableHead
+                          className="w-80"
+                          style={{ color: BRAND_COLORS.textPrimary }}
+                        >
+                          Descripción
+                        </TableHead>
+                        <TableHead
+                          className="cursor-pointer hover:opacity-75 transition-opacity w-32"
+                          onClick={() => handleSort("estado")}
+                          style={{ color: BRAND_COLORS.textPrimary }}
+                        >
+                          <div className="flex items-center space-x-1">
+                            <AlertCircle
+                              className="h-4 w-4"
+                              style={{ color: BRAND_COLORS.primary }}
+                            />
+                            <span>Estado</span>
+                            <ArrowUpDown
+                              className="h-3 w-3"
+                              style={{ color: BRAND_COLORS.textSecondary }}
+                            />
+                          </div>
+                        </TableHead>
+                        <TableHead
+                          className="cursor-pointer hover:opacity-75 transition-opacity w-28"
+                          onClick={() => handleSort("fechaSolicitud")}
+                          style={{ color: BRAND_COLORS.textPrimary }}
+                        >
+                          <div className="flex items-center space-x-1">
+                            <CalendarIcon
+                              className="h-4 w-4"
+                              style={{ color: BRAND_COLORS.primary }}
+                            />
+                            <span>Creado</span>
+                            <ArrowUpDown
+                              className="h-3 w-3"
+                              style={{ color: BRAND_COLORS.textSecondary }}
+                            />
+                          </div>
+                        </TableHead>
+                        <TableHead
+                          className="cursor-pointer hover:opacity-75 transition-opacity w-32"
+                          onClick={() => handleSort("total")}
+                          style={{ color: BRAND_COLORS.textPrimary }}
+                        >
+                          <div className="flex items-center space-x-1">
+                            <span>Total</span>
+                            <ArrowUpDown
+                              className="h-3 w-3"
+                              style={{ color: BRAND_COLORS.textSecondary }}
+                            />
+                          </div>
+                        </TableHead>
+                        <TableHead
+                          className="text-center w-32"
+                          style={{ color: BRAND_COLORS.textPrimary }}
+                        >
+                          Acciones
+                        </TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {paginatedBudgets.map((budget) => (
+                        <TableRow
+                          key={budget.id}
+                          className="transition-colors cursor-default hover:bg-slate-50/50 min-h-16"
+                          style={{
+                            backgroundColor: BRAND_COLORS.white,
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.backgroundColor = `${BRAND_COLORS.backgroundLight}80`;
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.backgroundColor =
+                              BRAND_COLORS.white;
+                          }}
+                        >
+                          <TableCell>
+                            <Checkbox
+                              checked={selectedBudgets.includes(budget.id)}
+                              onCheckedChange={(checked) => {
+                                if (checked) {
+                                  setSelectedBudgets([
+                                    ...selectedBudgets,
+                                    budget.id,
+                                  ]);
+                                } else {
+                                  setSelectedBudgets(
+                                    selectedBudgets.filter(
+                                      (id) => id !== budget.id
+                                    )
+                                  );
+                                }
+                              }}
+                            />
+                          </TableCell>
+                          <TableCell className="font-mono text-sm">
+                            {budget.claveObra ? (
+                              <span style={{ color: BRAND_COLORS.textPrimary }}>
+                                {budget.claveObra}
+                              </span>
+                            ) : (
+                              <span
+                                style={{ color: BRAND_COLORS.textSecondary }}
+                              >
+                                Sin asignar
+                              </span>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            <div>
+                              <p
+                                className="font-medium"
+                                style={{ color: BRAND_COLORS.textPrimary }}
+                              >
+                                {budget.cliente?.nombre || "Sin cliente"}
+                              </p>
+                              <p
+                                className="text-sm"
+                                style={{ color: BRAND_COLORS.textSecondary }}
+                              >
+                                {budget.nombreContratista}
+                              </p>
+                            </div>
+                          </TableCell>
+                          <TableCell className="w-80">
+                            <div className="relative">
+                              <div
+                                className={`text-sm py-2 transition-all duration-300 ${
+                                  expandedDescriptions.has(budget.id)
+                                    ? "max-h-none"
+                                    : "max-h-10 overflow-hidden"
+                                }`}
+                                style={{
+                                  color: BRAND_COLORS.textPrimary,
+                                  wordBreak: "break-word",
+                                  whiteSpace: "normal",
+                                  lineHeight: "1.4",
+                                  display: expandedDescriptions.has(budget.id)
+                                    ? "block"
+                                    : "-webkit-box",
+                                  WebkitLineClamp: expandedDescriptions.has(
+                                    budget.id
+                                  )
+                                    ? "none"
+                                    : 2,
+                                  WebkitBoxOrient: "vertical" as any,
+                                }}
+                              >
+                                {budget.descripcionObra || "Sin descripción"}
+                              </div>
+                              {shouldShowExpandButton(
+                                budget.descripcionObra
+                              ) && (
+                                <button
+                                  onClick={() => toggleDescription(budget.id)}
+                                  className="flex items-center space-x-1 text-xs mt-2 px-3 py-1.5 rounded-md border transition-all duration-200 hover:shadow-sm"
+                                  style={{
+                                    color: BRAND_COLORS.primary,
+                                    borderColor: BRAND_COLORS.border,
+                                    backgroundColor: expandedDescriptions.has(
+                                      budget.id
+                                    )
+                                      ? BRAND_COLORS.backgroundLight
+                                      : BRAND_COLORS.white,
+                                  }}
                                 >
-                                  <Edit className="h-4 w-4 mr-2" />
-                                  Editar Conceptos
-                                </DropdownMenuItem>
-                                {budget.estado === "borrador" && (
-                                  <DropdownMenuItem
-                                    onClick={() =>
-                                      updateStatusMutation.mutate({
-                                        id: budget.id,
-                                        estado: "enviado",
-                                      })
-                                    }
+                                  <span className="font-medium">
+                                    {expandedDescriptions.has(budget.id)
+                                      ? "Mostrar menos"
+                                      : "Mostrar más"}
+                                  </span>
+                                  <ChevronDown
+                                    className={`h-3 w-3 transition-transform duration-200 ${
+                                      expandedDescriptions.has(budget.id)
+                                        ? "rotate-180"
+                                        : ""
+                                    }`}
+                                  />
+                                </button>
+                              )}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            {getStatusBudget(budget.estado)}
+                          </TableCell>
+                          <TableCell
+                            className="text-sm"
+                            style={{ color: BRAND_COLORS.textSecondary }}
+                          >
+                            {budget.fechaSolicitud
+                              ? format(
+                                  new Date(budget.fechaSolicitud),
+                                  "dd/MM/yyyy",
+                                  { locale: es }
+                                )
+                              : "-"}
+                          </TableCell>
+                          <TableCell
+                            className="font-medium"
+                            style={{ color: BRAND_COLORS.primary }}
+                          >
+                            $
+                            {Number(budget.total || 0).toLocaleString("es-MX", {
+                              minimumFractionDigits: 2,
+                            })}
+                          </TableCell>
+                          <TableCell className="text-center">
+                            <div className="flex items-center justify-center space-x-2 py-2">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleExportPDF(budget.id)}
+                                title="Exportar PDF"
+                                className="hover:bg-blue-50"
+                              >
+                                <Download className="h-4 w-4" />
+                              </Button>
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="hover:bg-gray-50"
                                   >
-                                    <Clock className="h-4 w-4 mr-2" />
-                                    Enviar para Aprobación
+                                    <MoreHorizontal className="h-4 w-4" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent
+                                  align="end"
+                                  className="w-48"
+                                >
+                                  <DropdownMenuLabel>
+                                    Acciones
+                                  </DropdownMenuLabel>
+                                  <DropdownMenuSeparator />
+                                  <DropdownMenuItem
+                                    onClick={() => handleEdit(budget)}
+                                  >
+                                    <Edit className="h-4 w-4 mr-2" />
+                                    Editar Conceptos
                                   </DropdownMenuItem>
-                                )}
-                                {budget.estado === "enviado" && (
-                                  <>
+                                  {budget.estado === "borrador" && (
                                     <DropdownMenuItem
                                       onClick={() =>
                                         updateStatusMutation.mutate({
                                           id: budget.id,
-                                          estado: "aprobado",
+                                          estado: "enviado",
                                         })
                                       }
                                     >
-                                      <CheckCircle className="h-4 w-4 mr-2" />
-                                      Aprobar
+                                      <Clock className="h-4 w-4 mr-2" />
+                                      Enviar para Aprobación
                                     </DropdownMenuItem>
+                                  )}
+                                  {budget.estado === "enviado" && (
+                                    <>
+                                      <DropdownMenuItem
+                                        onClick={() =>
+                                          updateStatusMutation.mutate({
+                                            id: budget.id,
+                                            estado: "aprobado",
+                                          })
+                                        }
+                                      >
+                                        <CheckCircle className="h-4 w-4 mr-2" />
+                                        Aprobar
+                                      </DropdownMenuItem>
+                                      <DropdownMenuItem
+                                        onClick={() =>
+                                          handleOpenRejectModal(budget)
+                                        }
+                                      >
+                                        <X className="h-4 w-4 mr-2" />
+                                        Rechazar
+                                      </DropdownMenuItem>
+                                    </>
+                                  )}
+                                  {(budget.estado === "aprobado" ||
+                                    budget.estado === "rechazado") && (
                                     <DropdownMenuItem
                                       onClick={() =>
-                                        handleOpenRejectModal(budget)
+                                        updateStatusMutation.mutate({
+                                          id: budget.id,
+                                          estado: "finalizado",
+                                        })
                                       }
                                     >
-                                      <X className="h-4 w-4 mr-2" />
-                                      Rechazar
+                                      <Check className="h-4 w-4 mr-2" />
+                                      Finalizar
                                     </DropdownMenuItem>
-                                  </>
-                                )}
-                                {(budget.estado === "aprobado" ||
-                                  budget.estado === "rechazado") && (
-                                  <DropdownMenuItem
-                                    onClick={() =>
-                                      updateStatusMutation.mutate({
-                                        id: budget.id,
-                                        estado: "finalizado",
-                                      })
-                                    }
-                                  >
-                                    <Check className="h-4 w-4 mr-2" />
-                                    Finalizar
-                                  </DropdownMenuItem>
-                                )}
-                                <DropdownMenuSeparator />
-                                {(budget.estado === "finalizado" ||
-                                  budget.estado === "rechazado") && (
-                                  <DropdownMenuItem
-                                    onClick={() => handleDelete(budget.id)}
-                                    className="text-red-600"
-                                  >
-                                    <Trash2 className="h-4 w-4 mr-2" />
-                                    Eliminar
-                                  </DropdownMenuItem>
-                                )}
-                              </DropdownMenuContent>
-                            </DropdownMenu>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                                  )}
+                                  <DropdownMenuSeparator />
+                                  {(budget.estado === "finalizado" ||
+                                    budget.estado === "rechazado") && (
+                                    <DropdownMenuItem
+                                      onClick={() => handleDelete(budget.id)}
+                                      className="text-red-600"
+                                    >
+                                      <Trash2 className="h-4 w-4 mr-2" />
+                                      Eliminar
+                                    </DropdownMenuItem>
+                                  )}
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>{" "}
+                  </Table>
+                </div>
               </CardContent>
             </Card>
           ) : (
-            <Card>
+            <Card
+              style={{
+                backgroundColor: BRAND_COLORS.white,
+                border: `1px solid ${BRAND_COLORS.border}`,
+              }}
+            >
               <CardContent className="text-center py-12">
-                <FileText className="h-16 w-16 text-slate-400 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-slate-900 dark:text-slate-100 mb-2">
+                <FileText
+                  className="h-16 w-16 mx-auto mb-4"
+                  style={{ color: BRAND_COLORS.textSecondary }}
+                />
+                <h3
+                  className="text-lg font-medium mb-2"
+                  style={{ color: BRAND_COLORS.textPrimary }}
+                >
                   No se encontraron presupuestos
                 </h3>
-                <p className="text-slate-500 dark:text-slate-400 mb-6">
+                <p
+                  className="mb-6"
+                  style={{ color: BRAND_COLORS.textSecondary }}
+                >
                   {searchTerm ||
                   statusFilter !== "all" ||
                   clientFilter !== "all"
@@ -926,7 +1198,12 @@ export default function BudgetsNew() {
                 </p>
                 <Button
                   onClick={() => setShowForm(true)}
-                  className="bg-green-600 hover:bg-green-700"
+                  className="hover:opacity-90 transition-opacity"
+                  style={{
+                    backgroundColor: BRAND_COLORS.primary,
+                    color: BRAND_COLORS.white,
+                    border: "none",
+                  }}
                 >
                   <Plus className="h-4 w-4 mr-2" />
                   Crear Primer Presupuesto
@@ -980,17 +1257,32 @@ export default function BudgetsNew() {
         </>
       )}
 
-      {/* Modal de Rechazo */}
+      {/* 🔴 MODAL DE RECHAZO - Aplicando colores funcionales */}
       <Dialog open={showRejectModal} onOpenChange={setShowRejectModal}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent
+          className="sm:max-w-md"
+          style={{
+            backgroundColor: BRAND_COLORS.white,
+            border: `1px solid ${BRAND_COLORS.border}`,
+          }}
+        >
           <DialogHeader>
-            <DialogTitle className="flex items-center space-x-2">
-              <AlertTriangle className="h-5 w-5 text-red-600" />
+            <DialogTitle
+              className="flex items-center space-x-2"
+              style={{ color: BRAND_COLORS.textPrimary }}
+            >
+              <AlertTriangle
+                className="h-5 w-5"
+                style={{ color: BRAND_COLORS.error }}
+              />
               <span>Rechazar Presupuesto</span>
             </DialogTitle>
-            <DialogDescription>
+            <DialogDescription style={{ color: BRAND_COLORS.textSecondary }}>
               Seleccione la razón por la cual se rechaza este presupuesto:
-              <strong className="block mt-1">
+              <strong
+                className="block mt-1"
+                style={{ color: BRAND_COLORS.textPrimary }}
+              >
                 {rejectingBudget?.claveObra || "Sin clave"} -{" "}
                 {rejectingBudget?.cliente?.nombre || "Sin cliente"}
               </strong>
@@ -999,45 +1291,57 @@ export default function BudgetsNew() {
 
           <div className="space-y-4">
             <div className="space-y-3">
-              <Label className="text-base font-medium">
+              <Label
+                className="text-base font-medium"
+                style={{ color: BRAND_COLORS.textPrimary }}
+              >
                 Motivo del rechazo:
               </Label>
 
               <div className="space-y-2">
-                <label className="flex items-center space-x-2 cursor-pointer">
+                <label
+                  className="flex items-center space-x-2 cursor-pointer hover:opacity-75 transition-opacity"
+                  style={{ color: BRAND_COLORS.textPrimary }}
+                >
                   <input
                     type="radio"
                     name="rejectReason"
                     value="no_anticipo"
                     checked={rejectReason === "no_anticipo"}
                     onChange={(e) => setRejectReason(e.target.value)}
-                    className="text-red-600"
+                    style={{ accentColor: BRAND_COLORS.error }}
                   />
                   <span>
                     Esta obra se rechaza porque el cliente no dio anticipo
                   </span>
                 </label>
 
-                <label className="flex items-center space-x-2 cursor-pointer">
+                <label
+                  className="flex items-center space-x-2 cursor-pointer hover:opacity-75 transition-opacity"
+                  style={{ color: BRAND_COLORS.textPrimary }}
+                >
                   <input
                     type="radio"
                     name="rejectReason"
                     value="problemas_cliente"
                     checked={rejectReason === "problemas_cliente"}
                     onChange={(e) => setRejectReason(e.target.value)}
-                    className="text-red-600"
+                    style={{ accentColor: BRAND_COLORS.error }}
                   />
                   <span>Esta obra se rechaza por problemas del cliente</span>
                 </label>
 
-                <label className="flex items-center space-x-2 cursor-pointer">
+                <label
+                  className="flex items-center space-x-2 cursor-pointer hover:opacity-75 transition-opacity"
+                  style={{ color: BRAND_COLORS.textPrimary }}
+                >
                   <input
                     type="radio"
                     name="rejectReason"
                     value="otra"
                     checked={rejectReason === "otra"}
                     onChange={(e) => setRejectReason(e.target.value)}
-                    className="text-red-600"
+                    style={{ accentColor: BRAND_COLORS.error }}
                   />
                   <span>Otra razón</span>
                 </label>
@@ -1045,7 +1349,12 @@ export default function BudgetsNew() {
 
               {rejectReason === "otra" && (
                 <div className="mt-3">
-                  <Label htmlFor="customReason">Describa la razón:</Label>
+                  <Label
+                    htmlFor="customReason"
+                    style={{ color: BRAND_COLORS.textSecondary }}
+                  >
+                    Describa la razón:
+                  </Label>
                   <Textarea
                     id="customReason"
                     placeholder="Escriba el motivo del rechazo..."
@@ -1053,6 +1362,11 @@ export default function BudgetsNew() {
                     onChange={(e) => setCustomRejectReason(e.target.value)}
                     className="mt-1"
                     rows={3}
+                    style={{
+                      backgroundColor: BRAND_COLORS.white,
+                      borderColor: BRAND_COLORS.border,
+                      color: BRAND_COLORS.textPrimary,
+                    }}
                   />
                 </div>
               )}
@@ -1062,16 +1376,26 @@ export default function BudgetsNew() {
               <Button
                 variant="outline"
                 onClick={() => setShowRejectModal(false)}
+                style={{
+                  borderColor: BRAND_COLORS.textSecondary,
+                  color: BRAND_COLORS.textPrimary,
+                }}
+                className="hover:opacity-75 transition-opacity"
               >
                 Cancelar
               </Button>
               <Button
-                variant="destructive"
                 onClick={handleConfirmReject}
                 disabled={
                   !rejectReason ||
                   (rejectReason === "otra" && !customRejectReason.trim())
                 }
+                style={{
+                  backgroundColor: BRAND_COLORS.error,
+                  color: BRAND_COLORS.white,
+                  border: "none",
+                }}
+                className="hover:opacity-90 transition-opacity disabled:opacity-50"
               >
                 <X className="h-4 w-4 mr-2" />
                 Rechazar Presupuesto

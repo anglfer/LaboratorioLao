@@ -865,828 +865,1754 @@ export default function AdvancedBudgetForm({
     }
   };
   return (
-    <div className="space-y-6">
-      {/* Debug indicator */}
-      {isEditMode && (
-        <div className="bg-yellow-100 border border-yellow-400 text-yellow-700 px-4 py-3 rounded">
-          <strong>MODO EDICIÓN ACTIVO</strong> - ID: {initialData?.id}
-          {initialData?.detalles && (
-            <span> | Conceptos: {initialData.detalles.length}</span>
-          )}
+    <div className="min-h-screen bg-gray-50">
+      <div className="max-w-5xl mx-auto p-6 space-y-6">
+        {/* Debug indicator - más discreto */}
+        {isEditMode && (
+          <div className="border-l-4 border-blue-500 bg-blue-50 px-4 py-3 rounded-r">
+            <div className="flex items-center space-x-2 text-blue-800">
+              <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+              <span className="font-medium">Editando presupuesto</span>
+              <span className="text-blue-600">•</span>
+              <span className="text-sm">ID: {initialData?.id}</span>
+            </div>
+          </div>
+        )}
+
+        {/* Título Principal - más sobrio */}
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">
+            {isEditMode ? "Editar Presupuesto" : "Nuevo Presupuesto"}
+          </h1>
+          <p className="text-gray-600">
+            {isEditMode
+              ? "Modifica los datos del presupuesto existente"
+              : "Complete la información para crear un nuevo presupuesto"}
+          </p>
         </div>
-      )}
 
-      <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-8">
-        {/* Sección Cliente */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center space-x-2">
-              <User className="h-5 w-5 text-green-600" />
-              <span>Información del Cliente</span>
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex items-center space-x-4">
-              <Label className="flex items-center space-x-2">
-                <input
-                  type="radio"
-                  checked={!clienteNuevo}
-                  onChange={() => {
-                    setClienteNuevo(false);
-                    setValue("clienteId", undefined);
-                    setBusquedaCliente(""); // Limpiar búsqueda al cambiar modo
-                  }}
-                />
-                <span>Cliente existente</span>
-              </Label>
-              <Label className="flex items-center space-x-2">
-                <input
-                  type="radio"
-                  checked={clienteNuevo}
-                  onChange={() => {
-                    setClienteNuevo(true);
-                    setSelectedClienteId(null);
-                    setBusquedaCliente(""); // Limpiar búsqueda al cambiar modo
-                  }}
-                />
-                <span>Cliente nuevo</span>
-              </Label>
-            </div>{" "}
-            {!clienteNuevo ? (
-              <div className="space-y-4">
-                <Label htmlFor="clienteId">Seleccionar Cliente</Label>
-
-                {/* Campo de búsqueda */}
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                  <Input
-                    placeholder="Buscar por ID, nombre, correo o teléfono..."
-                    value={busquedaCliente}
-                    onChange={(e) => setBusquedaCliente(e.target.value)}
-                    className="pl-10 pr-8"
+        <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-6">
+          {/* Sección Cliente */}
+          <Card className="border border-gray-200 shadow-sm">
+            <CardHeader className="border-b border-gray-100 bg-white">
+              <CardTitle className="flex items-center space-x-2 text-lg text-gray-900">
+                <User className="h-5 w-5 text-gray-500" />
+                <span>Información del Cliente</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-6 space-y-4">
+              {/* Radio buttons simples */}
+              <div className="flex items-center space-x-8">
+                <Label className="flex items-center space-x-2 cursor-pointer">
+                  <input
+                    type="radio"
+                    checked={!clienteNuevo}
+                    onChange={() => {
+                      setClienteNuevo(false);
+                      setValue("clienteId", undefined);
+                      setBusquedaCliente("");
+                    }}
+                    className="w-4 h-4 text-green-600 border-gray-300 focus:ring-green-500"
                   />
-                  {busquedaCliente && (
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      className="absolute right-1 top-1/2 transform -translate-y-1/2 h-6 w-6 p-0"
-                      onClick={() => setBusquedaCliente("")}
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
-                  )}
-                </div>
+                  <span className="text-gray-900">Cliente existente</span>
+                </Label>
+                <Label className="flex items-center space-x-2 cursor-pointer">
+                  <input
+                    type="radio"
+                    checked={clienteNuevo}
+                    onChange={() => {
+                      setClienteNuevo(true);
+                      setSelectedClienteId(null);
+                      setBusquedaCliente("");
+                    }}
+                    className="w-4 h-4 text-green-600 border-gray-300 focus:ring-green-500"
+                  />
+                  <span className="text-gray-900">Cliente nuevo</span>
+                </Label>
+              </div>
 
-                {/* Selector de cliente */}
-                <Select
-                  value={selectedClienteId?.toString()}
-                  onValueChange={(value) => {
-                    const id = parseInt(value);
-                    setValue("clienteId", id);
-                    setSelectedClienteId(id);
-                  }}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Seleccionar cliente" />
-                  </SelectTrigger>
-                  <SelectContent className="max-h-60">
-                    {Array.isArray(clientesFiltrados) &&
-                    clientesFiltrados.length > 0 ? (
-                      clientesFiltrados.map((cliente) => (
-                        <SelectItem
-                          key={cliente.id}
-                          value={cliente.id.toString()}
+              {!clienteNuevo ? (
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label
+                      htmlFor="clienteId"
+                      className="text-sm font-medium text-gray-700"
+                    >
+                      Buscar Cliente
+                    </Label>
+                    {/* Campo de búsqueda simple */}
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                      <Input
+                        placeholder="Buscar por ID, nombre, correo o teléfono..."
+                        value={busquedaCliente}
+                        onChange={(e) => setBusquedaCliente(e.target.value)}
+                        className="pl-10 pr-10 border-gray-300 focus:border-green-500 focus:ring-green-500"
+                      />
+                      {busquedaCliente && (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="absolute right-2 top-1/2 transform -translate-y-1/2 h-6 w-6 p-0 text-gray-400 hover:text-gray-600"
+                          onClick={() => setBusquedaCliente("")}
                         >
-                          <div className="flex flex-col w-full">
-                            <div className="flex items-center justify-between">
-                              <span className="font-medium">
-                                {cliente.nombre}
-                              </span>
-                              <span className="text-xs text-gray-400 ml-2">
-                                ID: {cliente.id}
+                          <X className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Selector de cliente simple */}
+                  <div className="space-y-2">
+                    <Label
+                      htmlFor="clienteSelect"
+                      className="text-sm font-medium text-gray-700"
+                    >
+                      Cliente
+                    </Label>
+                    <Select
+                      value={selectedClienteId?.toString()}
+                      onValueChange={(value) => {
+                        const id = parseInt(value);
+                        setValue("clienteId", id);
+                        setSelectedClienteId(id);
+                      }}
+                    >
+                      <SelectTrigger className="h-10 border-gray-300 focus:border-green-500 focus:ring-green-500">
+                        <SelectValue placeholder="Seleccionar cliente..." />
+                      </SelectTrigger>
+                      <SelectContent className="max-h-72">
+                        {Array.isArray(clientesFiltrados) &&
+                        clientesFiltrados.length > 0 ? (
+                          clientesFiltrados.map((cliente) => (
+                            <SelectItem
+                              key={cliente.id}
+                              value={cliente.id.toString()}
+                              className="py-3 hover:bg-gray-50"
+                            >
+                              <div className="flex flex-col w-full">
+                                <div className="flex items-center justify-between">
+                                  <span className="font-medium text-gray-900">
+                                    {cliente.nombre}
+                                  </span>
+                                  <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">
+                                    ID: {cliente.id}
+                                  </span>
+                                </div>
+                                {cliente.direccion && (
+                                  <div className="flex items-center space-x-1 mt-1">
+                                    <MapPin className="h-3 w-3 text-gray-400" />
+                                    <span className="text-xs text-gray-600">
+                                      {cliente.direccion}
+                                    </span>
+                                  </div>
+                                )}
+                                <div className="flex gap-2 mt-1">
+                                  {cliente.telefonos &&
+                                    cliente.telefonos.length > 0 && (
+                                      <div className="flex items-center space-x-1">
+                                        <Phone className="h-3 w-3 text-gray-400" />
+                                        <span className="text-xs text-gray-600">
+                                          {cliente.telefonos
+                                            .map((t) => t.telefono)
+                                            .join(", ")}
+                                        </span>
+                                      </div>
+                                    )}
+                                  {cliente.correos &&
+                                    cliente.correos.length > 0 && (
+                                      <div className="flex items-center space-x-1">
+                                        <Mail className="h-3 w-3 text-gray-400" />
+                                        <span className="text-xs text-gray-600">
+                                          {cliente.correos
+                                            .map((c) => c.correo)
+                                            .join(", ")}
+                                        </span>
+                                      </div>
+                                    )}
+                                </div>
+                              </div>
+                            </SelectItem>
+                          ))
+                        ) : busquedaCliente ? (
+                          <SelectItem
+                            value="__no_results__"
+                            disabled
+                            className="py-4 text-center"
+                          >
+                            <div className="flex flex-col items-center space-y-2 text-gray-500">
+                              <Search className="h-6 w-6" />
+                              <span className="text-sm">
+                                No se encontraron clientes que coincidan con "
+                                {busquedaCliente}"
                               </span>
                             </div>
-                            {cliente.direccion && (
-                              <span className="text-xs text-gray-500">
-                                📍 {cliente.direccion}
+                          </SelectItem>
+                        ) : (
+                          <SelectItem
+                            value="__no_clientes__"
+                            disabled
+                            className="py-4 text-center"
+                          >
+                            <div className="flex flex-col items-center space-y-2 text-gray-500">
+                              <User className="h-6 w-6" />
+                              <span className="text-sm">
+                                {clientesError
+                                  ? "Error cargando clientes"
+                                  : "No hay clientes disponibles"}
                               </span>
-                            )}
-                            {cliente.telefonos &&
-                              cliente.telefonos.length > 0 && (
-                                <span className="text-xs text-gray-500">
-                                  📞{" "}
-                                  {cliente.telefonos
-                                    .map((t) => t.telefono)
-                                    .join(", ")}
-                                </span>
-                              )}
-                            {cliente.correos && cliente.correos.length > 0 && (
-                              <span className="text-xs text-gray-500">
-                                ✉️{" "}
-                                {cliente.correos
-                                  .map((c) => c.correo)
-                                  .join(", ")}
-                              </span>
-                            )}
-                          </div>
-                        </SelectItem>
-                      ))
-                    ) : busquedaCliente ? (
-                      <SelectItem value="__no_results__" disabled>
-                        No se encontraron clientes que coincidan con "
-                        {busquedaCliente}"
-                      </SelectItem>
-                    ) : (
-                      <SelectItem value="__no_clientes__" disabled>
-                        {clientesError
-                          ? "Error cargando clientes"
-                          : "No hay clientes disponibles"}
-                      </SelectItem>
+                            </div>
+                          </SelectItem>
+                        )}
+                      </SelectContent>
+                    </Select>
+
+                    {/* Información de búsqueda simple */}
+                    {busquedaCliente && (
+                      <div className="flex items-center justify-between p-3 bg-green-50 border border-green-200 rounded-lg">
+                        <div className="flex items-center space-x-2 text-green-700">
+                          <Search className="h-4 w-4" />
+                          <span className="text-sm">
+                            {clientesFiltrados.length > 0
+                              ? `${clientesFiltrados.length} cliente(s) encontrado(s)`
+                              : "No se encontraron clientes"}
+                          </span>
+                        </div>
+                        {clientesFiltrados.length > 0 && (
+                          <span className="text-xs text-green-600 bg-green-100 px-2 py-1 rounded">
+                            {clientes?.length || 0} totales
+                          </span>
+                        )}
+                      </div>
                     )}
-                  </SelectContent>
-                </Select>
-
-                {/* Mostrar resultados de búsqueda */}
-                {busquedaCliente && (
-                  <div className="text-sm text-gray-600">
-                    {clientesFiltrados.length > 0
-                      ? `${clientesFiltrados.length} cliente(s) encontrado(s)`
-                      : "No se encontraron clientes"}
                   </div>
-                )}
 
-                {errors.clienteId && (
-                  <p className="text-sm text-red-600">
-                    {errors.clienteId.message}
+                  {errors.clienteId && (
+                    <div className="flex items-center space-x-2 p-3 bg-red-50 border border-red-200 rounded-lg">
+                      <X className="h-4 w-4 text-red-500" />
+                      <p className="text-sm text-red-600 font-medium">
+                        {errors.clienteId.message}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div
+                  className="space-y-6 p-6 rounded-xl border-2"
+                  style={{
+                    backgroundColor: "#E7F2E0",
+                    borderColor: "#68A53B",
+                  }}
+                >
+                  <div className="text-center mb-4">
+                    <h3
+                      className="text-lg font-semibold mb-1"
+                      style={{ color: "#4F7D2C" }}
+                    >
+                      Registrar Nuevo Cliente
+                    </h3>
+                    <p className="text-sm" style={{ color: "#68A53B" }}>
+                      Complete la información del cliente
+                    </p>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-3">
+                      <Label
+                        htmlFor="clienteNombre"
+                        className="text-sm font-medium text-gray-700 flex items-center space-x-2"
+                      >
+                        <User className="h-4 w-4 text-gray-500" />
+                        <span>Nombre del Cliente *</span>
+                      </Label>
+                      <Input
+                        id="clienteNombre"
+                        placeholder="Nombre completo del cliente"
+                        {...register("clienteNuevo.nombre")}
+                        className="border-gray-300 focus:border-green-500 focus:ring-green-500"
+                      />
+                      {errors.clienteNuevo?.nombre && (
+                        <p className="text-sm text-red-600 flex items-center space-x-1">
+                          <X className="h-4 w-4" />
+                          <span>{errors.clienteNuevo.nombre.message}</span>
+                        </p>
+                      )}
+                    </div>
+                    <div className="space-y-2">
+                      <Label
+                        htmlFor="clienteDireccion"
+                        className="text-sm font-medium text-gray-700 flex items-center space-x-2"
+                      >
+                        <MapPin className="h-4 w-4 text-gray-500" />
+                        <span>Dirección</span>
+                      </Label>
+                      <Input
+                        id="clienteDireccion"
+                        placeholder="Dirección completa (opcional)"
+                        {...register("clienteNuevo.direccion")}
+                        className="border-gray-300 focus:border-green-500 focus:ring-green-500"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Teléfonos - simplificado */}
+                  <div className="space-y-3 p-4 bg-white rounded-lg border border-gray-200">
+                    <Label className="text-sm font-medium text-gray-700 flex items-center space-x-2">
+                      <Phone className="h-4 w-4 text-gray-500" />
+                      <span>Teléfonos</span>
+                      <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">
+                        Opcional
+                      </span>
+                    </Label>
+                    <div className="space-y-2">
+                      {watch("clienteNuevo.telefonos")?.map((_, index) => (
+                        <div key={index} className="flex space-x-2">
+                          <Input
+                            placeholder={`Teléfono ${index + 1}`}
+                            {...register(`clienteNuevo.telefonos.${index}`)}
+                            className="flex-1 border-gray-300 focus:border-green-500 focus:ring-green-500"
+                          />
+                          {index > 0 && (
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              className="h-10 w-10 p-0 text-red-500 border-red-300 hover:bg-red-50"
+                              onClick={() => {
+                                const telefonos =
+                                  watch("clienteNuevo.telefonos") || [];
+                                telefonos.splice(index, 1);
+                                setValue("clienteNuevo.telefonos", telefonos);
+                              }}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          )}
+                        </div>
+                      ))}
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="w-full h-10 border-dashed border-gray-300 text-gray-600 hover:bg-gray-50"
+                        onClick={() => {
+                          const telefonos =
+                            watch("clienteNuevo.telefonos") || [];
+                          setValue("clienteNuevo.telefonos", [
+                            ...telefonos,
+                            "",
+                          ]);
+                        }}
+                      >
+                        <Plus className="h-4 w-4 mr-2" />
+                        Agregar teléfono
+                      </Button>
+                    </div>
+                  </div>
+
+                  {/* Correos - simplificado */}
+                  <div className="space-y-3 p-4 bg-white rounded-lg border border-gray-200">
+                    <Label className="text-sm font-medium text-gray-700 flex items-center space-x-2">
+                      <Mail className="h-4 w-4 text-gray-500" />
+                      <span>Correos electrónicos</span>
+                      <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">
+                        Opcional
+                      </span>
+                    </Label>
+                    <div className="space-y-2">
+                      {watch("clienteNuevo.correos")?.map((_, index) => (
+                        <div key={index} className="flex space-x-2">
+                          <Input
+                            type="email"
+                            placeholder={`correo${index + 1}@ejemplo.com`}
+                            {...register(`clienteNuevo.correos.${index}`)}
+                            className="flex-1 border-gray-300 focus:border-green-500 focus:ring-green-500"
+                          />
+                          {index > 0 && (
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              className="h-10 w-10 p-0 text-red-500 border-red-300 hover:bg-red-50"
+                              onClick={() => {
+                                const correos =
+                                  watch("clienteNuevo.correos") || [];
+                                correos.splice(index, 1);
+                                setValue("clienteNuevo.correos", correos);
+                              }}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          )}
+                        </div>
+                      ))}
+                      {errors.clienteNuevo?.correos && (
+                        <p className="text-sm text-red-600 flex items-center space-x-1">
+                          <X className="h-4 w-4" />
+                          <span>{errors.clienteNuevo.correos.message}</span>
+                        </p>
+                      )}
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="w-full h-10 border-dashed border-gray-300 text-gray-600 hover:bg-gray-50"
+                        onClick={() => {
+                          const correos = watch("clienteNuevo.correos") || [];
+                          setValue("clienteNuevo.correos", [...correos, ""]);
+                        }}
+                      >
+                        <Plus className="h-4 w-4 mr-2" />
+                        Agregar correo
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+          {/* Sección Contratista */}
+          <Card className="border border-gray-200 shadow-sm">
+            <CardHeader className="border-b border-gray-100 bg-white">
+              <CardTitle className="flex items-center space-x-2 text-lg text-gray-900">
+                <Building className="h-5 w-5 text-gray-500" />
+                <span>Información del Contratista</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-6 space-y-4">
+              {/* Opción de copiar del cliente - simplificada */}
+              <div className="p-4 rounded-lg bg-green-50 border border-green-200">
+                <Label className="flex items-center space-x-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={copiarDeCliente}
+                    onChange={(e) => setCopiarDeCliente(e.target.checked)}
+                    className="w-4 h-4 text-green-600 border-gray-300 rounded focus:ring-green-500"
+                  />
+                  <div className="flex items-center space-x-2">
+                    <span className="font-medium text-gray-900">
+                      Copiar nombre del cliente
+                    </span>
+                    <span className="text-xs text-green-600 bg-green-100 px-2 py-1 rounded">
+                      Automático
+                    </span>
+                  </div>
+                </Label>
+                {copiarDeCliente && (
+                  <p className="text-sm mt-2 ml-7 text-green-700">
+                    ✨ El nombre se copiará automáticamente del cliente
+                    seleccionado
                   </p>
                 )}
               </div>
-            ) : (
-              <div className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="clienteNombre">Nombre del Cliente</Label>
-                    <Input
-                      id="clienteNombre"
-                      placeholder="Nombre completo"
-                      {...register("clienteNuevo.nombre")}
-                    />
-                    {errors.clienteNuevo?.nombre && (
-                      <p className="text-sm text-red-600">
-                        {errors.clienteNuevo.nombre.message}
-                      </p>
-                    )}
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="clienteDireccion">Dirección</Label>
-                    <Input
-                      id="clienteDireccion"
-                      placeholder="Dirección completa"
-                      {...register("clienteNuevo.direccion")}
-                    />
-                  </div>
-                </div>
 
-                {/* Teléfonos */}
-                <div className="space-y-2">
-                  <Label className="flex items-center space-x-2">
-                    <Phone className="h-4 w-4" />
-                    <span>Teléfonos</span>
-                  </Label>{" "}
-                  <div className="space-y-2">
-                    {watch("clienteNuevo.telefonos")?.map((_, index) => (
-                      <div key={index} className="flex space-x-2">
-                        <Input
-                          placeholder="Número de teléfono"
-                          {...register(`clienteNuevo.telefonos.${index}`)}
-                        />
-                        {index > 0 && (
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            onClick={() => {
-                              const telefonos =
-                                watch("clienteNuevo.telefonos") || [];
-                              telefonos.splice(index, 1);
-                              setValue("clienteNuevo.telefonos", telefonos);
-                            }}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        )}
-                      </div>
-                    ))}
-                    {errors.clienteNuevo?.telefonos && (
-                      <p className="text-sm text-red-600">
-                        {errors.clienteNuevo.telefonos.message}
-                      </p>
-                    )}
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => {
-                        const telefonos = watch("clienteNuevo.telefonos") || [];
-                        setValue("clienteNuevo.telefonos", [...telefonos, ""]);
-                      }}
-                    >
-                      <Plus className="h-4 w-4 mr-1" />
-                      Agregar teléfono
-                    </Button>
-                  </div>
-                </div>
-
-                {/* Correos */}
-                <div className="space-y-2">
-                  <Label className="flex items-center space-x-2">
-                    <Mail className="h-4 w-4" />
-                    <span>Correos electrónicos</span>
-                  </Label>{" "}
-                  <div className="space-y-2">
-                    {watch("clienteNuevo.correos")?.map((_, index) => (
-                      <div key={index} className="flex space-x-2">
-                        <Input
-                          type="email"
-                          placeholder="correo@ejemplo.com"
-                          {...register(`clienteNuevo.correos.${index}`)}
-                        />
-                        {index > 0 && (
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            onClick={() => {
-                              const correos =
-                                watch("clienteNuevo.correos") || [];
-                              correos.splice(index, 1);
-                              setValue("clienteNuevo.correos", correos);
-                            }}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        )}
-                      </div>
-                    ))}
-                    {errors.clienteNuevo?.correos && (
-                      <p className="text-sm text-red-600">
-                        {errors.clienteNuevo.correos.message}
-                      </p>
-                    )}
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => {
-                        const correos = watch("clienteNuevo.correos") || [];
-                        setValue("clienteNuevo.correos", [...correos, ""]);
-                      }}
-                    >
-                      <Plus className="h-4 w-4 mr-1" />
-                      Agregar correo
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-        {/* Sección Contratista */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center space-x-2">
-              <Building className="h-5 w-5 text-green-600" />
-              <span>Información del Contratista</span>
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex items-center space-x-4">
-              <Label className="flex items-center space-x-2">
-                <input
-                  type="checkbox"
-                  checked={copiarDeCliente}
-                  onChange={(e) => setCopiarDeCliente(e.target.checked)}
-                />
-                <span>Copiar nombre del cliente</span>
-              </Label>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="nombreContratista">Nombre del Contratista</Label>
-              <Input
-                id="nombreContratista"
-                placeholder="Nombre del contratista"
-                {...register("nombreContratista")}
-                disabled={copiarDeCliente}
-              />
-              {errors.nombreContratista && (
-                <p className="text-sm text-red-600">
-                  {errors.nombreContratista.message}
-                </p>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-        {/* Sección Detalles de Obra */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center space-x-2">
-              <MapPin className="h-5 w-5 text-green-600" />
-              <span>Detalles de la Obra</span>
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="descripcionObra">Descripción de la Obra</Label>
-              <Textarea
-                id="descripcionObra"
-                placeholder="Describe detalladamente la obra a realizar..."
-                rows={3}
-                {...register("descripcionObra")}
-              />
-              {errors.descripcionObra && (
-                <p className="text-sm text-red-600">
-                  {errors.descripcionObra.message}
-                </p>
-              )}
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="tramo">Tramo</Label>
-                <Input
-                  id="tramo"
-                  placeholder="Ej: Km 0+000 - Km 5+000"
-                  {...register("tramo")}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="colonia">Colonia</Label>
-                <Input
-                  id="colonia"
-                  placeholder="Nombre de la colonia"
-                  {...register("colonia")}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="calle">Calle</Label>
-                <Input
-                  id="calle"
-                  placeholder="Nombre de la calle"
-                  {...register("calle")}
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="contactoResponsable">
-                  Contacto Responsable
+                <Label
+                  htmlFor="nombreContratista"
+                  className="text-sm font-medium text-gray-700 flex items-center space-x-2"
+                >
+                  <Building className="h-4 w-4 text-gray-500" />
+                  <span>Nombre del Contratista *</span>
                 </Label>
                 <Input
-                  id="contactoResponsable"
-                  placeholder="Nombre del responsable en obra"
-                  {...register("contactoResponsable")}
+                  id="nombreContratista"
+                  placeholder="Nombre completo del contratista"
+                  {...register("nombreContratista")}
+                  disabled={copiarDeCliente}
+                  className={`${
+                    copiarDeCliente
+                      ? "bg-gray-50 text-gray-500 border-gray-300"
+                      : "border-gray-300 focus:border-green-500 focus:ring-green-500"
+                  }`}
                 />
+                {errors.nombreContratista && (
+                  <p className="text-sm text-red-600 flex items-center space-x-1">
+                    <X className="h-4 w-4" />
+                    <span>{errors.nombreContratista.message}</span>
+                  </p>
+                )}
               </div>
+            </CardContent>
+          </Card>
+          {/* Sección Detalles de Obra */}
+          <Card className="border border-gray-200 shadow-sm">
+            <CardHeader className="border-b border-gray-100 bg-white">
+              <CardTitle className="flex items-center space-x-2 text-lg text-gray-900">
+                <MapPin className="h-5 w-5 text-gray-500" />
+                <span>Detalles de la Obra</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-6 space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="fechaInicio">Fecha de Inicio</Label>
-                <Input
-                  id="fechaInicio"
-                  type="date"
-                  {...register("fechaInicio")}
+                <Label
+                  htmlFor="descripcionObra"
+                  className="text-sm font-medium text-gray-700 flex items-center space-x-2"
+                >
+                  <FileText className="h-4 w-4 text-gray-500" />
+                  <span>Descripción de la Obra *</span>
+                </Label>
+                <Textarea
+                  id="descripcionObra"
+                  placeholder="Describe detalladamente la obra a realizar..."
+                  rows={4}
+                  {...register("descripcionObra")}
+                  className="border-gray-300 focus:border-green-500 focus:ring-green-500 resize-none"
                 />
+                {errors.descripcionObra && (
+                  <p className="text-sm text-red-600 flex items-center space-x-1">
+                    <X className="h-4 w-4" />
+                    <span>{errors.descripcionObra.message}</span>
+                  </p>
+                )}
               </div>
-            </div>
-          </CardContent>
-        </Card>
-        {/* Sección Conceptos */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center space-x-2">
-              <Calculator className="h-5 w-5 text-green-600" />
-              <span>Conceptos del Presupuesto</span>
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {" "}
-            {/* Selección de área */}
-            <div className="space-y-2">
-              <Label htmlFor="areaCodigo">Área de Trabajo</Label>{" "}
-              <Select
-                value={selectedArea}
-                onValueChange={(value) => {
-                  setSelectedArea(value);
-                  setValue("areaCodigo", value);
-                  setSelectedSubarea(null);
-                }}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Seleccionar área" />
-                </SelectTrigger>{" "}
-                <SelectContent>
-                  {Array.isArray(areas) && areas.length > 0 ? (
-                    areas.map((area) => (
-                      <SelectItem key={area.codigo} value={area.codigo}>
-                        {" "}
-                        {area.nombre}
-                      </SelectItem>
-                    ))
-                  ) : (
-                    <SelectItem value="__no_areas__" disabled>
-                      {areasError
-                        ? "Error cargando áreas"
-                        : "No hay áreas disponibles"}
-                    </SelectItem>
-                  )}
-                </SelectContent>
-              </Select>
-              {errors.areaCodigo && (
-                <p className="text-sm text-red-600">
-                  {errors.areaCodigo.message}
-                </p>
-              )}
-            </div>
-            {/* Selección de subárea */}
-            {selectedArea && (
-              <div className="space-y-2">
-                <Label htmlFor="subarea">Subárea</Label>{" "}
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="space-y-2">
+                  <Label
+                    htmlFor="tramo"
+                    className="text-sm font-medium text-gray-700"
+                  >
+                    Tramo
+                  </Label>
+                  <Input
+                    id="tramo"
+                    placeholder="Ej: Km 0+000 - Km 5+000"
+                    {...register("tramo")}
+                    className="border-gray-300 focus:border-green-500 focus:ring-green-500"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label
+                    htmlFor="colonia"
+                    className="text-sm font-medium text-gray-700"
+                  >
+                    Colonia
+                  </Label>
+                  <Input
+                    id="colonia"
+                    placeholder="Nombre de la colonia"
+                    {...register("colonia")}
+                    className="border-gray-300 focus:border-green-500 focus:ring-green-500"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label
+                    htmlFor="calle"
+                    className="text-sm font-medium text-gray-700"
+                  >
+                    Calle
+                  </Label>
+                  <Input
+                    id="calle"
+                    placeholder="Nombre de la calle"
+                    {...register("calle")}
+                    className="border-gray-300 focus:border-green-500 focus:ring-green-500"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label
+                    htmlFor="contactoResponsable"
+                    className="text-sm font-medium text-gray-700 flex items-center space-x-2"
+                  >
+                    <User className="h-4 w-4 text-gray-500" />
+                    <span>Contacto Responsable</span>
+                  </Label>
+                  <Input
+                    id="contactoResponsable"
+                    placeholder="Nombre del responsable en obra"
+                    {...register("contactoResponsable")}
+                    className="border-gray-300 focus:border-green-500 focus:ring-green-500"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label
+                    htmlFor="fechaInicio"
+                    className="text-sm font-medium text-gray-700 flex items-center space-x-2"
+                  >
+                    <svg
+                      className="h-4 w-4 text-gray-500"
+                      fill="currentColor"
+                      viewBox="0 0 20 20"
+                    >
+                      <path
+                        fillRule="evenodd"
+                        d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z"
+                        clipRule="evenodd"
+                      />
+                    </svg>
+                    <span>Fecha de Inicio</span>
+                  </Label>
+                  <Input
+                    id="fechaInicio"
+                    type="date"
+                    {...register("fechaInicio")}
+                    className="border-gray-300 focus:border-green-500 focus:ring-green-500"
+                  />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          {/* Sección Conceptos */}
+          <Card className="border border-gray-200 shadow-sm">
+            <CardHeader className="border-b border-gray-100 bg-white">
+              <CardTitle className="flex items-center space-x-2 text-lg text-gray-900">
+                <Calculator className="h-5 w-5 text-gray-500" />
+                <span>Conceptos del Presupuesto</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-8 space-y-6">
+              {" "}
+              {/* Selección de área */}
+              <div className="space-y-3">
+                <Label
+                  htmlFor="areaCodigo"
+                  className="text-lg font-semibold flex items-center space-x-2"
+                  style={{ color: "#2C3E50" }}
+                >
+                  <Building className="h-5 w-5" style={{ color: "#F39C12" }} />
+                  <span>Área de Trabajo *</span>
+                </Label>
                 <Select
-                  value={selectedSubarea?.toString()}
+                  value={selectedArea}
                   onValueChange={(value) => {
-                    setSelectedSubarea(parseInt(value));
+                    setSelectedArea(value);
+                    setValue("areaCodigo", value);
+                    setSelectedSubarea(null);
                   }}
                 >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Seleccionar subárea" />
-                  </SelectTrigger>{" "}
-                  <SelectContent>
-                    {Array.isArray(subareas) && subareas.length > 0 ? (
-                      subareas.map((subarea) => (
+                  <SelectTrigger
+                    className="h-12 border-2 rounded-xl shadow-sm transition-all"
+                    style={{
+                      borderColor: "#6C757D",
+                      backgroundColor: "#FFFFFF",
+                    }}
+                  >
+                    <SelectValue placeholder="Seleccionar área de trabajo..." />
+                  </SelectTrigger>
+                  <SelectContent
+                    className="rounded-xl border-2 shadow-xl"
+                    style={{ backgroundColor: "#FFFFFF" }}
+                  >
+                    {Array.isArray(areas) && areas.length > 0 ? (
+                      areas.map((area) => (
                         <SelectItem
-                          key={subarea.id}
-                          value={subarea.id.toString()}
+                          key={area.codigo}
+                          value={area.codigo}
+                          className="py-3 px-4 hover:bg-amber-50 focus:bg-amber-50 rounded-lg m-1 transition-colors"
                         >
-                          {subarea.nombre}
+                          <div className="flex items-center space-x-2">
+                            <div
+                              className="w-2 h-2 rounded-full"
+                              style={{ backgroundColor: "#F39C12" }}
+                            ></div>
+                            <span
+                              className="font-medium"
+                              style={{ color: "#2C3E50" }}
+                            >
+                              {area.nombre}
+                            </span>
+                          </div>
                         </SelectItem>
                       ))
                     ) : (
-                      <SelectItem value="__no_subareas__" disabled>
-                        {subareasError
-                          ? "Error cargando subáreas"
-                          : "No hay subáreas disponibles"}
+                      <SelectItem
+                        value="__no_areas__"
+                        disabled
+                        className="py-4 text-center"
+                      >
+                        <div
+                          className="flex flex-col items-center space-y-2"
+                          style={{ color: "#6C757D" }}
+                        >
+                          <Building className="h-8 w-8" />
+                          <span>
+                            {areasError
+                              ? "Error cargando áreas"
+                              : "No hay áreas disponibles"}
+                          </span>
+                        </div>
                       </SelectItem>
                     )}
                   </SelectContent>
                 </Select>
-              </div>
-            )}{" "}
-            <Separator /> {/* Lista de conceptos disponibles */}
-            <div className="space-y-4">
-              {" "}
-              <div className="flex justify-between items-center">
-                <h4 className="font-medium ">Conceptos Disponibles</h4>
-                <div className="text-sm text-gray-600">
-                  {conceptosSeleccionados.length} seleccionado(s) de{" "}
-                  {conceptosFiltrados.length} mostrado(s)
-                  {busquedaConcepto && ` (${conceptos?.length || 0} total)`}
-                </div>
-              </div>{" "}
-              {/* Campo de búsqueda */}
-              {conceptos && conceptos.length > 0 && (
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                  <Input
-                    type="text"
-                    placeholder="Buscar conceptos por descripción, código o unidad..."
-                    value={busquedaConcepto}
-                    onChange={(e) => setBusquedaConcepto(e.target.value)}
-                    className="pl-10 pr-10"
-                  />
-                  {busquedaConcepto && (
-                    <button
-                      type="button"
-                      onClick={() => setBusquedaConcepto("")}
-                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                      title="Limpiar búsqueda"
+                {errors.areaCodigo && (
+                  <div
+                    className="flex items-center space-x-2 p-3 rounded-lg border"
+                    style={{
+                      backgroundColor: "#FEE2E2",
+                      borderColor: "#F87171",
+                    }}
+                  >
+                    <X className="h-4 w-4" style={{ color: "#C0392B" }} />
+                    <p
+                      className="text-sm font-medium"
+                      style={{ color: "#C0392B" }}
                     >
-                      <X className="h-4 w-4" />
-                    </button>
-                  )}
-                </div>
-              )}
-              {/* Lista de conceptos con checkboxes */}
-              {conceptos && conceptos.length > 0 ? (
-                conceptosFiltrados.length > 0 ? (
-                  <div className="max-h-60 overflow-y-auto border rounded-md p-4 space-y-2">
-                    {conceptosFiltrados.map((concepto) => (
-                      <div
-                        key={concepto.codigo}
-                        className="flex items-center space-x-3 p-2 hover:bg-gray-50 rounded"
-                      >
-                        <Checkbox
-                          id={`concepto-${concepto.codigo}`}
-                          checked={conceptosSeleccionados.includes(
-                            concepto.codigo
-                          )}
-                          onCheckedChange={() =>
-                            handleConceptoToggle(concepto.codigo)
-                          }
-                        />
-                        <label
-                          htmlFor={`concepto-${concepto.codigo}`}
-                          className="flex-1 cursor-pointer text-sm"
+                      {errors.areaCodigo.message}
+                    </p>
+                  </div>
+                )}
+              </div>
+              {/* Selección de subárea */}
+              {selectedArea && (
+                <div className="space-y-3">
+                  <Label
+                    htmlFor="subarea"
+                    className="font-semibold flex items-center space-x-2"
+                    style={{ color: "#2C3E50" }}
+                  >
+                    <div
+                      className="w-4 h-4 rounded-full"
+                      style={{ backgroundColor: "#E67E22" }}
+                    ></div>
+                    <span>Subárea</span>
+                  </Label>
+                  <Select
+                    value={selectedSubarea?.toString()}
+                    onValueChange={(value) => {
+                      setSelectedSubarea(parseInt(value));
+                    }}
+                  >
+                    <SelectTrigger
+                      className="h-11 border-2 rounded-xl transition-all"
+                      style={{
+                        borderColor: "#6C757D",
+                        backgroundColor: "#FFFFFF",
+                      }}
+                    >
+                      <SelectValue placeholder="Seleccionar subárea..." />
+                    </SelectTrigger>
+                    <SelectContent
+                      className="rounded-xl border-2 shadow-xl"
+                      style={{ backgroundColor: "#FFFFFF" }}
+                    >
+                      {Array.isArray(subareas) && subareas.length > 0 ? (
+                        subareas.map((subarea) => (
+                          <SelectItem
+                            key={subarea.id}
+                            value={subarea.id.toString()}
+                            className="py-2 px-4 hover:bg-orange-50 focus:bg-orange-50 rounded-lg m-1 transition-colors"
+                          >
+                            <span style={{ color: "#2C3E50" }}>
+                              {subarea.nombre}
+                            </span>
+                          </SelectItem>
+                        ))
+                      ) : (
+                        <SelectItem
+                          value="__no_subareas__"
+                          disabled
+                          className="py-4 text-center"
                         >
-                          {" "}
-                          <div className="font-medium">
-                            {concepto.descripcion}
-                          </div>
-                          <div className="text-gray-500">
-                            Unidad: {concepto.unidad} | Precio: $
-                            {(Number(concepto.p_u) || 0).toFixed(2)}
-                          </div>
-                        </label>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-center py-8 text-gray-500">
-                    <Search className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                    <p>
-                      No se encontraron conceptos que coincidan con "
-                      {busquedaConcepto}"
-                    </p>
-                    <p className="text-sm mt-1">
-                      Intenta con otros términos de búsqueda
-                    </p>
-                  </div>
-                )
-              ) : (
-                <div className="text-center py-8 text-gray-500">
-                  {!selectedSubarea
-                    ? "Selecciona un área y subárea para ver los conceptos disponibles"
-                    : "No hay conceptos disponibles para esta subárea"}
+                          <span style={{ color: "#6C757D" }}>
+                            {subareasError
+                              ? "Error cargando subáreas"
+                              : "No hay subáreas disponibles"}
+                          </span>
+                        </SelectItem>
+                      )}
+                    </SelectContent>
+                  </Select>
                 </div>
               )}
-              {errors.conceptosSeleccionados && (
-                <p className="text-sm text-red-600">
-                  {errors.conceptosSeleccionados.message}
-                </p>
-              )}
-            </div>
-            {/* Conceptos seleccionados con cantidades */}
-            {conceptosSeleccionados.length > 0 && (
+              <Separator
+                style={{ backgroundColor: "#E7F2E0", height: "2px" }}
+              />
+              {/* Lista de conceptos disponibles */}
               <div className="space-y-4">
-                <Separator />
-                <h4 className="font-medium">
-                  Configurar Conceptos Seleccionados
-                </h4>
+                <div className="flex justify-between items-center">
+                  <h4
+                    className="font-semibold text-lg"
+                    style={{ color: "#2C3E50" }}
+                  >
+                    Conceptos Disponibles
+                  </h4>
+                  <div className="flex items-center space-x-2">
+                    <div
+                      className="px-3 py-1 rounded-full text-sm font-medium text-white"
+                      style={{ backgroundColor: "#68A53B" }}
+                    >
+                      {conceptosSeleccionados.length} seleccionados
+                    </div>
+                    <span className="text-sm" style={{ color: "#6C757D" }}>
+                      de {conceptosFiltrados.length} mostrados
+                      {busquedaConcepto && ` (${conceptos?.length || 0} total)`}
+                    </span>
+                  </div>
+                </div>
 
-                {conceptosSeleccionados.map((conceptoCodigo) => {
-                  const concepto = conceptos?.find(
-                    (c) => c.codigo === conceptoCodigo
-                  );
-                  const conceptoEnForm = watch("conceptos")?.find(
-                    (c) => c.conceptoCodigo === conceptoCodigo
-                  );
+                {/* Campo de búsqueda */}
+                {conceptos && conceptos.length > 0 && (
+                  <div className="relative">
+                    <Search
+                      className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 transition-colors"
+                      style={{
+                        color: busquedaConcepto ? "#F39C12" : "#6C757D",
+                      }}
+                    />
+                    <Input
+                      type="text"
+                      placeholder="Buscar conceptos por descripción, código o unidad..."
+                      value={busquedaConcepto}
+                      onChange={(e) => setBusquedaConcepto(e.target.value)}
+                      className="pl-12 pr-12 h-12 text-lg border-2 rounded-xl shadow-sm transition-all"
+                      style={{
+                        borderColor: busquedaConcepto ? "#F39C12" : "#6C757D",
+                        backgroundColor: "#FFFFFF",
+                      }}
+                      onFocus={(e) => {
+                        e.target.style.borderColor = "#F39C12";
+                        e.target.style.boxShadow =
+                          "0 0 0 3px rgba(243, 156, 18, 0.1)";
+                      }}
+                      onBlur={(e) => {
+                        e.target.style.borderColor = busquedaConcepto
+                          ? "#F39C12"
+                          : "#6C757D";
+                        e.target.style.boxShadow = "none";
+                      }}
+                    />
+                    {busquedaConcepto && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="absolute right-2 top-1/2 transform -translate-y-1/2 h-8 w-8 p-0 rounded-full transition-colors"
+                        style={{ backgroundColor: "transparent" }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.backgroundColor = "#FEE2E2";
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.backgroundColor = "transparent";
+                        }}
+                        onClick={() => setBusquedaConcepto("")}
+                      >
+                        <X className="h-4 w-4" style={{ color: "#C0392B" }} />
+                      </Button>
+                    )}
+                  </div>
+                )}
 
-                  if (!concepto) return null;
-
-                  return (
-                    <Card key={conceptoCodigo} className="p-4">
-                      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                        <div className="space-y-2">
-                          <Label>Concepto</Label>
-                          <div className="p-2 border rounded-md bg-gray-50">
-                            <div className="font-medium text-sm">
+                {/* Lista de conceptos con checkboxes */}
+                {conceptos && conceptos.length > 0 ? (
+                  conceptosFiltrados.length > 0 ? (
+                    <div
+                      className="max-h-64 overflow-y-auto border-2 rounded-xl p-4 space-y-3"
+                      style={{
+                        backgroundColor: "#FFFFFF",
+                        borderColor: "#E7F2E0",
+                      }}
+                    >
+                      {conceptosFiltrados.map((concepto) => (
+                        <div
+                          key={concepto.codigo}
+                          className="flex items-start space-x-4 p-4 rounded-xl border transition-all hover:shadow-md"
+                          style={{
+                            backgroundColor: conceptosSeleccionados.includes(
+                              concepto.codigo
+                            )
+                              ? "#E7F2E0"
+                              : "#F8F9FA",
+                            borderColor: conceptosSeleccionados.includes(
+                              concepto.codigo
+                            )
+                              ? "#68A53B"
+                              : "#E5E7EB",
+                          }}
+                        >
+                          <div className="flex items-center justify-center mt-1">
+                            <input
+                              type="checkbox"
+                              id={`concepto-${concepto.codigo}`}
+                              checked={conceptosSeleccionados.includes(
+                                concepto.codigo
+                              )}
+                              onChange={() =>
+                                handleConceptoToggle(concepto.codigo)
+                              }
+                              className="sr-only"
+                            />
+                            <div
+                              className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-all cursor-pointer`}
+                              style={{
+                                borderColor: conceptosSeleccionados.includes(
+                                  concepto.codigo
+                                )
+                                  ? "#68A53B"
+                                  : "#6C757D",
+                                backgroundColor:
+                                  conceptosSeleccionados.includes(
+                                    concepto.codigo
+                                  )
+                                    ? "#68A53B"
+                                    : "#FFFFFF",
+                              }}
+                              onClick={() =>
+                                handleConceptoToggle(concepto.codigo)
+                              }
+                            >
+                              {conceptosSeleccionados.includes(
+                                concepto.codigo
+                              ) && (
+                                <svg
+                                  className="w-3 h-3 text-white"
+                                  fill="currentColor"
+                                  viewBox="0 0 20 20"
+                                >
+                                  <path
+                                    fillRule="evenodd"
+                                    d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                                    clipRule="evenodd"
+                                  />
+                                </svg>
+                              )}
+                            </div>
+                          </div>
+                          <label
+                            htmlFor={`concepto-${concepto.codigo}`}
+                            className="flex-1 cursor-pointer"
+                          >
+                            <div
+                              className="font-semibold text-base mb-1"
+                              style={{ color: "#2C3E50" }}
+                            >
                               {concepto.descripcion}
                             </div>
-                            <div className="text-xs text-gray-500">
-                              ({concepto.unidad})
+                            <div className="flex items-center space-x-4 text-sm">
+                              <span
+                                className="px-2 py-1 rounded-md text-white"
+                                style={{ backgroundColor: "#F39C12" }}
+                              >
+                                {concepto.unidad}
+                              </span>
+                              <span
+                                className="font-semibold"
+                                style={{ color: "#68A53B" }}
+                              >
+                                ${(Number(concepto.p_u) || 0).toFixed(2)}
+                              </span>
+                              <span
+                                className="text-xs px-2 py-1 rounded-md"
+                                style={{
+                                  backgroundColor: "#E7F2E0",
+                                  color: "#4F7D2C",
+                                }}
+                              >
+                                {concepto.codigo}
+                              </span>
                             </div>
-                          </div>
-                        </div>{" "}
-                        <div className="space-y-2">
-                          <Label>Cantidad</Label>
-                          <Input
-                            type="number"
-                            step="0.01"
-                            min="0.01"
-                            max="999999"
-                            placeholder="1.00"
-                            value={conceptoEnForm?.cantidad || 1}
-                            onChange={(e) =>
-                              updateConceptoInForm(
-                                conceptoCodigo,
-                                "cantidad",
-                                parseFloat(e.target.value) || 1
-                              )
-                            }
-                            className={
-                              (conceptoEnForm?.cantidad || 1) > 999999
-                                ? "border-red-500 focus:border-red-500"
-                                : ""
-                            }
-                          />
-                          {(conceptoEnForm?.cantidad || 1) > 999999 && (
-                            <p className="text-sm text-red-600">
-                              La cantidad no puede exceder 999,999
-                            </p>
-                          )}
+                          </label>
                         </div>
-                        <div className="space-y-2">
-                          <Label>Precio Unitario</Label>
-                          <Input
-                            type="number"
-                            step="0.01"
-                            min="0.01"
-                            max="9999999.99"
-                            placeholder="0.00"
-                            value={
-                              conceptoEnForm?.precioUnitario ||
-                              Number(concepto.p_u) ||
-                              0
-                            }
-                            onChange={(e) =>
-                              updateConceptoInForm(
-                                conceptoCodigo,
-                                "precioUnitario",
-                                parseFloat(e.target.value) || 0
-                              )
-                            }
-                            className={
-                              (conceptoEnForm?.precioUnitario ||
-                                Number(concepto.p_u) ||
-                                0) > 9999999.99
-                                ? "border-red-500 focus:border-red-500"
-                                : ""
-                            }
-                          />
-                          {(conceptoEnForm?.precioUnitario ||
-                            Number(concepto.p_u) ||
-                            0) > 9999999.99 && (
-                            <p className="text-sm text-red-600">
-                              El precio no puede exceder $9,999,999.99
-                            </p>
-                          )}
-                        </div>
-                        <div className="flex items-end space-x-2">
-                          <div className="flex-1">
-                            <Label>Subtotal</Label>
-                            <div className="px-3 py-2 border rounded-md bg-gray-50">
-                              $
-                              {(
-                                (conceptoEnForm?.cantidad || 1) *
+                      ))}
+                    </div>
+                  ) : (
+                    <div
+                      className="text-center py-12 rounded-xl border-2 border-dashed"
+                      style={{
+                        borderColor: "#E5E7EB",
+                        backgroundColor: "#F8F9FA",
+                      }}
+                    >
+                      <Search
+                        className="h-12 w-12 mx-auto mb-4 opacity-50"
+                        style={{ color: "#6C757D" }}
+                      />
+                      <p
+                        className="text-lg font-medium mb-2"
+                        style={{ color: "#2C3E50" }}
+                      >
+                        No se encontraron conceptos
+                      </p>
+                      <p className="text-sm" style={{ color: "#6C757D" }}>
+                        No hay conceptos que coincidan con "{busquedaConcepto}"
+                      </p>
+                      <p className="text-sm mt-1" style={{ color: "#6C757D" }}>
+                        Intenta con otros términos de búsqueda
+                      </p>
+                    </div>
+                  )
+                ) : (
+                  <div
+                    className="text-center py-12 rounded-xl border-2 border-dashed"
+                    style={{
+                      borderColor: "#E5E7EB",
+                      backgroundColor: "#F8F9FA",
+                    }}
+                  >
+                    <Calculator
+                      className="h-12 w-12 mx-auto mb-4 opacity-50"
+                      style={{ color: "#6C757D" }}
+                    />
+                    <p
+                      className="text-lg font-medium mb-2"
+                      style={{ color: "#2C3E50" }}
+                    >
+                      {!selectedSubarea
+                        ? "Selecciona una subárea"
+                        : "No hay conceptos disponibles"}
+                    </p>
+                    <p className="text-sm" style={{ color: "#6C757D" }}>
+                      {!selectedSubarea
+                        ? "Selecciona un área y subárea para ver los conceptos disponibles"
+                        : "No hay conceptos disponibles para esta subárea"}
+                    </p>
+                  </div>
+                )}
+                {errors.conceptosSeleccionados && (
+                  <div
+                    className="flex items-center space-x-2 p-3 rounded-lg border"
+                    style={{
+                      backgroundColor: "#FEE2E2",
+                      borderColor: "#F87171",
+                    }}
+                  >
+                    <X className="h-4 w-4" style={{ color: "#C0392B" }} />
+                    <p
+                      className="text-sm font-medium"
+                      style={{ color: "#C0392B" }}
+                    >
+                      {errors.conceptosSeleccionados.message}
+                    </p>
+                  </div>
+                )}
+              </div>
+              {/* Conceptos seleccionados con cantidades */}
+              {conceptosSeleccionados.length > 0 && (
+                <div className="space-y-6">
+                  <Separator
+                    style={{ backgroundColor: "#E7F2E0", height: "2px" }}
+                  />
+                  <div className="flex items-center justify-between">
+                    <h4
+                      className="font-semibold text-lg"
+                      style={{ color: "#2C3E50" }}
+                    >
+                      Configurar Conceptos Seleccionados
+                    </h4>
+                    <div
+                      className="px-3 py-1 rounded-full text-sm font-medium text-white"
+                      style={{ backgroundColor: "#F39C12" }}
+                    >
+                      {conceptosSeleccionados.length} conceptos
+                    </div>
+                  </div>
+
+                  {conceptosSeleccionados.map((conceptoCodigo) => {
+                    const concepto = conceptos?.find(
+                      (c) => c.codigo === conceptoCodigo
+                    );
+                    const conceptoEnForm = watch("conceptos")?.find(
+                      (c) => c.conceptoCodigo === conceptoCodigo
+                    );
+
+                    if (!concepto) return null;
+
+                    return (
+                      <Card
+                        key={conceptoCodigo}
+                        className="border-2 shadow-md"
+                        style={{
+                          borderColor: "#E7F2E0",
+                          backgroundColor: "#FFFFFF",
+                        }}
+                      >
+                        <CardContent className="p-6">
+                          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                            <div className="space-y-3">
+                              <Label
+                                className="font-semibold"
+                                style={{ color: "#2C3E50" }}
+                              >
+                                Concepto
+                              </Label>
+                              <div
+                                className="p-4 border-2 rounded-xl"
+                                style={{
+                                  backgroundColor: "#F8F9FA",
+                                  borderColor: "#E7F2E0",
+                                }}
+                              >
+                                <div
+                                  className="font-semibold text-sm mb-2"
+                                  style={{ color: "#2C3E50" }}
+                                >
+                                  {concepto.descripcion}
+                                </div>
+                                <div className="flex items-center justify-between">
+                                  <span
+                                    className="text-xs px-2 py-1 rounded-md text-white"
+                                    style={{ backgroundColor: "#68A53B" }}
+                                  >
+                                    {concepto.unidad}
+                                  </span>
+                                  <span
+                                    className="text-xs px-2 py-1 rounded-md"
+                                    style={{
+                                      backgroundColor: "#E7F2E0",
+                                      color: "#4F7D2C",
+                                    }}
+                                  >
+                                    {concepto.codigo}
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+
+                            <div className="space-y-3">
+                              <Label
+                                className="font-semibold"
+                                style={{ color: "#2C3E50" }}
+                              >
+                                Cantidad *
+                              </Label>
+                              <Input
+                                type="number"
+                                step="0.01"
+                                min="0.01"
+                                max="999999"
+                                placeholder="1.00"
+                                value={conceptoEnForm?.cantidad || 1}
+                                onChange={(e) =>
+                                  updateConceptoInForm(
+                                    conceptoCodigo,
+                                    "cantidad",
+                                    parseFloat(e.target.value) || 1
+                                  )
+                                }
+                                className={`h-11 border-2 rounded-xl transition-all ${
+                                  (conceptoEnForm?.cantidad || 1) > 999999
+                                    ? "border-red-500 focus:border-red-500"
+                                    : ""
+                                }`}
+                                style={{
+                                  borderColor:
+                                    (conceptoEnForm?.cantidad || 1) > 999999
+                                      ? "#C0392B"
+                                      : "#6C757D",
+                                }}
+                                onFocus={(e) => {
+                                  if (
+                                    (conceptoEnForm?.cantidad || 1) <= 999999
+                                  ) {
+                                    e.target.style.borderColor = "#68A53B";
+                                    e.target.style.boxShadow =
+                                      "0 0 0 3px rgba(104, 165, 59, 0.1)";
+                                  }
+                                }}
+                                onBlur={(e) => {
+                                  e.target.style.borderColor =
+                                    (conceptoEnForm?.cantidad || 1) > 999999
+                                      ? "#C0392B"
+                                      : "#6C757D";
+                                  e.target.style.boxShadow = "none";
+                                }}
+                              />
+                              {(conceptoEnForm?.cantidad || 1) > 999999 && (
+                                <div
+                                  className="flex items-center space-x-2 p-2 rounded-lg border"
+                                  style={{
+                                    backgroundColor: "#FEE2E2",
+                                    borderColor: "#F87171",
+                                  }}
+                                >
+                                  <X
+                                    className="h-4 w-4"
+                                    style={{ color: "#C0392B" }}
+                                  />
+                                  <p
+                                    className="text-sm font-medium"
+                                    style={{ color: "#C0392B" }}
+                                  >
+                                    La cantidad no puede exceder 999,999
+                                  </p>
+                                </div>
+                              )}
+                            </div>
+
+                            <div className="space-y-3">
+                              <Label
+                                className="font-semibold"
+                                style={{ color: "#2C3E50" }}
+                              >
+                                Precio Unitario *
+                              </Label>
+                              <Input
+                                type="number"
+                                step="0.01"
+                                min="0.01"
+                                max="9999999.99"
+                                placeholder="0.00"
+                                value={
+                                  conceptoEnForm?.precioUnitario ||
+                                  Number(concepto.p_u) ||
+                                  0
+                                }
+                                onChange={(e) =>
+                                  updateConceptoInForm(
+                                    conceptoCodigo,
+                                    "precioUnitario",
+                                    parseFloat(e.target.value) || 0
+                                  )
+                                }
+                                className={`h-11 border-2 rounded-xl transition-all ${
                                   (conceptoEnForm?.precioUnitario ||
                                     Number(concepto.p_u) ||
-                                    0) || 0
-                              ).toFixed(2)}
+                                    0) > 9999999.99
+                                    ? "border-red-500 focus:border-red-500"
+                                    : ""
+                                }`}
+                                style={{
+                                  borderColor:
+                                    (conceptoEnForm?.precioUnitario ||
+                                      Number(concepto.p_u) ||
+                                      0) > 9999999.99
+                                      ? "#C0392B"
+                                      : "#6C757D",
+                                }}
+                                onFocus={(e) => {
+                                  if (
+                                    (conceptoEnForm?.precioUnitario ||
+                                      Number(concepto.p_u) ||
+                                      0) <= 9999999.99
+                                  ) {
+                                    e.target.style.borderColor = "#68A53B";
+                                    e.target.style.boxShadow =
+                                      "0 0 0 3px rgba(104, 165, 59, 0.1)";
+                                  }
+                                }}
+                                onBlur={(e) => {
+                                  e.target.style.borderColor =
+                                    (conceptoEnForm?.precioUnitario ||
+                                      Number(concepto.p_u) ||
+                                      0) > 9999999.99
+                                      ? "#C0392B"
+                                      : "#6C757D";
+                                  e.target.style.boxShadow = "none";
+                                }}
+                              />
+                              {(conceptoEnForm?.precioUnitario ||
+                                Number(concepto.p_u) ||
+                                0) > 9999999.99 && (
+                                <div
+                                  className="flex items-center space-x-2 p-2 rounded-lg border"
+                                  style={{
+                                    backgroundColor: "#FEE2E2",
+                                    borderColor: "#F87171",
+                                  }}
+                                >
+                                  <X
+                                    className="h-4 w-4"
+                                    style={{ color: "#C0392B" }}
+                                  />
+                                  <p
+                                    className="text-sm font-medium"
+                                    style={{ color: "#C0392B" }}
+                                  >
+                                    El precio no puede exceder $9,999,999.99
+                                  </p>
+                                </div>
+                              )}
+                            </div>
+
+                            <div className="flex items-end space-x-2">
+                              <div className="flex-1">
+                                <Label
+                                  className="font-semibold"
+                                  style={{ color: "#2C3E50" }}
+                                >
+                                  Subtotal
+                                </Label>
+                                <div
+                                  className="px-4 py-3 border-2 rounded-xl text-lg font-bold"
+                                  style={{
+                                    backgroundColor: "#E7F2E0",
+                                    borderColor: "#68A53B",
+                                    color: "#4F7D2C",
+                                  }}
+                                >
+                                  $
+                                  {(
+                                    (conceptoEnForm?.cantidad || 1) *
+                                      (conceptoEnForm?.precioUnitario ||
+                                        Number(concepto.p_u) ||
+                                        0) || 0
+                                  ).toFixed(2)}
+                                </div>
+                              </div>
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                className="h-11 w-11 p-0 border-2 rounded-xl transition-all"
+                                style={{
+                                  borderColor: "#C0392B",
+                                  backgroundColor: "transparent",
+                                }}
+                                onMouseEnter={(e) => {
+                                  e.currentTarget.style.backgroundColor =
+                                    "#FEE2E2";
+                                  e.currentTarget.style.borderColor = "#EF4444";
+                                }}
+                                onMouseLeave={(e) => {
+                                  e.currentTarget.style.backgroundColor =
+                                    "transparent";
+                                  e.currentTarget.style.borderColor = "#C0392B";
+                                }}
+                                onClick={() =>
+                                  handleConceptoToggle(conceptoCodigo)
+                                }
+                                title="Remover concepto"
+                              >
+                                <Trash2
+                                  className="h-5 w-5"
+                                  style={{ color: "#C0392B" }}
+                                />
+                              </Button>
                             </div>
                           </div>
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleConceptoToggle(conceptoCodigo)}
-                            title="Remover concepto"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </div>
-                    </Card>
-                  );
-                })}
-              </div>
-            )}
-            {errors.conceptos && (
-              <p className="text-sm text-red-600">{errors.conceptos.message}</p>
-            )}
-          </CardContent>
-        </Card>{" "}
-        {/* Sección Totales */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center space-x-2">
-              <FileText className="h-5 w-5 text-green-600" />
-              <span>Totales y Forma de Pago</span>
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {/* Validaciones y advertencias */}
-            {subtotal > 5000000000 && (
-              <div className="bg-yellow-100 border border-yellow-400 text-yellow-700 px-4 py-3 rounded">
-                <strong>Advertencia:</strong> El subtotal se acerca al límite
-                permitido ($9,999,999,999.99).
-              </div>
-            )}
-            {subtotal > 9999999999.99 && (
-              <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
-                <strong>Error:</strong> El subtotal excede el límite permitido.
-                Reduzca las cantidades o precios.
-              </div>
-            )}
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
+                </div>
+              )}
+              {errors.conceptos && (
+                <div
+                  className="flex items-center space-x-2 p-3 rounded-lg border"
+                  style={{
+                    backgroundColor: "#FEE2E2",
+                    borderColor: "#F87171",
+                  }}
+                >
+                  <X className="h-4 w-4" style={{ color: "#C0392B" }} />
+                  <p
+                    className="text-sm font-medium"
+                    style={{ color: "#C0392B" }}
+                  >
+                    {errors.conceptos.message}
+                  </p>
+                </div>
+              )}
+            </CardContent>
+          </Card>{" "}
+          {/* Sección Totales */}
+          <Card
+            className="shadow-lg border-0"
+            style={{ backgroundColor: "#FFFFFF" }}
+          >
+            <CardHeader
+              className="text-white rounded-t-lg"
+              style={{ backgroundColor: "#2C3E50" }}
+            >
+              <CardTitle className="flex items-center space-x-3 text-xl">
+                <div className="p-2 bg-white/20 rounded-lg">
+                  <FileText className="h-6 w-6" />
+                </div>
+                <span className="font-semibold">Totales y Forma de Pago</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-8 space-y-6">
+              {/* Validaciones y advertencias */}
+              {subtotal > 5000000000 && (
+                <div
+                  className="p-4 rounded-xl border-2 flex items-center space-x-3"
+                  style={{
+                    backgroundColor: "#FEF3C7",
+                    borderColor: "#F59E0B",
+                  }}
+                >
+                  <div
+                    className="p-2 rounded-full"
+                    style={{ backgroundColor: "#F39C12" }}
+                  >
+                    <svg
+                      className="h-5 w-5 text-white"
+                      fill="currentColor"
+                      viewBox="0 0 20 20"
+                    >
+                      <path
+                        fillRule="evenodd"
+                        d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
+                        clipRule="evenodd"
+                      />
+                    </svg>
+                  </div>
+                  <div>
+                    <p className="font-semibold" style={{ color: "#92400E" }}>
+                      Advertencia: Límite próximo
+                    </p>
+                    <p className="text-sm" style={{ color: "#92400E" }}>
+                      El subtotal se acerca al límite permitido
+                      ($9,999,999,999.99).
+                    </p>
+                  </div>
+                </div>
+              )}
+              {subtotal > 9999999999.99 && (
+                <div
+                  className="p-4 rounded-xl border-2 flex items-center space-x-3"
+                  style={{
+                    backgroundColor: "#FEE2E2",
+                    borderColor: "#F87171",
+                  }}
+                >
+                  <div
+                    className="p-2 rounded-full"
+                    style={{ backgroundColor: "#C0392B" }}
+                  >
+                    <X className="h-5 w-5 text-white" />
+                  </div>
+                  <div>
+                    <p className="font-semibold" style={{ color: "#C0392B" }}>
+                      Error: Límite excedido
+                    </p>
+                    <p className="text-sm" style={{ color: "#C0392B" }}>
+                      El subtotal excede el límite permitido. Reduzca las
+                      cantidades o precios.
+                    </p>
+                  </div>
+                </div>
+              )}
 
-            {/* Totales */}
-            <div className="space-y-3 bg-gray-50 p-4 rounded-lg">
-              <div className="flex justify-between items-center">
-                <span className="font-medium">Subtotal:</span>
-                <span className="text-lg font-semibold">
-                  $
-                  {subtotal.toLocaleString("es-MX", {
-                    minimumFractionDigits: 2,
-                    maximumFractionDigits: 2,
-                  })}
-                </span>
+              {/* Totales */}
+              <div
+                className="space-y-4 p-6 rounded-xl border-2"
+                style={{
+                  backgroundColor: "#F8F9FA",
+                  borderColor: "#E7F2E0",
+                }}
+              >
+                <div className="flex justify-between items-center py-2">
+                  <span
+                    className="font-semibold text-lg"
+                    style={{ color: "#2C3E50" }}
+                  >
+                    Subtotal:
+                  </span>
+                  <span
+                    className="text-xl font-bold"
+                    style={{ color: "#2C3E50" }}
+                  >
+                    $
+                    {subtotal.toLocaleString("es-MX", {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    })}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center py-2">
+                  <span
+                    className="font-semibold text-lg"
+                    style={{ color: "#2C3E50" }}
+                  >
+                    IVA (16%):
+                  </span>
+                  <span
+                    className="text-xl font-bold"
+                    style={{ color: "#E67E22" }}
+                  >
+                    $
+                    {ivaMonto.toLocaleString("es-MX", {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    })}
+                  </span>
+                </div>
+                <Separator
+                  style={{ backgroundColor: "#68A53B", height: "2px" }}
+                />
+                <div
+                  className="flex justify-between items-center py-3 px-4 rounded-xl"
+                  style={{ backgroundColor: "#E7F2E0" }}
+                >
+                  <span
+                    className="font-bold text-2xl"
+                    style={{ color: "#4F7D2C" }}
+                  >
+                    Total:
+                  </span>
+                  <span
+                    className="text-3xl font-bold"
+                    style={{ color: "#68A53B" }}
+                  >
+                    $
+                    {total.toLocaleString("es-MX", {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    })}
+                  </span>
+                </div>
               </div>
-              <div className="flex justify-between items-center">
-                <span className="font-medium">IVA (16%):</span>
-                <span className="text-lg font-semibold">
-                  $
-                  {ivaMonto.toLocaleString("es-MX", {
-                    minimumFractionDigits: 2,
-                    maximumFractionDigits: 2,
-                  })}
-                </span>
-              </div>
-              <Separator />
-              <div className="flex justify-between items-center">
-                <span className="font-bold text-lg">Total:</span>
-                <span className="text-xl font-bold text-green-600">
-                  $
-                  {total.toLocaleString("es-MX", {
-                    minimumFractionDigits: 2,
-                    maximumFractionDigits: 2,
-                  })}
-                </span>
-              </div>
-            </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-1 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="formaPago">Forma de Pago</Label>{" "}
+              <div className="space-y-3">
+                <Label
+                  htmlFor="formaPago"
+                  className="text-lg font-semibold flex items-center space-x-2"
+                  style={{ color: "#2C3E50" }}
+                >
+                  <svg
+                    className="h-5 w-5"
+                    style={{ color: "#68A53B" }}
+                    fill="currentColor"
+                    viewBox="0 0 20 20"
+                  >
+                    <path d="M4 4a2 2 0 00-2 2v1h16V6a2 2 0 00-2-2H4z" />
+                    <path
+                      fillRule="evenodd"
+                      d="M18 9H2v5a2 2 0 002 2h12a2 2 0 002-2V9zM4 13a1 1 0 011-1h1a1 1 0 110 2H5a1 1 0 01-1-1zm5-1a1 1 0 100 2h1a1 1 0 100-2H9z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
+                  <span>Forma de Pago</span>
+                </Label>
                 <Select
                   value={watch("formaPago")}
                   onValueChange={(value) => setValue("formaPago", value)}
                 >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Seleccionar forma de pago" />
+                  <SelectTrigger
+                    className="h-12 border-2 rounded-xl shadow-sm transition-all"
+                    style={{
+                      borderColor: "#6C757D",
+                      backgroundColor: "#FFFFFF",
+                    }}
+                  >
+                    <SelectValue placeholder="Seleccionar forma de pago..." />
                   </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="efectivo">Efectivo</SelectItem>
-                    <SelectItem value="transferencia">Transferencia</SelectItem>
-                    <SelectItem value="cheque">Cheque</SelectItem>
-                    <SelectItem value="credito">Crédito</SelectItem>
+                  <SelectContent
+                    className="rounded-xl border-2 shadow-xl"
+                    style={{ backgroundColor: "#FFFFFF" }}
+                  >
+                    <SelectItem
+                      value="efectivo"
+                      className="py-3 px-4 hover:bg-green-50 focus:bg-green-50 rounded-lg m-1 transition-colors"
+                    >
+                      <div className="flex items-center space-x-2">
+                        <div
+                          className="w-3 h-3 rounded-full"
+                          style={{ backgroundColor: "#68A53B" }}
+                        ></div>
+                        <span>Efectivo</span>
+                      </div>
+                    </SelectItem>
+                    <SelectItem
+                      value="transferencia"
+                      className="py-3 px-4 hover:bg-blue-50 focus:bg-blue-50 rounded-lg m-1 transition-colors"
+                    >
+                      <div className="flex items-center space-x-2">
+                        <div
+                          className="w-3 h-3 rounded-full"
+                          style={{ backgroundColor: "#2C3E50" }}
+                        ></div>
+                        <span>Transferencia</span>
+                      </div>
+                    </SelectItem>
+                    <SelectItem
+                      value="cheque"
+                      className="py-3 px-4 hover:bg-orange-50 focus:bg-orange-50 rounded-lg m-1 transition-colors"
+                    >
+                      <div className="flex items-center space-x-2">
+                        <div
+                          className="w-3 h-3 rounded-full"
+                          style={{ backgroundColor: "#E67E22" }}
+                        ></div>
+                        <span>Cheque</span>
+                      </div>
+                    </SelectItem>
+                    <SelectItem
+                      value="credito"
+                      className="py-3 px-4 hover:bg-yellow-50 focus:bg-yellow-50 rounded-lg m-1 transition-colors"
+                    >
+                      <div className="flex items-center space-x-2">
+                        <div
+                          className="w-3 h-3 rounded-full"
+                          style={{ backgroundColor: "#F39C12" }}
+                        ></div>
+                        <span>Crédito</span>
+                      </div>
+                    </SelectItem>
                   </SelectContent>
                 </Select>
               </div>
-            </div>
 
-            <Separator />
+              <Separator
+                style={{ backgroundColor: "#E7F2E0", height: "2px" }}
+              />
 
-            {/* Resumen de totales */}
-            <div className="bg-gray-50 p-4 rounded-lg space-y-2">
-              <h4 className="font-medium mb-3">Resumen del Presupuesto</h4>
-              <div className="flex justify-between">
-                <span>Subtotal:</span>
-                <span className="font-medium">${subtotal.toFixed(2)}</span>
-              </div>{" "}
-              <div className="flex justify-between">
-                <span>
-                  IVA ({(SYSTEM_CONSTANTS.IVA_RATE * 100).toFixed(0)}%):
-                </span>
-                <span className="font-medium">${ivaMonto.toFixed(2)}</span>
+              {/* Resumen de totales */}
+              <div
+                className="p-6 rounded-xl border-2"
+                style={{
+                  backgroundColor: "#E7F2E0",
+                  borderColor: "#68A53B",
+                }}
+              >
+                <h4
+                  className="font-bold text-lg mb-4"
+                  style={{ color: "#4F7D2C" }}
+                >
+                  Resumen del Presupuesto
+                </h4>
+                <div className="space-y-3">
+                  <div className="flex justify-between items-center">
+                    <span className="font-medium" style={{ color: "#2C3E50" }}>
+                      Subtotal:
+                    </span>
+                    <span
+                      className="font-bold text-lg"
+                      style={{ color: "#2C3E50" }}
+                    >
+                      ${subtotal.toFixed(2)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="font-medium" style={{ color: "#2C3E50" }}>
+                      IVA ({(SYSTEM_CONSTANTS.IVA_RATE * 100).toFixed(0)}%):
+                    </span>
+                    <span
+                      className="font-bold text-lg"
+                      style={{ color: "#E67E22" }}
+                    >
+                      ${ivaMonto.toFixed(2)}
+                    </span>
+                  </div>
+                  <Separator
+                    style={{ backgroundColor: "#68A53B", height: "2px" }}
+                  />
+                  <div
+                    className="flex justify-between items-center py-2 px-3 rounded-lg"
+                    style={{ backgroundColor: "#FFFFFF" }}
+                  >
+                    <span
+                      className="font-bold text-xl"
+                      style={{ color: "#4F7D2C" }}
+                    >
+                      Total:
+                    </span>
+                    <span
+                      className="font-bold text-2xl"
+                      style={{ color: "#68A53B" }}
+                    >
+                      ${total.toFixed(2)}
+                    </span>
+                  </div>
+                </div>
               </div>
-              <Separator />
-              <div className="flex justify-between text-lg font-bold">
-                <span>Total:</span>
-                <span>${total.toFixed(2)}</span>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        {/* Botones */}
-        <div className="flex justify-end space-x-4">
-          <Button type="button" variant="outline" onClick={() => reset()}>
-            Limpiar
-          </Button>{" "}
-          <Button
-            type="submit"
-            disabled={isLoading}
-            onClick={() =>
-              console.log("[AdvancedBudgetForm] Submit button clicked")
-            }
+            </CardContent>
+          </Card>
+          {/* Botones finales con estilo corporativo */}
+          <div
+            className="sticky bottom-0 backdrop-blur-sm border-t-2 p-6 rounded-t-xl shadow-xl"
+            style={{
+              backgroundColor: "rgba(255, 255, 255, 0.95)",
+              borderTopColor: "#E7F2E0",
+            }}
           >
-            {isLoading
-              ? isEditMode
-                ? "Actualizando..."
-                : "Creando..."
-              : isEditMode
-              ? "Actualizar Presupuesto"
-              : "Crear Presupuesto"}
-          </Button>
-        </div>
-      </form>
+            <div className="max-w-4xl mx-auto flex flex-col sm:flex-row justify-between items-center space-y-4 sm:space-y-0 sm:space-x-6">
+              <div className="flex items-center space-x-4">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => reset()}
+                  className="h-12 px-6 border-2 rounded-xl transition-all font-semibold"
+                  style={{
+                    borderColor: "#6C757D",
+                    backgroundColor: "transparent",
+                    color: "#2C3E50",
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = "#F8F9FA";
+                    e.currentTarget.style.borderColor = "#2C3E50";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = "transparent";
+                    e.currentTarget.style.borderColor = "#6C757D";
+                  }}
+                >
+                  <X className="h-4 w-4 mr-2" />
+                  Limpiar Formulario
+                </Button>
+              </div>
+
+              <div className="flex items-center space-x-4">
+                {/* Indicador de progreso */}
+                <div
+                  className="hidden sm:flex items-center space-x-2 text-sm font-medium"
+                  style={{ color: "#6C757D" }}
+                >
+                  <div
+                    className="w-2 h-2 rounded-full animate-pulse"
+                    style={{ backgroundColor: "#68A53B" }}
+                  ></div>
+                  <span>Formulario {isEditMode ? "cargado" : "listo"}</span>
+                </div>
+
+                <Button
+                  type="submit"
+                  disabled={isLoading}
+                  className={`h-12 px-8 rounded-xl font-semibold text-lg transition-all shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed text-white`}
+                  style={{
+                    backgroundColor: isEditMode ? "#F39C12" : "#68A53B",
+                    borderColor: isEditMode ? "#E67E22" : "#4F7D2C",
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!isLoading) {
+                      e.currentTarget.style.backgroundColor = isEditMode
+                        ? "#E67E22"
+                        : "#4F7D2C";
+                      e.currentTarget.style.transform = "translateY(-1px)";
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!isLoading) {
+                      e.currentTarget.style.backgroundColor = isEditMode
+                        ? "#F39C12"
+                        : "#68A53B";
+                      e.currentTarget.style.transform = "translateY(0px)";
+                    }
+                  }}
+                  onClick={() =>
+                    console.log("[AdvancedBudgetForm] Submit button clicked")
+                  }
+                >
+                  <div className="flex items-center space-x-2">
+                    {isLoading ? (
+                      <>
+                        <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                        <span>
+                          {isEditMode ? "Actualizando..." : "Creando..."}
+                        </span>
+                      </>
+                    ) : (
+                      <>
+                        {isEditMode ? (
+                          <svg
+                            className="w-5 h-5"
+                            fill="currentColor"
+                            viewBox="0 0 20 20"
+                          >
+                            <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
+                          </svg>
+                        ) : (
+                          <Plus className="w-5 h-5" />
+                        )}
+                        <span>
+                          {isEditMode
+                            ? "Actualizar Presupuesto"
+                            : "Crear Presupuesto"}
+                        </span>
+                      </>
+                    )}
+                  </div>
+                </Button>
+              </div>
+            </div>
+          </div>
+        </form>
+      </div>
     </div>
   );
 }

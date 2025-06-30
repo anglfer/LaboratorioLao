@@ -4,7 +4,7 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster, TooltipProvider, Layout } from "../shared";
 import { Dashboard } from "../features/dashboard";
 import { BudgetsNew } from "../features/budgets";
-import { ConceptsNew } from "../features/concepts";
+import { ImprovedConceptsPage } from "../features/concepts";
 import ProgrammingPage from "../features/programming/pages/ProgrammingPage";
 import BrigadistaPage from "../features/programming/pages/BrigadistaPage";
 import NotFound from "./not-found";
@@ -17,7 +17,7 @@ function Router() {
         <Route path="/budgets" component={BudgetsNew} />
         <Route path="/programming" component={ProgrammingPage} />
         <Route path="/brigadista" component={BrigadistaPage} />
-        <Route path="/admin/concepts" component={ConceptsNew} />
+        <Route path="/admin/concepts" component={ImprovedConceptsPage} />
         <Route component={NotFound} />
       </Switch>
     </Layout>
