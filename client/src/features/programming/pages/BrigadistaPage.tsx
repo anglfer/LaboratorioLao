@@ -6,9 +6,6 @@ import {
   CardHeader,
   CardTitle,
 } from "../../../shared/components/ui/card";
-import { Button } from "../../../shared/components/ui/button";
-import { Badge } from "../../../shared/components/ui/badge";
-import BrigadistaDashboard from "../components/BrigadistaDashboard";
 import { User, Calendar, Clock, CheckCircle, Phone, Mail } from "lucide-react";
 import {
   useBrigadistaPerfil,
@@ -132,7 +129,7 @@ export default function BrigadistaPage() {
               {loadingHoy
                 ? "..."
                 : programacionesHoy.filter(
-                    (p) => p.estado === EstadoProgramacion.COMPLETADA,
+                    (p) => p.estado === EstadoProgramacion.COMPLETADA
                   ).length}
             </div>
             <p className="text-xs text-muted-foreground">Hoy</p>
@@ -149,14 +146,14 @@ export default function BrigadistaPage() {
               {loadingHoy
                 ? "..."
                 : programacionesHoy.length > 0
-                  ? `${Math.round(
-                      (programacionesHoy.filter(
-                        (p) => p.estado === EstadoProgramacion.COMPLETADA,
-                      ).length /
-                        programacionesHoy.length) *
-                        100,
-                    )}%`
-                  : "0%"}
+                ? `${Math.round(
+                    (programacionesHoy.filter(
+                      (p) => p.estado === EstadoProgramacion.COMPLETADA
+                    ).length /
+                      programacionesHoy.length) *
+                      100
+                  )}%`
+                : "0%"}
             </div>
             <p className="text-xs text-muted-foreground">Eficiencia</p>
           </CardContent>
@@ -172,7 +169,7 @@ export default function BrigadistaPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <BrigadistaDashboard brigadistaId={brigadista?.id || 1} />
+          {/* <BrigadistaDashboard brigadistaId={brigadista?.id || 1} /> */}
         </CardContent>
       </Card>
     </div>

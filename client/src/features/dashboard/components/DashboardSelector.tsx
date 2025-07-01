@@ -1,4 +1,4 @@
-import { BrigadistaDashboard } from "./BrigadistaDashboard";
+// import { BrigadistaDashboard } from "./BrigadistaDashboard";
 import { EmpleadoDashboard } from "./EmpleadoDashboard";
 import { SafeDisplay } from "../../../shared/components/ui/safe-display";
 import React from "react";
@@ -57,7 +57,9 @@ export function DashboardSelector({
   return (
     <DashboardErrorBoundary>
       {userRole === "brigadista" ? (
-        <BrigadistaDashboard />
+        {
+          /* <BrigadistaDashboard /> */
+        }
       ) : (
         <EmpleadoDashboard />
       )}

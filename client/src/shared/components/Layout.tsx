@@ -26,7 +26,7 @@ const navigation = [
   { name: "Panel de Control", href: "/", icon: BarChart3 },
   { name: "Presupuestos", href: "/budgets", icon: FileText },
   { name: "Programación", href: "/programming", icon: Calendar },
-  { name: "Brigadista", href: "/brigadista", icon: Users },
+  // { name: "Brigadista", href: "/brigadista", icon: Users },
 ];
 
 const adminNavigation = [
