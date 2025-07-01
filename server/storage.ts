@@ -1216,31 +1216,76 @@ export async function reprogramarProgramacion(
 
 // Dashboard estadísticas
 export async function getDashboardStats() {
+  // Calcular inicio y fin de la semana actual
+  const hoy = new Date();
+  const inicioSemana = new Date(hoy);
+  inicioSemana.setDate(hoy.getDate() - hoy.getDay() + 1); // Lunes
+  inicioSemana.setHours(0, 0, 0, 0);
+  const finSemana = new Date(inicioSemana);
+  finSemana.setDate(inicioSemana.getDate() + 6); // Domingo
+  finSemana.setHours(23, 59, 59, 999);
+
+  // Obtener estadísticas de la semana
   const [
-    actividadesProgramadas,
-    actividadesEnProceso,
-    actividadesCompletadas,
-    actividadesCanceladas,
+    programacionesTotales,
+    programacionesCompletadas,
+    programacionesPendientes,
+    programacionesCanceladas,
+    brigadistasActivos,
+    vehiculosEnUso
   ] = await Promise.all([
     prisma.programacion.count({
-      where: { estado: "programada" },
+      where: {
+        fechaProgramada: { gte: inicioSemana, lte: finSemana },
+      },
     }),
     prisma.programacion.count({
-      where: { estado: "en_proceso" },
+      where: {
+        estado: "completada",
+        fechaProgramada: { gte: inicioSemana, lte: finSemana },
+      },
     }),
     prisma.programacion.count({
-      where: { estado: "completada" },
+      where: {
+        estado: "programada",
+        fechaProgramada: { gte: inicioSemana, lte: finSemana },
+      },
     }),
     prisma.programacion.count({
-      where: { estado: "cancelada" },
+      where: {
+        estado: "cancelada",
+        fechaProgramada: { gte: inicioSemana, lte: finSemana },
+      },
     }),
+    prisma.programacion.aggregate({
+      where: {
+        fechaProgramada: { gte: inicioSemana, lte: finSemana },
+      },
+      _count: { distinct: true },
+      distinct: ['brigadistaId'],
+    }).then(r => r._count?.brigadistaId ?? 0),
+    prisma.programacion.aggregate({
+      where: {
+        fechaProgramada: { gte: inicioSemana, lte: finSemana },
+      },
+      _count: { distinct: true },
+      distinct: ['vehiculoId'],
+    }).then(r => r._count?.vehiculoId ?? 0),
   ]);
 
+  // Calcular rendimiento semanal
+  const rendimientoSemanal = programacionesTotales > 0
+    ? (programacionesCompletadas / programacionesTotales) * 100
+    : 0;
+
   return {
-    actividadesProgramadas,
-    actividadesEnProceso,
-    actividadesCompletadas,
-    actividadesCanceladas,
+    programacionesTotales,
+    programacionesCompletadas,
+    programacionesPendientes,
+    programacionesCanceladas,
+    rendimientoSemanal,
+    brigadistasActivos,
+    vehiculosEnUso,
   };
 }
 

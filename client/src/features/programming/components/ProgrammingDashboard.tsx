@@ -33,7 +33,7 @@ export default function ProgrammingDashboard({
   className,
 }: ProgrammingDashboardProps) {
   const [fechaSemana, setFechaSemana] = useState(() =>
-    format(startOfWeek(new Date(), { weekStartsOn: 1 }), "yyyy-MM-dd"),
+    format(startOfWeek(new Date(), { weekStartsOn: 1 }), "yyyy-MM-dd")
   );
   const { data: estadisticas, isLoading: loadingEstadisticas } =
     useEstadisticasSemana(fechaSemana);
@@ -46,14 +46,14 @@ export default function ProgrammingDashboard({
   const handleSemanaAnterior = () => {
     const nuevaFecha = subWeeks(new Date(fechaSemana), 1);
     setFechaSemana(
-      format(startOfWeek(nuevaFecha, { weekStartsOn: 1 }), "yyyy-MM-dd"),
+      format(startOfWeek(nuevaFecha, { weekStartsOn: 1 }), "yyyy-MM-dd")
     );
   };
 
   const handleSemanaProxima = () => {
     const nuevaFecha = addWeeks(new Date(fechaSemana), 1);
     setFechaSemana(
-      format(startOfWeek(nuevaFecha, { weekStartsOn: 1 }), "yyyy-MM-dd"),
+      format(startOfWeek(nuevaFecha, { weekStartsOn: 1 }), "yyyy-MM-dd")
     );
   };
 
@@ -114,112 +114,107 @@ export default function ProgrammingDashboard({
   }
 
   return (
-    <div className={`space-y-6 ${className}`}>
+    <div className={`space-y-8 ${className}`}>
       {/* Header con navegación de semana */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold">
+          <h2 className="text-3xl font-extrabold tracking-tight text-blue-900 flex items-center gap-2">
+            <BarChart3 className="h-8 w-8 text-blue-600" />
             Panel de Control - Programación
           </h2>
-          <p className="text-gray-600">
+          <p className="text-gray-600 text-lg mt-1">
             Vista semanal de actividades y rendimiento
           </p>
         </div>
-
         <div className="flex items-center space-x-4">
-          <div className="flex items-center space-x-2">
-            <Button variant="outline" size="sm" onClick={handleSemanaAnterior}>
-              <ChevronLeft className="h-4 w-4" />
-            </Button>
-
-            <div className="text-center min-w-[200px]">
-              <p className="font-medium">
-                Semana del {format(new Date(fechaSemana), "dd", { locale: es })}{" "}
-                al{" "}
-                {format(addWeeks(new Date(fechaSemana), 1), "dd MMM yyyy", {
-                  locale: es,
-                })}
-              </p>
-            </div>
-
-            <Button variant="outline" size="sm" onClick={handleSemanaProxima}>
-              <ChevronRight className="h-4 w-4" />
-            </Button>
+          <Button variant="outline" size="sm" onClick={handleSemanaAnterior}>
+            <ChevronLeft className="h-5 w-5" />
+          </Button>
+          <div className="text-center min-w-[220px]">
+            <p className="font-semibold text-lg">
+              Semana del{" "}
+              {format(new Date(fechaSemana), "dd MMM yyyy", { locale: es })} al{" "}
+              {format(addWeeks(new Date(fechaSemana), 1), "dd MMM yyyy", {
+                locale: es,
+              })}
+            </p>
           </div>
+          <Button variant="outline" size="sm" onClick={handleSemanaProxima}>
+            <ChevronRight className="h-5 w-5" />
+          </Button>
         </div>
       </div>
 
-      {/* Tarjetas de estadísticas principales */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Programaciones Totales
-            </CardTitle>
-            <Calendar className="h-4 w-4 text-muted-foreground" />
+      {/* Tarjetas principales con iconos grandes y colores */}
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+        <Card className="bg-blue-50 border-blue-200">
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <div>
+              <CardTitle className="text-lg font-semibold text-blue-900">
+                Programaciones Totales
+              </CardTitle>
+              <p className="text-xs text-blue-700">Esta semana</p>
+            </div>
+            <Calendar className="h-10 w-10 text-blue-400" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
+            <div className="text-4xl font-extrabold text-blue-900">
               {estadisticas?.programacionesTotales || 0}
             </div>
-            <p className="text-xs text-muted-foreground">
-              Actividades programadas esta semana
-            </p>
           </CardContent>
         </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Rendimiento Semanal
-            </CardTitle>
-            <TrendingUp className="h-4 w-4 text-muted-foreground" />
+        <Card className="bg-green-50 border-green-200">
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <div>
+              <CardTitle className="text-lg font-semibold text-green-900">
+                Rendimiento
+              </CardTitle>
+              <p className="text-xs text-green-700">
+                Completadas vs Programadas
+              </p>
+            </div>
+            <TrendingUp className="h-10 w-10 text-green-400" />
           </CardHeader>
           <CardContent>
             <div
-              className={`text-2xl font-bold ${getRendimientoColor(
-                estadisticas?.rendimientoSemanal || 0,
+              className={`text-4xl font-extrabold ${getRendimientoColor(
+                estadisticas?.rendimientoSemanal || 0
               )}`}
             >
               {estadisticas?.rendimientoSemanal?.toFixed(1) || 0}%
             </div>
-            <p className="text-xs text-muted-foreground">
-              Completadas vs Programadas
-            </p>
           </CardContent>
         </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Brigadistas Activos
-            </CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
+        <Card className="bg-yellow-50 border-yellow-200">
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <div>
+              <CardTitle className="text-lg font-semibold text-yellow-900">
+                Brigadistas Activos
+              </CardTitle>
+              <p className="text-xs text-yellow-700">Con asignaciones</p>
+            </div>
+            <Users className="h-10 w-10 text-yellow-400" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
+            <div className="text-4xl font-extrabold text-yellow-900">
               {estadisticas?.brigadistasActivos || 0}
             </div>
-            <p className="text-xs text-muted-foreground">
-              Con asignaciones esta semana
-            </p>
           </CardContent>
         </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Vehículos en Uso
-            </CardTitle>
-            <Truck className="h-4 w-4 text-muted-foreground" />
+        <Card className="bg-purple-50 border-purple-200">
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <div>
+              <CardTitle className="text-lg font-semibold text-purple-900">
+                Vehículos en Uso
+              </CardTitle>
+              <p className="text-xs text-purple-700">Transporte asignado</p>
+            </div>
+            <Truck className="h-10 w-10 text-purple-400" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
+            <div className="text-4xl font-extrabold text-purple-900">
               {estadisticas?.vehiculosEnUso || 0}
             </div>
-            <p className="text-xs text-muted-foreground">
-              Equipos de transporte asignados
-            </p>
           </CardContent>
         </Card>
       </div>
@@ -238,7 +233,7 @@ export default function ProgrammingDashboard({
               </div>
               {getEstadoBadge(
                 "completadas",
-                estadisticas?.programacionesCompletadas || 0,
+                estadisticas?.programacionesCompletadas || 0
               )}
             </div>
             <p className="text-xs text-muted-foreground">
@@ -259,7 +254,7 @@ export default function ProgrammingDashboard({
               </div>
               {getEstadoBadge(
                 "pendientes",
-                estadisticas?.programacionesPendientes || 0,
+                estadisticas?.programacionesPendientes || 0
               )}
             </div>
             <p className="text-xs text-muted-foreground">
@@ -280,7 +275,7 @@ export default function ProgrammingDashboard({
               </div>
               {getEstadoBadge(
                 "canceladas",
-                estadisticas?.programacionesCanceladas || 0,
+                estadisticas?.programacionesCanceladas || 0
               )}
             </div>
             <p className="text-xs text-muted-foreground">
@@ -307,7 +302,7 @@ export default function ProgrammingDashboard({
                 (estadisticas?.programacionesTotales || 0) -
                   (estadisticas?.programacionesCompletadas || 0) -
                   (estadisticas?.programacionesCanceladas || 0) -
-                  (estadisticas?.programacionesPendientes || 0),
+                  (estadisticas?.programacionesPendientes || 0)
               )}
             </div>
             <p className="text-xs text-muted-foreground">

@@ -46,23 +46,3 @@ class DashboardErrorBoundary extends React.Component<
     return this.props.children;
   }
 }
-
-export function DashboardSelector({
-  userRole = "empleado",
-}: DashboardSelectorProps) {
-  // Por ahora usamos un valor por defecto, pero luego se integrará con el contexto de auth
-  // const { user } = useAuth(); // Futuro hook de autenticación
-  // const role = user?.role || 'empleado';
-
-  return (
-    <DashboardErrorBoundary>
-      {userRole === "brigadista" ? (
-        {
-          /* <BrigadistaDashboard /> */
-        }
-      ) : (
-        <EmpleadoDashboard />
-      )}
-    </DashboardErrorBoundary>
-  );
-}

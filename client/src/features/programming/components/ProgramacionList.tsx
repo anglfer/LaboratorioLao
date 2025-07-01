@@ -54,6 +54,7 @@ import {
   Calendar,
   RefreshCw,
   Plus,
+  Users,
 } from "lucide-react";
 import {
   useProgramaciones,
@@ -188,7 +189,7 @@ export default function ProgramacionList({
   const handleEliminar = (programacion: Programacion) => {
     if (
       confirm(
-        `¿Está seguro de eliminar la programación ${programacion.claveObra}?`,
+        `¿Está seguro de eliminar la programación ${programacion.claveObra}?`
       )
     ) {
       eliminarMutation.mutate(programacion.id);
@@ -227,68 +228,78 @@ export default function ProgramacionList({
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       {/* Header con botón de crear nueva programación */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between bg-blue-50 rounded-lg px-6 py-4 border border-blue-200">
         <div>
-          <h2 className="text-2xl font-bold">Listado de Programaciones</h2>
-          <p className="text-gray-600">
+          <h2 className="text-3xl font-extrabold tracking-tight text-blue-900 flex items-center gap-2">
+            <Calendar className="h-8 w-8 text-blue-600" />
+            Listado de Programaciones
+          </h2>
+          <p className="text-blue-700 text-lg mt-1">
             Gestión y seguimiento de actividades de campo
           </p>
         </div>
         {onCreateNew && (
-          <Button onClick={onCreateNew} className="flex items-center space-x-2">
-            <Plus className="h-4 w-4" />
+          <Button
+            onClick={onCreateNew}
+            className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-lg px-6 py-3 rounded-lg shadow"
+          >
+            <Plus className="h-6 w-6" />
             <span>Nueva Programación</span>
           </Button>
         )}
       </div>
 
       {/* Filtros y búsqueda */}
-      <Card>
+      <Card className="bg-purple-50 border-purple-200">
         <CardHeader>
-          <CardTitle className="flex items-center space-x-2">
-            <Filter className="h-5 w-5" />
-            <span>Filtros y Búsqueda</span>
+          <CardTitle className="flex items-center gap-2 text-purple-900">
+            <Filter className="h-6 w-6 text-purple-400" />
+            <span className="text-lg font-semibold">Filtros y Búsqueda</span>
           </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="busqueda">Búsqueda General</Label>
+              <Label htmlFor="busqueda" className="text-blue-900">
+                Búsqueda General
+              </Label>
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-blue-400" />
                 <Input
                   id="busqueda"
                   placeholder="Buscar por obra, brigadista..."
                   value={busqueda}
                   onChange={(e) => setBusqueda(e.target.value)}
-                  className="pl-10"
+                  className="pl-10 bg-blue-50 border-blue-200"
                 />
               </div>
             </div>
             <div className="space-y-2">
-              <Label>Fecha Desde</Label>
+              <Label className="text-blue-900">Fecha Desde</Label>
               <Input
                 type="date"
                 value={filtros.fechaDesde || ""}
                 onChange={(e) =>
                   setFiltros({ ...filtros, fechaDesde: e.target.value })
                 }
+                className="bg-blue-50 border-blue-200"
               />
             </div>
             <div className="space-y-2">
-              <Label>Fecha Hasta</Label>
+              <Label className="text-blue-900">Fecha Hasta</Label>
               <Input
                 type="date"
                 value={filtros.fechaHasta || ""}
                 onChange={(e) =>
                   setFiltros({ ...filtros, fechaHasta: e.target.value })
                 }
+                className="bg-blue-50 border-blue-200"
               />
-            </div>{" "}
+            </div>
             <div className="space-y-2">
-              <Label>Estado</Label>
+              <Label className="text-blue-900">Estado</Label>
               <Select
                 value={filtros.estado}
                 onValueChange={(value) =>
@@ -301,7 +312,7 @@ export default function ProgramacionList({
                   })
                 }
               >
-                <SelectTrigger>
+                <SelectTrigger className="bg-blue-50 border-blue-200">
                   <SelectValue placeholder="Todos los estados" />
                 </SelectTrigger>
                 <SelectContent>
@@ -323,9 +334,9 @@ export default function ProgramacionList({
                   </SelectItem>
                 </SelectContent>
               </Select>
-            </div>{" "}
+            </div>
             <div className="space-y-2">
-              <Label>Brigadista</Label>
+              <Label className="text-blue-900">Brigadista</Label>
               <Select
                 value={filtros.brigadistaId?.toString()}
                 onValueChange={(value) =>
@@ -336,9 +347,9 @@ export default function ProgramacionList({
                   })
                 }
               >
-                <SelectTrigger>
+                <SelectTrigger className="bg-blue-50 border-blue-200">
                   <SelectValue placeholder="Todos los brigadistas" />
-                </SelectTrigger>{" "}
+                </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="TODOS">Todos los brigadistas</SelectItem>
                   {brigadistas?.map((brigadista) => (
@@ -359,7 +370,7 @@ export default function ProgramacionList({
                   setFiltros({});
                   setBusqueda("");
                 }}
-                className="w-full"
+                className="w-full border-blue-200 text-blue-700"
               >
                 Limpiar Filtros
               </Button>
@@ -369,16 +380,19 @@ export default function ProgramacionList({
       </Card>
 
       {/* Tabla de programaciones */}
-      <Card>
+      <Card className="bg-yellow-50 border-yellow-200">
         <CardHeader>
-          <CardTitle>
-            Programaciones ({programacionesFiltradas.length})
+          <CardTitle className="flex items-center gap-2 text-yellow-900">
+            <Users className="h-6 w-6 text-yellow-400" />
+            <span className="text-lg font-semibold">
+              Programaciones ({programacionesFiltradas.length})
+            </span>
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="rounded-md border">
+          <div className="rounded-md border border-yellow-200 bg-white">
             <Table>
-              <TableHeader>
+              <TableHeader className="bg-yellow-100">
                 <TableRow>
                   <TableHead>Clave de Obra</TableHead>
                   <TableHead>Fecha</TableHead>
@@ -403,7 +417,10 @@ export default function ProgramacionList({
                   </TableRow>
                 ) : (
                   programacionesFiltradas.map((programacion) => (
-                    <TableRow key={programacion.id}>
+                    <TableRow
+                      key={programacion.id}
+                      className="hover:bg-yellow-100/60"
+                    >
                       <TableCell className="font-medium">
                         {programacion.claveObra}
                       </TableCell>
@@ -411,7 +428,7 @@ export default function ProgramacionList({
                         {format(
                           new Date(programacion.fechaProgramada),
                           "dd/MM/yyyy",
-                          { locale: es },
+                          { locale: es }
                         )}
                       </TableCell>
                       <TableCell>{programacion.horaProgramada}</TableCell>
@@ -442,7 +459,6 @@ export default function ProgramacionList({
                           <DropdownMenuContent align="end">
                             <DropdownMenuLabel>Acciones</DropdownMenuLabel>
                             <DropdownMenuSeparator />
-
                             {onView && (
                               <DropdownMenuItem
                                 onClick={() => onView(programacion)}
@@ -451,7 +467,6 @@ export default function ProgramacionList({
                                 Ver Detalles
                               </DropdownMenuItem>
                             )}
-
                             {programacion.estado ===
                               EstadoProgramacion.PROGRAMADA && (
                               <>
@@ -460,20 +475,19 @@ export default function ProgramacionList({
                                     handleIniciarActividad(programacion)
                                   }
                                 >
-                                  <Play className="mr-2 h-4 w-4" />
+                                  <Play className="mr-2 h-4 w-4 text-blue-600" />
                                   Iniciar Actividad
                                 </DropdownMenuItem>
                                 {onEdit && (
                                   <DropdownMenuItem
                                     onClick={() => onEdit(programacion)}
                                   >
-                                    <Edit className="mr-2 h-4 w-4" />
+                                    <Edit className="mr-2 h-4 w-4 text-purple-600" />
                                     Editar
                                   </DropdownMenuItem>
                                 )}
                               </>
                             )}
-
                             {programacion.estado ===
                               EstadoProgramacion.EN_PROCESO && (
                               <>
@@ -482,7 +496,7 @@ export default function ProgramacionList({
                                     abrirDialogoCompletar(programacion)
                                   }
                                 >
-                                  <CheckCircle className="mr-2 h-4 w-4" />
+                                  <CheckCircle className="mr-2 h-4 w-4 text-green-600" />
                                   Completar
                                 </DropdownMenuItem>
                                 <DropdownMenuItem
@@ -490,12 +504,11 @@ export default function ProgramacionList({
                                     abrirDialogoCancelar(programacion)
                                   }
                                 >
-                                  <XCircle className="mr-2 h-4 w-4" />
+                                  <XCircle className="mr-2 h-4 w-4 text-red-600" />
                                   Cancelar
                                 </DropdownMenuItem>
                               </>
                             )}
-
                             {(programacion.estado ===
                               EstadoProgramacion.PROGRAMADA ||
                               programacion.estado ===

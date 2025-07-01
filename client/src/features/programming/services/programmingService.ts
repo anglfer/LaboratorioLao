@@ -165,10 +165,17 @@ export class ProgrammingService {
     const response = await fetch(
       `${API_BASE}/dashboard/stats?${params.toString()}`,
     );
+    // Intentar primero el endpoint legacy, si falla, usar el nuevo endpoint
     if (!response.ok) {
-      throw new Error("Error al obtener estadísticas de la semana");
+      // fallback a endpoint correcto de programming si existe
+      const response2 = await fetch(
+        `${API_BASE}/dashboard/stats?${params.toString()}`.replace('/dashboard/stats', '/programming/dashboard/stats'),
+      );
+      if (!response2.ok) {
+        throw new Error("Error al obtener estadísticas de la semana");
+      }
+      return response2.json();
     }
-
     return response.json();
   }
   async getDatosGraficaSemana(
