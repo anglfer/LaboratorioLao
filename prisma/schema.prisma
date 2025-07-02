@@ -160,6 +160,32 @@ enum DetalleEstado {
 }
 
 // Nuevas entidades para el módulo de programación
+model Usuario {
+  id               Int      @id @default(autoincrement())
+  email            String   @unique @db.VarChar(255)
+  password         String   @db.VarChar(255)
+  nombre           String   @db.VarChar(255)
+  rol              RolUsuario
+  activo           Boolean  @default(true)
+  fechaCreacion    DateTime @default(now()) @map("fecha_creacion")
+  fechaActualizacion DateTime @updatedAt @map("fecha_actualizacion")
+  brigadistaId     Int?     @map("brigadista_id")
+  
+  // Relación con brigadista (solo para usuarios con rol brigadista)
+  brigadista       Brigadista? @relation(fields: [brigadistaId], references: [id])
+  
+  @@index([email], name: "idx_usuario_email")
+  @@index([rol], name: "idx_usuario_rol")
+}
+
+enum RolUsuario {
+  admin
+  recepcionista
+  jefe_laboratorio
+  brigadista
+  laboratorista
+}
+
 model Brigadista {
   id               Int      @id @default(autoincrement())
   nombre           String   @db.VarChar(255)
@@ -170,6 +196,7 @@ model Brigadista {
   
   programaciones   Programacion[]
   programacionesApoyo Programacion[] @relation("BrigadistaApoyo")
+  usuarios         Usuario[]
 }
 
 model Vehiculo {

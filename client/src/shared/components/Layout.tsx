@@ -14,9 +14,11 @@ import {
   Plus,
   Calendar,
   Users,
+  User,
 } from "lucide-react";
 import { useState } from "react";
 import { cn } from "../lib/utils";
+import { useAuth } from "../hooks/useAuth";
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -24,8 +26,8 @@ interface LayoutProps {
 
 const navigation = [
   { name: "Panel de Control", href: "/", icon: BarChart3 },
-  { name: "Presupuestos", href: "/budgets", icon: FileText },
-  { name: "Programación", href: "/programming", icon: Calendar },
+  { name: "Presupuestos", href: "/presupuestos", icon: FileText },
+  { name: "Programación", href: "/programacion", icon: Calendar },
   // { name: "Brigadista", href: "/brigadista", icon: Users },
 ];
 
@@ -55,6 +57,30 @@ function getPageDescription(location: string): string {
 export default function Layout({ children }: LayoutProps) {
   const [location] = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const { usuario, logout } = useAuth();
+
+  const handleLogout = () => {
+    logout();
+  };
+
+  const getUserInitials = () => {
+    if (!usuario?.nombre) return "U";
+    const names = usuario.nombre.split(" ");
+    return names.length >= 2
+      ? `${names[0][0]}${names[1][0]}`.toUpperCase()
+      : usuario.nombre[0].toUpperCase();
+  };
+
+  const getRoleDisplayName = (rol: string) => {
+    const roleNames = {
+      admin: "Administrador",
+      recepcionista: "Recepcionista",
+      jefe_laboratorio: "Jefe de Laboratorio",
+      brigadista: "Brigadista",
+      laboratorista: "Laboratorista",
+    };
+    return roleNames[rol as keyof typeof roleNames] || rol;
+  };
 
   return (
     <div className="min-h-screen bg-[#F8F9FA]">
@@ -107,7 +133,21 @@ export default function Layout({ children }: LayoutProps) {
             <h1 className="text-lg font-semibold text-[#2C3E50]">
               Laboratorio LOA
             </h1>
-            <div className="w-10" /> {/* Spacer for centering */}
+            <div className="flex items-center space-x-2">
+              <div className="w-8 h-8 bg-[#68A53B] rounded-full flex items-center justify-center">
+                <span className="text-white text-xs font-medium">
+                  {getUserInitials()}
+                </span>
+              </div>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={handleLogout}
+                className="text-[#2C3E50] hover:text-red-600 hover:bg-red-50"
+              >
+                <LogOut className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
         </div>
 
@@ -124,8 +164,29 @@ export default function Layout({ children }: LayoutProps) {
                 </p>
               </div>
               <div className="flex items-center space-x-4">
-                <div className="w-8 h-8 bg-[#68A53B] rounded-full flex items-center justify-center">
-                  <span className="text-white text-sm font-medium">LA</span>
+                <div className="flex items-center space-x-3">
+                  <div className="text-right">
+                    <p className="text-sm font-medium text-[#2C3E50]">
+                      {usuario?.nombre}
+                    </p>
+                    <p className="text-xs text-[#6C757D]">
+                      {getRoleDisplayName(usuario?.rol || "")}
+                    </p>
+                  </div>
+                  <div className="w-10 h-10 bg-[#68A53B] rounded-full flex items-center justify-center">
+                    <span className="text-white text-sm font-medium">
+                      {getUserInitials()}
+                    </span>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={handleLogout}
+                    className="text-[#6C757D] hover:text-red-600 hover:bg-red-50"
+                    title="Cerrar sesión"
+                  >
+                    <LogOut className="h-5 w-5" />
+                  </Button>
                 </div>
               </div>
             </div>

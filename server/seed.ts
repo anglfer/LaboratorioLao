@@ -4,15 +4,62 @@ async function seedTestData() {
   console.log("Iniciando seed de datos de prueba...");
 
   try {
-    // Crear áreas si no existen
-    const area = await prisma.area.upsert({
-      where: { codigo: "PCC" },
-      update: {},
-      create: {
-        codigo: "PCC",
-        nombre: "Control de Calidad",
-      },
-    });
+    // Crear múltiples usuarios de cada tipo
+    console.log("Creando usuarios...");
+    const usuarios = [];
+    for (let i = 1; i <= 10; i++) {
+      usuarios.push(
+        prisma.usuario.upsert({
+          where: { email: `admin${i}@laboratorio.com` },
+          update: {},
+          create: {
+            email: `admin${i}@laboratorio.com`,
+            password: `admin123`,
+            nombre: `Administrador ${i}`,
+            rol: "admin",
+            activo: true,
+          },
+        }),
+        prisma.usuario.upsert({
+          where: { email: `recepcionista${i}@laboratorio.com` },
+          update: {},
+          create: {
+            email: `recepcionista${i}@laboratorio.com`,
+            password: `recep123`,
+            nombre: `Recepcionista ${i}`,
+            rol: "recepcionista",
+            activo: true,
+          },
+        }),
+        prisma.usuario.upsert({
+          where: { email: `brigadista${i}@laboratorio.com` },
+          update: {},
+          create: {
+            email: `brigadista${i}@laboratorio.com`,
+            password: `brig123`,
+            nombre: `Brigadista ${i}`,
+            rol: "brigadista",
+            activo: true,
+          },
+        })
+      );
+    }
+    await Promise.all(usuarios);
+    // Crear áreas y subáreas
+    const areas = [];
+    for (let i = 1; i <= 3; i++) {
+      areas.push(
+        prisma.area.upsert({
+          where: { codigo: `AREA${i}` },
+          update: {},
+          create: {
+            codigo: `AREA${i}`,
+            nombre: `Área ${i}`,
+          },
+        })
+      );
+    }
+    await Promise.all(areas);
 
     // Inicializar contador de obras para el área PCC del año actual
     const añoActual = new Date().getFullYear();
@@ -32,201 +79,190 @@ async function seedTestData() {
     });
 
     // Crear subáreas
-    const subarea = await prisma.subarea.upsert({
-      where: { id: 1 },
-      update: {},
-      create: {
-        nombre: "Concretos",
-        areaCodigo: "PCC",
-      },
-    });
+    const subareas = [];
+    for (let i = 1; i <= 10; i++) {
+      subareas.push(
+        prisma.subarea.upsert({
+          where: { id: i },
+          update: {},
+          create: {
+            nombre: `Subárea ${i}`,
+            areaCodigo: `AREA${((i-1)%3)+1}`,
+          },
+        })
+      );
+    }
+    await Promise.all(subareas);
 
     // Crear conceptos
-    const concepto = await prisma.concepto.upsert({
-      where: { codigo: "CON-01" },
-      update: {},
-      create: {
-        codigo: "CON-01",
-        descripcion: "Concreto hidráulico",
-        unidad: "m3",
-        p_u: 750.0,
-        subareaId: subarea.id,
-      },
-    });
+    const conceptos = [];
+    for (let i = 1; i <= 10; i++) {
+      conceptos.push(
+        prisma.concepto.upsert({
+          where: { codigo: `CON-${i.toString().padStart(2, "0")}` },
+          update: {},
+          create: {
+            codigo: `CON-${i.toString().padStart(2, "0")}`,
+            descripcion: `Concepto ${i}`,
+            unidad: "m3",
+            p_u: 500 + i * 10,
+            subareaId: i,
+          },
+        })
+      );
+    }
+    await Promise.all(conceptos);
 
-    // Crear cliente
-    const cliente = await prisma.cliente.upsert({
-      where: { id: 1 },
-      update: {},
-      create: {
-        nombre: "Constructora ABC S.A. de C.V.",
-        direccion: "Av. Principal #123, Col. Centro",
-        activo: true,
-      },
-    });
+    // Crear clientes
+    const clientes = [];
+    for (let i = 1; i <= 10; i++) {
+      clientes.push(
+        prisma.cliente.upsert({
+          where: { id: i },
+          update: {},
+          create: {
+            nombre: `Cliente ${i} S.A. de C.V.`,
+            direccion: `Calle ${i} #${100+i}, Col. Centro`,
+            activo: true,
+          },
+        })
+      );
+    }
+    await Promise.all(clientes);
 
-    // Crear obra
-    const obra = await prisma.obra.upsert({
-      where: { clave: "PCC-25-001" },
-      update: {},
-      create: {
-        clave: "PCC-25-001",
-        areaCodigo: "PCC",
-        contratista: "Constructora ABC",
-        estado: 1,
-      },
-    });
+    // Crear obras
+    const obras = [];
+    for (let i = 1; i <= 10; i++) {
+      obras.push(
+        prisma.obra.upsert({
+          where: { clave: `OBRA-${i.toString().padStart(3, "0")}` },
+          update: {},
+          create: {
+            clave: `OBRA-${i.toString().padStart(3, "0")}`,
+            areaCodigo: `AREA${((i-1)%3)+1}`,
+            contratista: `Contratista ${i}`,
+            estado: (i%3)+1,
+          },
+        })
+      );
+    }
+    await Promise.all(obras);
 
-    // Crear presupuesto aprobado
-    const presupuesto = await prisma.presupuesto.upsert({
-      where: { id: 1 },
-      update: {},
-      create: {
-        claveObra: obra.clave,
-        clienteId: cliente.id,
-        nombreContratista: "Constructora ABC S.A. de C.V.",
-        descripcionObra: "Construcción de edificio comercial",
-        tramo: "Km 5+200",
-        colonia: "Centro",
-        calle: "Av. Principal",
-        contactoResponsable: "Ing. Juan Pérez",
-        estado: "aprobado",
-        subtotal: 4500.0,
-        ivaMonto: 720.0,
-        total: 5220.0,
-        formaPago: "Transferencia bancaria",
-      },
-    });
+    // Crear presupuestos
+    const presupuestos = [];
+    for (let i = 1; i <= 10; i++) {
+      presupuestos.push(
+        prisma.presupuesto.upsert({
+          where: { id: i },
+          update: {},
+          create: {
+            claveObra: `OBRA-${i.toString().padStart(3, "0")}`,
+            clienteId: i,
+            nombreContratista: `Cliente ${i} S.A. de C.V.`,
+            descripcionObra: `Obra de prueba ${i}`,
+            tramo: `Tramo ${i}`,
+            colonia: `Colonia ${i}`,
+            calle: `Calle ${i}`,
+            contactoResponsable: `Responsable ${i}`,
+            estado: i % 2 === 0 ? "aprobado" : "pendiente",
+            subtotal: 4000 + i * 100,
+            ivaMonto: 640 + i * 16,
+            total: 4640 + i * 116,
+            formaPago: "Transferencia bancaria",
+          },
+        })
+      );
+    }
+    await Promise.all(presupuestos);
 
-    // Crear detalle del presupuesto
-    await prisma.presupuestoDetalle.upsert({
-      where: { id: 1 },
-      update: {},
-      create: {
-        presupuestoId: presupuesto.id,
-        conceptoCodigo: concepto.codigo,
-        cantidad: 10,
-        precioUnitario: 450.0,
-        subtotal: 4500.0,
-        estado: "hecho",
-      },
-    });
+    // Crear detalles de presupuestos
+    const detalles = [];
+    for (let i = 1; i <= 10; i++) {
+      detalles.push(
+        prisma.presupuestoDetalle.upsert({
+          where: { id: i },
+          update: {},
+          create: {
+            presupuestoId: i,
+            conceptoCodigo: `CON-${i.toString().padStart(2, "0")}`,
+            cantidad: 5 + i,
+            precioUnitario: 400 + i * 10,
+            subtotal: (5 + i) * (400 + i * 10),
+            estado: i % 2 === 0 ? "hecho" : "pendiente",
+          },
+        })
+      );
+    }
+    await Promise.all(detalles);
 
     // Crear brigadistas
-    const brigadista1 = await prisma.brigadista.upsert({
-      where: { id: 1 },
-      update: {},
-      create: {
-        nombre: "Mario González",
-        telefono: "555-0101",
-        email: "mario.gonzalez@laboratorio.com",
-        activo: true,
-      },
-    });
-
-    const brigadista2 = await prisma.brigadista.upsert({
-      where: { id: 2 },
-      update: {},
-      create: {
-        nombre: "Ana Rodríguez",
-        telefono: "555-0102",
-        email: "ana.rodriguez@laboratorio.com",
-        activo: true,
-      },
-    });
+    const brigadistas = [];
+    for (let i = 1; i <= 10; i++) {
+      brigadistas.push(
+        prisma.brigadista.upsert({
+          where: { id: i },
+          update: {},
+          create: {
+            nombre: `Brigadista ${i}`,
+            telefono: `555-01${i.toString().padStart(2, "0")}`,
+            email: `brigadista${i}@laboratorio.com`,
+            activo: true,
+          },
+        })
+      );
+    }
+    await Promise.all(brigadistas);
 
     // Crear vehículos
-    const vehiculo1 = await prisma.vehiculo.upsert({
-      where: { id: 1 },
-      update: {},
-      create: {
-        clave: "VEH-001",
-        descripcion: "Camioneta Nissan NP300 2022",
-        activo: true,
-      },
-    });
+    const vehiculos = [];
+    for (let i = 1; i <= 10; i++) {
+      vehiculos.push(
+        prisma.vehiculo.upsert({
+          where: { id: i },
+          update: {},
+          create: {
+            clave: `VEH-${i.toString().padStart(3, "0")}`,
+            descripcion: `Vehículo ${i} - Modelo ${2020 + i}`,
+            activo: true,
+          },
+        })
+      );
+    }
+    await Promise.all(vehiculos);
 
-    const vehiculo2 = await prisma.vehiculo.upsert({
-      where: { id: 2 },
-      update: {},
-      create: {
-        clave: "VEH-002",
-        descripcion: "Camioneta Toyota Hilux 2023",
-        activo: true,
-      },
-    });
-
-    // Crear programaciones de prueba
-    const fechaHoy = new Date();
-    const fechaManana = new Date(fechaHoy);
-    fechaManana.setDate(fechaHoy.getDate() + 1);
-
-    await prisma.programacion.upsert({
-      where: { id: 1 },
-      update: {},
-      create: {
-        claveObra: obra.clave,
-        fechaProgramada: fechaHoy,
-        horaProgramada: "09:00",
-        tipoProgramacion: "obra_por_visita",
-        nombreResidente: "Ing. Carlos Méndez",
-        telefonoResidente: "555-9999",
-        conceptoCodigo: concepto.codigo,
-        cantidadMuestras: 5,
-        tipoRecoleccion: "metros_cuadrados",
-        brigadistaId: brigadista1.id,
-        vehiculoId: vehiculo1.id,
-        estado: "programada",
-        observaciones: "Acceso por entrada principal",
-      },
-    });
-
-    await prisma.programacion.upsert({
-      where: { id: 2 },
-      update: {},
-      create: {
-        claveObra: obra.clave,
-        fechaProgramada: fechaHoy,
-        horaProgramada: "14:00",
-        tipoProgramacion: "obra_por_visita",
-        nombreResidente: "Ing. Carlos Méndez",
-        telefonoResidente: "555-9999",
-        conceptoCodigo: concepto.codigo,
-        cantidadMuestras: 3,
-        tipoRecoleccion: "metros_cuadrados",
-        brigadistaId: brigadista2.id,
-        vehiculoId: vehiculo2.id,
-        estado: "en_proceso",
-        observaciones: "Zona norte del terreno",
-        fechaInicio: new Date(),
-      },
-    });
-
-    await prisma.programacion.upsert({
-      where: { id: 3 },
-      update: {},
-      create: {
-        claveObra: obra.clave,
-        fechaProgramada: fechaManana,
-        horaProgramada: "08:30",
-        tipoProgramacion: "obra_por_visita",
-        nombreResidente: "Ing. Carlos Méndez",
-        telefonoResidente: "555-9999",
-        conceptoCodigo: concepto.codigo,
-        cantidadMuestras: 2,
-        tipoRecoleccion: "sondeo",
-        brigadistaId: brigadista1.id,
-        brigadistaApoyoId: brigadista2.id,
-        vehiculoId: vehiculo1.id,
-        estado: "completada",
-        observaciones: "Trabajo completado exitosamente",
-        fechaInicio: new Date(fechaHoy.getTime() - 86400000), // Ayer
-        fechaCompletado: new Date(fechaHoy.getTime() - 82800000), // Ayer + 1 hora
-        muestrasObtenidas: 2,
-      },
-    });
+    // Crear programaciones
+    const programaciones = [];
+    const fechaBase = new Date();
+    for (let i = 1; i <= 10; i++) {
+      programaciones.push(
+        prisma.programacion.upsert({
+          where: { id: i },
+          update: {},
+          create: {
+            claveObra: `OBRA-${i.toString().padStart(3, "0")}`,
+            fechaProgramada: new Date(fechaBase.getTime() + i * 86400000),
+            horaProgramada: `${8 + (i % 10)}:00`,
+            tipoProgramacion: "obra_por_visita",
+            nombreResidente: `Residente ${i}`,
+            telefonoResidente: `555-99${i.toString().padStart(2, "0")}`,
+            conceptoCodigo: `CON-${i.toString().padStart(2, "0")}`,
+            cantidadMuestras: 2 + i,
+            tipoRecoleccion: i % 2 === 0 ? "metros_cuadrados" : "sondeo",
+            brigadistaId: i,
+            vehiculoId: i,
+            estado: i % 3 === 0 ? "completada" : (i % 2 === 0 ? "en_proceso" : "programada"),
+            observaciones: `Observaciones de la programación ${i}`,
+            fechaInicio: new Date(fechaBase.getTime() + (i-1) * 86400000),
+            fechaCompletado: i % 3 === 0 ? new Date(fechaBase.getTime() + (i-1) * 86400000 + 3600000) : null,
+            muestrasObtenidas: i % 3 === 0 ? 2 + i : null,
+          },
+        })
+      );
+    }
+    await Promise.all(programaciones);
 
     console.log("✅ Datos de prueba creados exitosamente:");
+    console.log(`- Usuarios: ${adminUser.nombre} (admin), ${recepcionistaUser.nombre} (recepcionista), ${brigadistaUser.nombre} (brigadista)`);
     console.log(`- Área: ${area.nombre}`);
     console.log(`- Subárea: ${subarea.nombre}`);
     console.log(`- Concepto: ${concepto.descripcion}`);
@@ -238,6 +274,11 @@ async function seedTestData() {
       `- Vehículos: ${vehiculo1.descripcion}, ${vehiculo2.descripcion}`,
     );
     console.log("- 3 programaciones de prueba");
+    console.log("\n📝 Credenciales de prueba:");
+    console.log("- Admin: admin@laboratorio.com / admin123");
+    console.log("- Recepcionista: recepcionista@laboratorio.com / recep123");
+    console.log("- Brigadista: brigadista@laboratorio.com / brig123");
+    console.log(`\n🔗 Usuario brigadista vinculado a: ${brigadista1.nombre} (ID: ${brigadista1.id})`);
   } catch (error) {
     console.error("❌ Error creando datos de prueba:", error);
     throw error;

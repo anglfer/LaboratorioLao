@@ -2138,6 +2138,191 @@ export function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Rutas de autenticación con integración real a base de datos
+  app.post("/api/auth/login", async (req, res) => {
+    try {
+      const { email, password } = req.body;
+      
+      if (!email || !password) {
+        return res.status(400).json({ message: "Email y contraseña son requeridos" });
+      }
+
+      // Buscar usuario en la base de datos
+      const usuario = await prisma.usuario.findUnique({
+        where: { email },
+        include: {
+          brigadista: true // Incluir datos del brigadista si existe relación
+        }
+      });
+
+      if (!usuario) {
+        return res.status(401).json({ message: "Credenciales incorrectas" });
+      }
+
+      // En producción usar bcrypt para comparar passwords
+      // const isValidPassword = await bcrypt.compare(password, usuario.password);
+      const isValidPassword = password === usuario.password; // Temporal: comparación directa
+
+      if (!isValidPassword) {
+        return res.status(401).json({ message: "Credenciales incorrectas" });
+      }
+
+      if (!usuario.activo) {
+        return res.status(401).json({ message: "Usuario inactivo" });
+      }
+
+      // Preparar datos del usuario para la respuesta
+      const usuarioResponse = {
+        id: usuario.id,
+        email: usuario.email,
+        nombre: usuario.nombre,
+        rol: usuario.rol,
+        activo: usuario.activo,
+        fechaCreacion: usuario.fechaCreacion,
+        brigadistaId: usuario.brigadistaId,
+        brigadista: usuario.brigadista ? {
+          id: usuario.brigadista.id,
+          nombre: usuario.brigadista.nombre,
+          telefono: usuario.brigadista.telefono,
+          email: usuario.brigadista.email
+        } : null
+      };
+      
+      console.log(`[AUTH] Login exitoso para usuario: ${usuario.email} (${usuario.rol})`);
+      res.json(usuarioResponse);
+    } catch (error: any) {
+      console.error("[AUTH] Error en login:", error);
+      res.status(500).json({ message: "Error interno del servidor" });
+    }
+  });
+
+  app.post("/api/auth/logout", async (req, res) => {
+    try {
+      res.json({ message: "Sesión cerrada correctamente" });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Rutas para brigadistas - obtener actividades asignadas desde la base de datos
+  app.get("/api/brigadista/:id/actividades", async (req, res) => {
+    try {
+      const brigadistaId = parseInt(req.params.id);
+      const fecha = req.query.fecha as string || new Date().toISOString().split('T')[0];
+      
+      // Buscar programaciones asignadas al brigadista para la fecha especificada
+      const programaciones = await prisma.programacion.findMany({
+        where: {
+          OR: [
+            { brigadistaId },
+            { brigadistaApoyoId: brigadistaId }
+          ],
+          fechaProgramada: {
+            gte: new Date(fecha + 'T00:00:00.000Z'),
+            lt: new Date(fecha + 'T23:59:59.999Z')
+          }
+        },
+        include: {
+          obra: true,
+          concepto: true,
+          vehiculo: true,
+          brigadista: true,
+          brigadistaApoyo: true
+        },
+        orderBy: {
+          horaProgramada: 'asc'
+        }
+      });
+
+      // Formatear datos para el frontend
+      const actividades = programaciones.map(prog => ({
+        id: prog.id,
+        obra: { 
+          clave: prog.claveObra,
+          nombreObra: prog.obra?.contratista || 'Obra sin nombre'
+        },
+        concepto: { 
+          codigo: prog.conceptoCodigo,
+          descripcion: prog.concepto?.descripcion || 'Concepto sin descripción'
+        },
+        vehiculo: { 
+          clave: prog.vehiculo?.clave || 'N/A',
+          descripcion: prog.vehiculo?.descripcion || 'Vehículo no asignado'
+        },
+        cantidadMuestras: prog.cantidadMuestras,
+        horaProgramada: prog.horaProgramada,
+        estado: prog.estado,
+        tipoProgramacion: prog.tipoProgramacion,
+        nombreResidente: prog.nombreResidente,
+        telefonoResidente: prog.telefonoResidente,
+        observaciones: prog.observaciones,
+        fechaInicio: prog.fechaInicio,
+        fechaCompletado: prog.fechaCompletado,
+        muestrasObtenidas: prog.muestrasObtenidas
+      }));
+
+      console.log(`[BRIGADISTA] Encontradas ${actividades.length} actividades para brigadista ${brigadistaId} en fecha ${fecha}`);
+      res.json(actividades);
+    } catch (error: any) {
+      console.error("[BRIGADISTA] Error obteniendo actividades:", error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Actualizar estado de programación con base de datos real
+  app.patch("/api/programacion/:id/estado", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const { estado, datos } = req.body;
+      
+      // Preparar datos de actualización
+      const updateData: any = { estado };
+      
+      if (estado === 'en_proceso') {
+        updateData.fechaInicio = new Date();
+      } else if (estado === 'completada') {
+        updateData.fechaCompletado = new Date();
+        if (datos?.muestrasObtenidas) {
+          updateData.muestrasObtenidas = parseInt(datos.muestrasObtenidas);
+        }
+      } else if (estado === 'cancelada' && datos?.motivoCancelacion) {
+        updateData.motivoCancelacion = datos.motivoCancelacion;
+      }
+
+      // Actualizar en la base de datos
+      const programacionActualizada = await prisma.programacion.update({
+        where: { id },
+        data: updateData,
+        include: {
+          obra: true,
+          concepto: true,
+          vehiculo: true,
+          brigadista: true
+        }
+      });
+
+      // Formatear respuesta
+      const response = {
+        id: programacionActualizada.id,
+        estado: programacionActualizada.estado,
+        fechaInicio: programacionActualizada.fechaInicio,
+        fechaCompletado: programacionActualizada.fechaCompletado,
+        muestrasObtenidas: programacionActualizada.muestrasObtenidas,
+        motivoCancelacion: programacionActualizada.motivoCancelacion,
+        obra: { clave: programacionActualizada.claveObra },
+        concepto: { descripcion: programacionActualizada.concepto?.descripcion },
+        vehiculo: { descripcion: programacionActualizada.vehiculo?.descripcion },
+        brigadista: { nombre: programacionActualizada.brigadista?.nombre }
+      };
+
+      console.log(`[PROGRAMACION] Estado actualizado para programación ${id}: ${estado}`);
+      res.json(response);
+    } catch (error: any) {
+      console.error("[PROGRAMACION] Error actualizando estado:", error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
   return Promise.resolve(server);
 }
 
