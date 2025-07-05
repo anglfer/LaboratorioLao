@@ -34,7 +34,7 @@ export function ConceptForm() {
   const [selectedSubareaName, setSelectedSubareaName] = useState<string>("");
   const { data: areas = [], isLoading: areasLoading } = useAreas();
   const { data: subareas = [], isLoading: subareasLoading } = useSubareasByArea(
-    selectedArea || null,
+    selectedArea || null
   );
   const createConcepto = useCreateConcepto();
   const {
@@ -67,10 +67,14 @@ export function ConceptForm() {
   const onSubmit = async (data: ConceptoFormData) => {
     try {
       await createConcepto.mutateAsync(data);
+      // Reset form and subarea state
       reset();
       setSelectedArea("");
       setSelectedSubarea(null);
       setSelectedSubareaName("");
+      setValue("subareaId", 0); // Asegura que el valor en el formulario también se reinicie
+      // Forzar el valor del Select de subárea a vacío para evitar desincronización visual
+      document.activeElement && (document.activeElement as HTMLElement).blur();
     } catch (error) {
       // Error handling is done in the hook
     }
@@ -126,10 +130,14 @@ export function ConceptForm() {
           <div className="space-y-2">
             <Label htmlFor="subarea">Subárea</Label>{" "}
             <Select
-              value={selectedSubarea?.toString()}
+              value={
+                selectedSubarea !== null && selectedSubarea > 0
+                  ? selectedSubarea.toString()
+                  : ""
+              }
               onValueChange={handleSubareaChange}
               disabled={!selectedArea}
-              key={selectedArea} // Force re-render when area changes
+              key={selectedArea + "-" + (selectedSubarea ?? "")} // Forzar re-render cuando cambia
             >
               <SelectTrigger>
                 <SelectValue
@@ -163,7 +171,7 @@ export function ConceptForm() {
             )}
           </div>
           {/* Formulario de Concepto */}
-          {selectedSubarea && (
+          {selectedSubarea && selectedSubarea > 0 && (
             <>
               <div className="space-y-2">
                 <Label htmlFor="codigo">Código del Concepto</Label>
@@ -200,44 +208,31 @@ export function ConceptForm() {
                     {...register("unidad")}
                     placeholder="Ej: m², kg, pza"
                   />
-                  {errors.unidad && (
-                    <p className="text-sm text-red-600">
-                      {errors.unidad.message}
-                    </p>
-                  )}
                 </div>
-
                 <div className="space-y-2">
                   <Label htmlFor="p_u">Precio Unitario</Label>
                   <Input
                     id="p_u"
                     type="number"
                     step="0.01"
-                    {...register("p_u", { valueAsNumber: true })}
                     placeholder="0.00"
+                    {...register("p_u", { valueAsNumber: true })}
                   />
                   {errors.p_u && (
                     <p className="text-sm text-red-600">{errors.p_u.message}</p>
                   )}
                 </div>
               </div>
-              <div className="flex justify-end space-x-2 pt-4">
+              <div className="flex justify-end pt-4">
                 <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => {
-                    reset();
-                    setSelectedArea("");
-                    setSelectedSubarea(null);
-                    setSelectedSubareaName("");
-                  }}
+                  type="submit"
+                  disabled={
+                    isSubmitting || !(selectedSubarea && selectedSubarea > 0)
+                  }
                 >
-                  Cancelar
+                  {isSubmitting ? "Guardando..." : "Guardar Concepto"}
                 </Button>
-                <Button type="submit" disabled={isSubmitting}>
-                  {isSubmitting ? "Creando..." : "Crear Concepto"}
-                </Button>
-              </div>{" "}
+              </div>
             </>
           )}
         </form>

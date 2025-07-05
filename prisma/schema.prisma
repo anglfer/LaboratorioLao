@@ -193,7 +193,9 @@ model Brigadista {
   email            String?  @db.VarChar(255)
   activo           Boolean  @default(true)
   fechaRegistro    DateTime @default(now()) @map("fecha_registro")
-  
+  disponible       Boolean  @default(true) @map("disponible")
+  tipoServicio     String?  @db.VarChar(100) @map("tipo_servicio")
+
   programaciones   Programacion[]
   programacionesApoyo Programacion[] @relation("BrigadistaApoyo")
   usuarios         Usuario[]

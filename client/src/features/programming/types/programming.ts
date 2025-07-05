@@ -40,6 +40,8 @@ export enum EstadoProgramacion {
 export interface Programacion {
   id: number;
   claveObra: string;
+  /** Nueva propiedad: nombre de la actividad o descripción breve */
+  actividad?: string;
   fechaProgramada: string;
   horaProgramada: string;
   tipoProgramacion: TipoProgramacion;
@@ -60,6 +62,8 @@ export interface Programacion {
   fechaActualizacion: string;
   motivoCancelacion?: string;
   muestrasObtenidas?: number;
+  /** Nueva propiedad: muestras previstas */
+  muestrasPrevistas?: number;
   fechaInicio?: string;
   fechaCompletado?: string;
 
@@ -97,6 +101,8 @@ export interface CreateProgramacionData {
   brigadistaId: number;
   brigadistaApoyoId?: number;
   vehiculoId: number;
+  /** Nueva propiedad: ubicación textual */
+  ubicacion?: string;
   claveEquipo?: string;
   observaciones?: string;
   instrucciones?: string;

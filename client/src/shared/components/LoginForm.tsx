@@ -1,5 +1,7 @@
 import { useState } from "react";
-import { useAuth } from "../hooks/useAuth";
+import { useLocation } from "wouter";
+import { getDashboardRoute } from "../../features/dashboard/services/dashboardRoutes";
+import { useAuth } from "../../features/dashboard/hooks/useAuth";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import {
@@ -18,6 +20,7 @@ export function LoginForm() {
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const { login } = useAuth();
+  const [, navigate] = useLocation();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -28,6 +31,16 @@ export function LoginForm() {
       const success = await login(email, password);
       if (!success) {
         setError("Credenciales incorrectas");
+      } else {
+        // Obtener usuario del localStorage para saber el rol
+        const storedUser = localStorage.getItem("usuario");
+        let rol = "";
+        if (storedUser) {
+          try {
+            rol = JSON.parse(storedUser).rol;
+          } catch {}
+        }
+        navigate(getDashboardRoute(rol));
       }
     } catch (error) {
       setError("Error al iniciar sesión. Intente nuevamente.");

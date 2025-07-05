@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { conceptService } from "../services/conceptService";
 import { ConceptoFormData } from "../types/concept";
-import { useToast } from "../../../shared/hooks/use-toast";
+import { useToast } from "../../dashboard/hooks/use-toast";
 
 export function useAreas() {
   return useQuery({

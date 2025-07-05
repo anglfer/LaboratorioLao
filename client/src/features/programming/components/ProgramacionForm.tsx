@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -39,6 +39,7 @@ import {
   useBrigadistasDisponibles,
   useVehiculosDisponibles,
   useCreateProgramacion,
+  useProgramaciones,
 } from "../hooks/useProgramming";
 import {
   TipoProgramacion,
@@ -48,7 +49,7 @@ import {
 
 // Mapeo de unidades de concepto a TipoRecoleccion
 const mapUnidadToTipoRecoleccion = (
-  unidad: string,
+  unidad: string
 ): TipoRecoleccion | undefined => {
   const lowerUnidad = unidad.toLowerCase().trim();
   switch (lowerUnidad) {
@@ -82,7 +83,13 @@ const programacionSchema = z.object({
     errorMap: () => ({ message: "Debe seleccionar un tipo de programación" }),
   }),
   nombreResidente: z.string().optional(),
-  telefonoResidente: z.string().optional(),
+  telefonoResidente: z
+    .string()
+    .regex(
+      /^\d{10,15}$/,
+      "Debe ser un teléfono válido (solo números, 10-15 dígitos)"
+    )
+    .optional(),
   conceptoCodigo: z.string().min(1, "Debe seleccionar una actividad"),
   cantidadMuestras: z.number().min(1, "La cantidad debe ser mayor a 0"),
   tipoRecoleccion: z.nativeEnum(TipoRecoleccion, {
@@ -95,6 +102,7 @@ const programacionSchema = z.object({
   observaciones: z.string().optional(),
   instrucciones: z.string().optional(),
   condicionesEspeciales: z.string().optional(),
+  herramientasEspeciales: z.array(z.string()).optional(),
 });
 
 type ProgramacionFormData = z.infer<typeof programacionSchema>;
@@ -113,6 +121,8 @@ export default function ProgramacionForm({
   isLoading: externalLoading,
 }: ProgramacionFormProps) {
   const [obraSeleccionada, setObraSeleccionada] = useState<string>("");
+  const [obraSearch, setObraSearch] = useState<string>("");
+  const [conceptoSeleccionado, setConceptoSeleccionado] = useState<any>(null);
   const [fechaSeleccionada, setFechaSeleccionada] = useState<string>("");
   const [horaSeleccionada, setHoraSeleccionada] = useState<string>("");
 
@@ -124,10 +134,29 @@ export default function ProgramacionForm({
       tipoProgramacion: TipoProgramacion.OBRA_POR_VISITA,
       cantidadMuestras: 1,
       tipoRecoleccion: TipoRecoleccion.METROS_CUADRADOS,
+      herramientasEspeciales: [],
     },
   });
 
   const createMutation = useCreateProgramacion();
+
+  // Obtener programaciones existentes de la obra seleccionada
+  const { data: programacionesObra = [] } = useProgramaciones(
+    obraSeleccionada ? { claveObra: obraSeleccionada } : undefined
+  );
+
+  // Calcular muestras ya asignadas por concepto
+  const muestrasAsignadasPorConcepto = useMemo(() => {
+    const map: Record<string, number> = {};
+    programacionesObra.forEach((prog) => {
+      // Solo contar programaciones no canceladas
+      if (prog.estado !== "cancelada") {
+        map[prog.conceptoCodigo] =
+          (map[prog.conceptoCodigo] || 0) + (prog.cantidadMuestras || 0);
+      }
+    });
+    return map;
+  }, [programacionesObra]);
 
   // Queries
   const { data: obrasAprobadas, isLoading: loadingObras } = useObrasAprobadas();
@@ -137,16 +166,16 @@ export default function ProgramacionForm({
   // Queries condicionales para disponibilidad
   const { data: brigadistasDisponibles } = useBrigadistasDisponibles(
     fechaSeleccionada,
-    horaSeleccionada,
+    horaSeleccionada
   );
   const { data: vehiculosDisponibles } = useVehiculosDisponibles(
     fechaSeleccionada,
-    horaSeleccionada,
+    horaSeleccionada
   );
 
   // Encontrar la obra seleccionada para mostrar detalles
   const obraDetalles = obrasAprobadas?.find(
-    (obra) => obra.clave === obraSeleccionada,
+    (obra) => obra.clave === obraSeleccionada
   );
 
   // Watch para fecha y hora para actualizar disponibilidad
@@ -159,9 +188,28 @@ export default function ProgramacionForm({
   }, [watchedFecha, watchedHora]);
 
   const handleSubmit = (data: ProgramacionFormData) => {
-    const submitData: CreateProgramacionData = {
-      ...data,
+    // Validar que no se asignen más muestras de las permitidas
+    const concepto = obraDetalles?.conceptos.find(
+      (c) => c.codigo === data.conceptoCodigo
+    );
+    if (concepto) {
+      const total = concepto.cantidad || 0;
+      const asignadas = muestrasAsignadasPorConcepto[data.conceptoCodigo] || 0;
+      const disponibles = total - asignadas;
+      if (data.cantidadMuestras > disponibles) {
+        form.setError("cantidadMuestras", {
+          type: "manual",
+          message: `Solo puedes asignar hasta ${disponibles} muestra(s) para este concepto.`,
+        });
+        return;
+      }
+    }
+    // Eliminar herramientasEspeciales antes de enviar al backend
+    const { herramientasEspeciales, ...rest } = data;
+    const submitData: CreateProgramacionData & { estado?: string } = {
+      ...rest,
       brigadistaApoyoId: data.brigadistaApoyoId || undefined,
+      estado: "en_proceso",
     };
     if (onSubmit) {
       onSubmit(submitData);
@@ -176,16 +224,13 @@ export default function ProgramacionForm({
   };
   const handleConceptoChange = (codigoConcepto: string) => {
     form.setValue("conceptoCodigo", codigoConcepto);
-    const conceptoSeleccionado = obraDetalles?.conceptos.find(
-      (c) => c.codigo === codigoConcepto,
+    const concepto = obraDetalles?.conceptos.find(
+      (c) => c.codigo === codigoConcepto
     );
-
-    if (conceptoSeleccionado) {
-      form.setValue("cantidadMuestras", conceptoSeleccionado.cantidad);
-      const tipoRecoleccion = mapUnidadToTipoRecoleccion(
-        conceptoSeleccionado.unidad,
-      );
-
+    setConceptoSeleccionado(concepto || null);
+    if (concepto) {
+      form.setValue("cantidadMuestras", concepto.cantidad);
+      const tipoRecoleccion = mapUnidadToTipoRecoleccion(concepto.unidad);
       if (tipoRecoleccion) {
         form.setValue("tipoRecoleccion", tipoRecoleccion);
       }
@@ -202,6 +247,17 @@ export default function ProgramacionForm({
       .padStart(2, "0")}`;
   });
 
+  // Filtrado inteligente de obras
+  const obrasFiltradas = useMemo(() => {
+    if (!obraSearch) return obrasAprobadas;
+    const search = obraSearch.toLowerCase();
+    return obrasAprobadas?.filter(
+      (obra) =>
+        obra.clave.toLowerCase().includes(search) ||
+        obra.clienteNombre.toLowerCase().includes(search)
+    );
+  }, [obraSearch, obrasAprobadas]);
+
   return (
     <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
       {/* SECCIÓN 1: SELECCIÓN DE OBRA BASE */}
@@ -215,6 +271,13 @@ export default function ProgramacionForm({
         <CardContent className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="claveObra">Obra Aprobada *</Label>
+            {/* Búsqueda inteligente de obras */}
+            <Input
+              placeholder="Buscar por clave o cliente..."
+              value={obraSearch}
+              onChange={(e) => setObraSearch(e.target.value)}
+              className="mb-2"
+            />
             <Select
               value={form.watch("claveObra")}
               onValueChange={(value) => {
@@ -222,6 +285,7 @@ export default function ProgramacionForm({
                 setObraSeleccionada(value);
                 // Limpiar concepto cuando cambia la obra
                 form.setValue("conceptoCodigo", "");
+                setConceptoSeleccionado(null);
               }}
             >
               <SelectTrigger>
@@ -233,7 +297,7 @@ export default function ProgramacionForm({
                     Cargando obras...
                   </SelectItem>
                 ) : (
-                  obrasAprobadas?.map((obra) => (
+                  obrasFiltradas?.map((obra) => (
                     <SelectItem key={obra.clave} value={obra.clave}>
                       {obra.clave} - {obra.clienteNombre}
                     </SelectItem>
@@ -369,7 +433,15 @@ export default function ProgramacionForm({
               <Input
                 {...form.register("telefonoResidente")}
                 placeholder="Teléfono de contacto directo"
+                type="tel"
+                pattern="[0-9]{10,15}"
+                inputMode="numeric"
               />
+              {form.formState.errors.telefonoResidente && (
+                <p className="text-sm text-red-600">
+                  {form.formState.errors.telefonoResidente.message}
+                </p>
+              )}
             </div>
           </div>
         </CardContent>
@@ -395,11 +467,39 @@ export default function ProgramacionForm({
                 <SelectValue placeholder="Seleccione una actividad" />
               </SelectTrigger>
               <SelectContent>
-                {obraDetalles?.conceptos.map((concepto) => (
-                  <SelectItem key={concepto.codigo} value={concepto.codigo}>
-                    {concepto.codigo} - {concepto.descripcion}
-                  </SelectItem>
-                ))}
+                {obraDetalles?.conceptos.map((concepto) => {
+                  const total = concepto.cantidad || 0;
+                  const asignadas =
+                    muestrasAsignadasPorConcepto[concepto.codigo] || 0;
+                  const disponibles = total - asignadas;
+                  let label = `${concepto.codigo} - ${concepto.descripcion}`;
+                  let disabled = false;
+                  let extra = "";
+                  if (disponibles <= 0) {
+                    disabled = true;
+                    extra = " (Completado)";
+                  } else if (disponibles < total) {
+                    extra = ` (Faltan ${disponibles})`;
+                  }
+                  return (
+                    <SelectItem
+                      key={concepto.codigo}
+                      value={concepto.codigo}
+                      disabled={disabled}
+                    >
+                      {label}
+                      <span
+                        style={{
+                          color: disabled ? "#888" : "#2d7d46",
+                          marginLeft: 4,
+                          fontSize: 12,
+                        }}
+                      >
+                        {extra}
+                      </span>
+                    </SelectItem>
+                  );
+                })}
               </SelectContent>
             </Select>
             {form.formState.errors.conceptoCodigo && (
@@ -407,10 +507,26 @@ export default function ProgramacionForm({
                 {form.formState.errors.conceptoCodigo.message}
               </p>
             )}
+            {/* Vista previa de la actividad seleccionada */}
+            {conceptoSeleccionado && (
+              <div className="p-2 bg-gray-50 rounded text-sm mt-2">
+                <div>
+                  <span className="font-medium">Descripción:</span>{" "}
+                  {conceptoSeleccionado.descripcion}
+                </div>
+                <div>
+                  <span className="font-medium">Unidad:</span>{" "}
+                  {conceptoSeleccionado.unidad}
+                </div>
+                <div>
+                  <span className="font-medium">Cantidad:</span>{" "}
+                  {conceptoSeleccionado.cantidad}
+                </div>
+              </div>
+            )}
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {" "}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="space-y-2">
               <Label htmlFor="cantidadMuestras">Cantidad de Muestras *</Label>
               <Input
@@ -423,7 +539,7 @@ export default function ProgramacionForm({
                   {form.formState.errors.cantidadMuestras.message}
                 </p>
               )}
-            </div>{" "}
+            </div>
             <div className="space-y-2">
               <Label htmlFor="tipoRecoleccion">Tipo de Recolección *</Label>
               <Select
@@ -460,6 +576,30 @@ export default function ProgramacionForm({
                 </p>
               )}
             </div>
+            <div className="space-y-2">
+              <Label htmlFor="distribucionMuestras">
+                Distribución de muestras
+              </Label>
+              <Select
+                value={form.watch("distribucionMuestras" as any) || "unica"}
+                onValueChange={(value) =>
+                  form.setValue(
+                    "distribucionMuestras" as any,
+                    value as "unica" | "multiple"
+                  )
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Seleccione distribución" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="unica">Única toma</SelectItem>
+                  <SelectItem value="multiple">
+                    Múltiples proyecciones
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -493,7 +633,7 @@ export default function ProgramacionForm({
                   ) : (
                     brigadistas?.map((brigadista) => {
                       const disponible = brigadistasDisponibles?.find(
-                        (b) => b.id === brigadista.id,
+                        (b) => b.id === brigadista.id
                       );
                       return (
                         <SelectItem
@@ -524,7 +664,7 @@ export default function ProgramacionForm({
                 onValueChange={(value) =>
                   form.setValue(
                     "brigadistaApoyoId",
-                    value === "none" ? undefined : parseInt(value),
+                    value === "none" ? undefined : parseInt(value)
                   )
                 }
               >
@@ -537,7 +677,7 @@ export default function ProgramacionForm({
                     ?.filter((b) => b.id !== form.watch("brigadistaId"))
                     .map((brigadista) => {
                       const disponible = brigadistasDisponibles?.find(
-                        (b) => b.id === brigadista.id,
+                        (b) => b.id === brigadista.id
                       );
                       return (
                         <SelectItem
@@ -574,7 +714,7 @@ export default function ProgramacionForm({
                   ) : (
                     vehiculos?.map((vehiculo) => {
                       const disponible = vehiculosDisponibles?.find(
-                        (v) => v.id === vehiculo.id,
+                        (v) => v.id === vehiculo.id
                       );
                       return (
                         <SelectItem

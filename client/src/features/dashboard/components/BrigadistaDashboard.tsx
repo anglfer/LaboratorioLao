@@ -16,8 +16,7 @@ import {
   FileText,
   Timer,
 } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
-import { mockBrigadistaStats, mockBrigadistaActividades } from "../mockData";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 interface BrigadistaActivity {
   id: number;
@@ -39,14 +38,11 @@ interface BrigadistaStats {
 }
 
 export function BrigadistaDashboard() {
+  const queryClient = useQueryClient();
   const { data: stats, isLoading: statsLoading } = useQuery<BrigadistaStats>({
     queryKey: ["/api/brigadista/stats"],
     queryFn: async () => {
-      // En desarrollo, usamos datos mock
-      if (process.env.NODE_ENV === "development") {
-        return mockBrigadistaStats;
-      }
-
+      // Siempre usar datos reales de la API
       const response = await fetch("/api/brigadista/stats");
       if (!response.ok) throw new Error("Failed to fetch brigadista stats");
       return response.json();
@@ -58,14 +54,48 @@ export function BrigadistaDashboard() {
   >({
     queryKey: ["/api/brigadista/actividades"],
     queryFn: async () => {
-      // En desarrollo, usamos datos mock
-      if (process.env.NODE_ENV === "development") {
-        return mockBrigadistaActividades;
-      }
-
       const response = await fetch("/api/brigadista/actividades");
       if (!response.ok) throw new Error("Failed to fetch actividades");
       return response.json();
+    },
+  });
+
+  // Mutaciones para cambiar estado de actividad
+  const iniciarActividad = useMutation({
+    mutationFn: async (id: number) => {
+      const response = await fetch(
+        `/api/brigadista/actividades/${id}/iniciar`,
+        {
+          method: "POST",
+        }
+      );
+      if (!response.ok) throw new Error("No se pudo iniciar la actividad");
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ["/api/brigadista/actividades"],
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/brigadista/stats"] });
+    },
+  });
+
+  const completarActividad = useMutation({
+    mutationFn: async (id: number) => {
+      const response = await fetch(
+        `/api/brigadista/actividades/${id}/completar`,
+        {
+          method: "POST",
+        }
+      );
+      if (!response.ok) throw new Error("No se pudo completar la actividad");
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ["/api/brigadista/actividades"],
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/brigadista/stats"] });
     },
   });
 
@@ -234,12 +264,27 @@ export function BrigadistaDashboard() {
                   </div>
                   <div className="flex space-x-2">
                     {actividad.estado === "pendiente" && (
-                      <Button size="sm" variant="outline">
-                        Iniciar
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => iniciarActividad.mutate(actividad.id)}
+                        disabled={iniciarActividad.status === "pending"}
+                      >
+                        {iniciarActividad.status === "pending"
+                          ? "Iniciando..."
+                          : "Iniciar"}
                       </Button>
                     )}
                     {actividad.estado === "en_proceso" && (
-                      <Button size="sm">Completar</Button>
+                      <Button
+                        size="sm"
+                        onClick={() => completarActividad.mutate(actividad.id)}
+                        disabled={completarActividad.status === "pending"}
+                      >
+                        {completarActividad.status === "pending"
+                          ? "Completando..."
+                          : "Completar"}
+                      </Button>
                     )}
                   </div>
                 </div>

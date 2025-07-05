@@ -44,7 +44,7 @@ import {
   DropdownMenuTrigger,
 } from "../../../shared/components/ui/dropdown-menu";
 import { Textarea } from "../../../shared/components/ui/textarea";
-import { useToast } from "../../../shared/hooks/use-toast";
+import { useToast } from "../../dashboard/hooks/use-toast";
 import AdvancedBudgetForm from "../components/AdvancedBudgetForm";
 import {
   BRAND_COLORS,

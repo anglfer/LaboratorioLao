@@ -17,19 +17,35 @@ import {
   User,
 } from "lucide-react";
 import { useState } from "react";
-import { cn } from "../lib/utils";
-import { useAuth } from "../hooks/useAuth";
+import { cn } from "../../features/budgets/lib/utils";
+import { useAuth } from "../../features/dashboard/hooks/useAuth";
 
 interface LayoutProps {
   children: React.ReactNode;
 }
 
-const navigation = [
-  { name: "Panel de Control", href: "/", icon: BarChart3 },
-  { name: "Presupuestos", href: "/presupuestos", icon: FileText },
-  { name: "Programación", href: "/programacion", icon: Calendar },
-  // { name: "Brigadista", href: "/brigadista", icon: Users },
-];
+// Navegación por rol
+const navigationByRole: Record<
+  string,
+  Array<{ name: string; href: string; icon: any }>
+> = {
+  admin: [
+    { name: "Panel de Control", href: "/", icon: BarChart3 },
+    { name: "Presupuestos", href: "/presupuestos", icon: FileText },
+    { name: "Programación", href: "/programacion", icon: Calendar },
+  ],
+  recepcionista: [
+    { name: "Panel de Control", href: "/", icon: BarChart3 },
+    { name: "Presupuestos", href: "/presupuestos", icon: FileText },
+    { name: "Programación", href: "/programacion", icon: Calendar },
+  ],
+  brigadista: [{ name: "Panel de Control", href: "/", icon: BarChart3 }],
+  jefe_laboratorio: [
+    { name: "Panel de Control", href: "/", icon: BarChart3 },
+    { name: "Programación", href: "/programacion", icon: Calendar },
+  ],
+  laboratorista: [{ name: "Panel de Control", href: "/", icon: BarChart3 }],
+};
 
 const adminNavigation = [
   { name: "Gestión de Conceptos", href: "/admin/concepts", icon: Plus },
@@ -37,8 +53,10 @@ const adminNavigation = [
 
 // Helper functions for page titles and descriptions
 function getPageTitle(location: string): string {
+  // Buscar en todas las navegaciones posibles
+  const allNavigations = Object.values(navigationByRole).flat();
   const page =
-    navigation.find((nav) => nav.href === location) ||
+    allNavigations.find((nav: any) => nav.href === location) ||
     adminNavigation.find((nav) => nav.href === location);
   return page?.name || "Panel de Control";
 }
@@ -55,12 +73,13 @@ function getPageDescription(location: string): string {
 }
 
 export default function Layout({ children }: LayoutProps) {
-  const [location] = useLocation();
+  const [location, setLocation] = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const { usuario, logout } = useAuth();
 
   const handleLogout = () => {
     logout();
+    setLocation("/"); // Redirige al login tras cerrar sesión
   };
 
   const getUserInitials = () => {
@@ -205,6 +224,10 @@ export default function Layout({ children }: LayoutProps) {
 
 function SidebarContent({ location }: { location: string }) {
   const [adminOpen, setAdminOpen] = useState(false);
+  const { usuario } = useAuth();
+
+  // Navegación según el rol
+  const navigation = usuario?.rol ? navigationByRole[usuario.rol] || [] : [];
 
   return (
     <>
@@ -259,67 +282,69 @@ function SidebarContent({ location }: { location: string }) {
             );
           })}
 
-          {/* Admin Section */}
-          <div className="pt-4 mt-4 border-t border-[#F8F9FA]">
-            <button
-              onClick={() => setAdminOpen(!adminOpen)}
-              className={cn(
-                "group flex items-center w-full px-3 py-2.5 text-sm font-medium rounded-xl transition-all duration-200",
-                "text-[#2C3E50] hover:bg-[#F8F9FA] hover:text-[#68A53B]"
-              )}
-            >
-              <div className="flex items-center justify-center w-7 h-7 rounded-lg mr-3 bg-[#F8F9FA] group-hover:bg-[#68A53B]/10 transition-colors">
-                <Settings className="h-4 w-4 text-[#6C757D] group-hover:text-[#68A53B] transition-colors" />
-              </div>
-              <span className="flex-1 text-left">Administración</span>
-              <div className="ml-auto">
-                {adminOpen ? (
-                  <ChevronDown className="h-4 w-4 text-[#6C757D] group-hover:text-[#68A53B] transition-colors" />
-                ) : (
-                  <ChevronRight className="h-4 w-4 text-[#6C757D] group-hover:text-[#68A53B] transition-colors" />
+          {/* Admin Section solo para admin */}
+          {usuario?.rol === "admin" && (
+            <div className="pt-4 mt-4 border-t border-[#F8F9FA]">
+              <button
+                onClick={() => setAdminOpen(!adminOpen)}
+                className={cn(
+                  "group flex items-center w-full px-3 py-2.5 text-sm font-medium rounded-xl transition-all duration-200",
+                  "text-[#2C3E50] hover:bg-[#F8F9FA] hover:text-[#68A53B]"
                 )}
-              </div>
-            </button>
+              >
+                <div className="flex items-center justify-center w-7 h-7 rounded-lg mr-3 bg-[#F8F9FA] group-hover:bg-[#68A53B]/10 transition-colors">
+                  <Settings className="h-4 w-4 text-[#6C757D] group-hover:text-[#68A53B] transition-colors" />
+                </div>
+                <span className="flex-1 text-left">Administración</span>
+                <div className="ml-auto">
+                  {adminOpen ? (
+                    <ChevronDown className="h-4 w-4 text-[#6C757D] group-hover:text-[#68A53B] transition-colors" />
+                  ) : (
+                    <ChevronRight className="h-4 w-4 text-[#6C757D] group-hover:text-[#68A53B] transition-colors" />
+                  )}
+                </div>
+              </button>
 
-            {adminOpen && (
-              <div className="mt-1 ml-4 space-y-1">
-                {adminNavigation.map((item) => {
-                  const isActive = location === item.href;
-                  return (
-                    <Link key={item.name} href={item.href}>
-                      <div
-                        className={cn(
-                          "group flex items-center px-3 py-2 text-sm rounded-lg transition-all duration-200",
-                          isActive
-                            ? "bg-[#68A53B] text-white shadow-md shadow-[#68A53B]/20"
-                            : "text-[#6C757D] hover:bg-[#E7F2E0] hover:text-[#68A53B]"
-                        )}
-                      >
+              {adminOpen && (
+                <div className="mt-1 ml-4 space-y-1">
+                  {adminNavigation.map((item) => {
+                    const isActive = location === item.href;
+                    return (
+                      <Link key={item.name} href={item.href}>
                         <div
                           className={cn(
-                            "flex items-center justify-center w-5 h-5 rounded-md mr-2 transition-colors",
+                            "group flex items-center px-3 py-2 text-sm rounded-lg transition-all duration-200",
                             isActive
-                              ? "bg-white/20"
-                              : "group-hover:bg-[#68A53B]/10"
+                              ? "bg-[#68A53B] text-white shadow-md shadow-[#68A53B]/20"
+                              : "text-[#6C757D] hover:bg-[#E7F2E0] hover:text-[#68A53B]"
                           )}
                         >
-                          <item.icon
+                          <div
                             className={cn(
-                              "h-4 w-4 transition-colors",
+                              "flex items-center justify-center w-5 h-5 rounded-md mr-2 transition-colors",
                               isActive
-                                ? "text-white"
-                                : "text-[#6C757D] group-hover:text-[#68A53B]"
+                                ? "bg-white/20"
+                                : "group-hover:bg-[#68A53B]/10"
                             )}
-                          />
+                          >
+                            <item.icon
+                              className={cn(
+                                "h-4 w-4 transition-colors",
+                                isActive
+                                  ? "text-white"
+                                  : "text-[#6C757D] group-hover:text-[#68A53B]"
+                              )}
+                            />
+                          </div>
+                          {item.name}
                         </div>
-                        {item.name}
-                      </div>
-                    </Link>
-                  );
-                })}
-              </div>
-            )}
-          </div>
+                      </Link>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
         </nav>
 
         {/* Footer */}

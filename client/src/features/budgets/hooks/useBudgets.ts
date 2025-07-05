@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { budgetService } from "../services/budgetService";
 import { Budget, BudgetFormData } from "../types/budget";
-import { useToast } from "../../../shared/hooks/use-toast";
+import { useToast } from "../../dashboard/hooks/use-toast";
 
 export function useBudgets() {
   return useQuery({

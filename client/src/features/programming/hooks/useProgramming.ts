@@ -6,7 +6,7 @@ import {
   ProgramacionFilters,
   EstadoProgramacion,
 } from "../types/programming";
-import { useToast } from "../../../shared/hooks/use-toast";
+import { useToast } from "../../dashboard/hooks/use-toast";
 
 // ============ KEYS ============
 export const programmingKeys = {

@@ -170,6 +170,7 @@ export async function createConcepto(data: {
   unidad?: string;
   p_u?: number;
 }) {
+  console.log('DEBUG createConcepto - subareaId recibido:', data.subareaId);
   return await prisma.concepto.create({
     data,
     include: {
@@ -981,36 +982,8 @@ export async function createProgramacion(data: {
   });
 }
 
-export async function updateProgramacion(id: number, data: any) {
-  return await prisma.programacion.update({
-    where: { id },
-    data,
-    include: {
-      obra: {
-        include: {
-          area: true,
-        },
-      },
-      concepto: {
-        include: {
-          subarea: {
-            include: {
-              area: true,
-            },
-          },
-        },
-      },
-      brigadista: true,
-      brigadistaApoyo: true,
-      vehiculo: true,
-    },
-  });
-}
-
 export async function deleteProgramacion(id: number) {
-  await prisma.programacion.delete({
-    where: { id },
-  });
+  await prisma.programacion.delete({ where: { id } });
 }
 
 export async function getProgramacionesByBrigadista(
@@ -1230,9 +1203,7 @@ export async function getDashboardStats() {
     programacionesTotales,
     programacionesCompletadas,
     programacionesPendientes,
-    programacionesCanceladas,
-    brigadistasActivos,
-    vehiculosEnUso
+    programacionesCanceladas
   ] = await Promise.all([
     prisma.programacion.count({
       where: {
@@ -1256,22 +1227,28 @@ export async function getDashboardStats() {
         estado: "cancelada",
         fechaProgramada: { gte: inicioSemana, lte: finSemana },
       },
-    }),
-    prisma.programacion.aggregate({
-      where: {
-        fechaProgramada: { gte: inicioSemana, lte: finSemana },
-      },
-      _count: { distinct: true },
-      distinct: ['brigadistaId'],
-    }).then(r => r._count?.brigadistaId ?? 0),
-    prisma.programacion.aggregate({
-      where: {
-        fechaProgramada: { gte: inicioSemana, lte: finSemana },
-      },
-      _count: { distinct: true },
-      distinct: ['vehiculoId'],
-    }).then(r => r._count?.vehiculoId ?? 0),
+    })
   ]);
+
+  // Contar brigadistas únicos
+  const brigadistasUnicos = await prisma.programacion.findMany({
+    where: {
+      fechaProgramada: { gte: inicioSemana, lte: finSemana },
+    },
+    select: { brigadistaId: true },
+    distinct: ['brigadistaId'],
+  });
+  const brigadistasActivos = brigadistasUnicos.length;
+
+  // Contar vehículos únicos
+  const vehiculosUnicos = await prisma.programacion.findMany({
+    where: {
+      fechaProgramada: { gte: inicioSemana, lte: finSemana },
+    },
+    select: { vehiculoId: true },
+    distinct: ['vehiculoId'],
+  });
+  const vehiculosEnUso = vehiculosUnicos.length;
 
   // Calcular rendimiento semanal
   const rendimientoSemanal = programacionesTotales > 0
@@ -1466,7 +1443,7 @@ export const storage = {
   getAllProgramaciones,
   getProgramacionById,
   createProgramacion,
-  updateProgramacion,
+  // updateProgramacion, // No existe, se elimina del export
   deleteProgramacion,
   getProgramacionesByBrigadista,
   iniciarProgramacion,

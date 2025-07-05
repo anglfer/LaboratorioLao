@@ -1585,15 +1585,17 @@ export function registerRoutes(app: Express): Promise<Server> {
   // Obtener programaciones del brigadista actual
   app.get("/api/programming/brigadista/programaciones", async (req, res) => {
     try {
-      const { fechaDesde, fechaHasta, estado } = req.query;
-
-      // Por ahora usamos brigadista ID 1 como ejemplo
-      const programaciones = await storage.getProgramacionesByBrigadista(1, {
+      const { fechaDesde, fechaHasta, estado, brigadistaId } = req.query;
+      // Validar que brigadistaId esté presente y sea número
+      const brigadistaIdNum = parseInt(brigadistaId as string);
+      if (!brigadistaIdNum || isNaN(brigadistaIdNum)) {
+        return res.status(400).json({ message: "brigadistaId es requerido y debe ser numérico" });
+      }
+      const programaciones = await storage.getProgramacionesByBrigadista(brigadistaIdNum, {
         fechaDesde: fechaDesde as string,
         fechaHasta: fechaHasta as string,
         estado: estado as string,
       });
-
       res.json(programaciones);
     } catch (error: any) {
       console.error("Error obteniendo programaciones del brigadista:", error);

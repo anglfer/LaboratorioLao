@@ -324,6 +324,7 @@ export class ProgrammingService {
     if (filters?.fechaDesde) params.append("fechaDesde", filters.fechaDesde);
     if (filters?.fechaHasta) params.append("fechaHasta", filters.fechaHasta);
     if (filters?.estado) params.append("estado", filters.estado);
+    if (filters?.brigadistaId) params.append("brigadistaId", filters.brigadistaId.toString());
 
     const response = await fetch(
       `${API_BASE}/brigadista/programaciones?${params.toString()}`,

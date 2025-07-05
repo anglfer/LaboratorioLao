@@ -1,7 +1,7 @@
-import { useAuth } from "../../../shared/hooks/useAuth";
+import { useAuth } from "../hooks/useAuth";
 import { AdminDashboard } from "./AdminDashboard";
 import { RecepcionistaDashboard } from "./RecepcionistaDashboard";
-import { BrigadistaDashboard } from "./BrigadistaDashboardView";
+import { BrigadistaDashboard } from "./BrigadistaDashboard";
 import { Card, CardContent } from "../../../shared/components/ui/card";
 import { AlertCircle } from "lucide-react";
 

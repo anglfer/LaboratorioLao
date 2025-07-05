@@ -1,5 +1,5 @@
 import { Switch, Route } from "wouter";
-import { queryClient } from "../shared/lib/queryClient";
+import { queryClient } from "../features/dashboard/lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster, TooltipProvider, Layout } from "../shared";
 import { Dashboard } from "../features/dashboard";
@@ -8,7 +8,7 @@ import { ImprovedConceptsPage } from "../features/concepts";
 import ProgrammingPage from "../features/programming/pages/ProgrammingPage";
 import BrigadistaPage from "../features/programming/pages/BrigadistaPage";
 import NotFound from "./not-found";
-import { useAuth } from "../shared/hooks/useAuth";
+import { useAuth } from "../features/dashboard/hooks/useAuth";
 import { LoginForm } from "../shared/components/LoginForm";
 import { RoleBasedDashboard } from "../features/dashboard/components/RoleBasedDashboard";
 

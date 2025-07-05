@@ -23,19 +23,29 @@ export default function BrigadistaPage() {
 
   const { data: brigadista, isLoading: loadingPerfil } = useBrigadistaPerfil();
 
-  // Obtener programaciones de hoy
+  // Obtener programaciones de hoy y en proceso SOLO si ya se cargó el perfil
   const hoy = new Date();
+  const brigadistaId = brigadista?.id;
   const { data: programacionesHoy = [], isLoading: loadingHoy } =
-    useBrigadistaProgramaciones({
-      fechaDesde: format(startOfDay(hoy), "yyyy-MM-dd"),
-      fechaHasta: format(endOfDay(hoy), "yyyy-MM-dd"),
-    });
+    useBrigadistaProgramaciones(
+      brigadistaId
+        ? {
+            fechaDesde: format(startOfDay(hoy), "yyyy-MM-dd"),
+            fechaHasta: format(endOfDay(hoy), "yyyy-MM-dd"),
+            brigadistaId,
+          }
+        : undefined
+    );
 
-  // Obtener programaciones en proceso
   const { data: programacionesEnProceso = [], isLoading: loadingProceso } =
-    useBrigadistaProgramaciones({
-      estado: EstadoProgramacion.EN_PROCESO,
-    });
+    useBrigadistaProgramaciones(
+      brigadistaId
+        ? {
+            estado: EstadoProgramacion.EN_PROCESO,
+            brigadistaId,
+          }
+        : undefined
+    );
 
   useEffect(() => {
     const timer = setInterval(() => {
