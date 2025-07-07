@@ -1,3 +1,9 @@
+model Role {
+  id          Int      @id @default(autoincrement())
+  nombre      String   @unique @db.VarChar(50)
+  descripcion String? @db.VarChar(255)
+  usuarios    Usuario[]
+}
 // This is your Prisma schema file,
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
@@ -162,20 +168,22 @@ enum DetalleEstado {
 // Nuevas entidades para el módulo de programación
 model Usuario {
   id               Int      @id @default(autoincrement())
-  email            String   @unique @db.VarChar(255)
+  nombre           String   @db.VarChar(100)
+  apellidos        String   @db.VarChar(100)
   password         String   @db.VarChar(255)
-  nombre           String   @db.VarChar(255)
-  rol              RolUsuario
+  rolId            Int      @map("rol_id")
   activo           Boolean  @default(true)
+  ultimoAcceso     DateTime? @map("ultimo_acceso")
   fechaCreacion    DateTime @default(now()) @map("fecha_creacion")
   fechaActualizacion DateTime @updatedAt @map("fecha_actualizacion")
-  brigadistaId     Int?     @map("brigadista_id")
-  
-  // Relación con brigadista (solo para usuarios con rol brigadista)
-  brigadista       Brigadista? @relation(fields: [brigadistaId], references: [id])
-  
-  @@index([email], name: "idx_usuario_email")
-  @@index([rol], name: "idx_usuario_rol")
+
+  role             Role     @relation(fields: [rolId], references: [id])
+
+  // Si necesitas relación con brigadista, puedes agregarla aquí
+  // brigadistaId     Int?     @map("brigadista_id")
+  // brigadista       Brigadista? @relation(fields: [brigadistaId], references: [id])
+
+  @@index([rolId], name: "idx_usuario_rol")
 }
 
 enum RolUsuario {

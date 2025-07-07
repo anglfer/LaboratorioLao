@@ -2151,10 +2151,7 @@ export function registerRoutes(app: Express): Promise<Server> {
 
       // Buscar usuario en la base de datos
       const usuario = await prisma.usuario.findUnique({
-        where: { email },
-        include: {
-          brigadista: true // Incluir datos del brigadista si existe relación
-        }
+        where: { email }
       });
 
       if (!usuario) {
@@ -2176,21 +2173,15 @@ export function registerRoutes(app: Express): Promise<Server> {
       // Preparar datos del usuario para la respuesta
       const usuarioResponse = {
         id: usuario.id,
-        email: usuario.email,
         nombre: usuario.nombre,
-        rol: usuario.rol,
+        apellidos: usuario.apellidos,
         activo: usuario.activo,
-        fechaCreacion: usuario.fechaCreacion,
-        brigadistaId: usuario.brigadistaId,
-        brigadista: usuario.brigadista ? {
-          id: usuario.brigadista.id,
-          nombre: usuario.brigadista.nombre,
-          telefono: usuario.brigadista.telefono,
-          email: usuario.brigadista.email
-        } : null
+        rol: usuario.rol
       };
-      
-      console.log(`[AUTH] Login exitoso para usuario: ${usuario.email} (${usuario.rol})`);
+      // Actualizar último acceso (si el campo existe en el modelo)
+      // NOTA: No se puede actualizar 'ultimoAcceso' directamente por un problema de tipos Prisma.
+      // Si se requiere registrar el último acceso, revisar el schema y los tipos generados.
+      console.log(`[AUTH] Login exitoso para usuario: ${usuario.email} (rol: ${usuario.rol})`);
       res.json(usuarioResponse);
     } catch (error: any) {
       console.error("[AUTH] Error en login:", error);
