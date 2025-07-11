@@ -1,8 +1,11 @@
-import { Switch, Route } from "wouter";
+import { Routes, Route, Navigate } from "react-router-dom";
 import { queryClient } from "../features/dashboard/lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster, TooltipProvider, Layout } from "../shared";
 import { Dashboard } from "../features/dashboard";
+import { Outlet } from "react-router-dom";
+import { AdminDashboard } from "../features/dashboard/components/AdminDashboard";
+import { RecepcionistaDashboard } from "../features/dashboard/components/RecepcionistaDashboard";
 import { BudgetsNew } from "../features/budgets";
 import { ImprovedConceptsPage } from "../features/concepts";
 import ProgrammingPage from "../features/programming/pages/ProgrammingPage";
@@ -17,57 +20,56 @@ function AuthenticatedRouter() {
 
   return (
     <Layout>
-      <Switch>
-        <Route path="/" component={RoleBasedDashboard} />
-        {/* Rutas según permisos del usuario */}
-        {(usuario?.rol === "admin" || usuario?.rol === "recepcionista") && (
-          <>
-            <Route path="/presupuestos" component={BudgetsNew} />
-            <Route path="/presupuestos/nuevo" component={BudgetsNew} />
-            <Route path="/programacion" component={ProgrammingPage} />
-          </>
-        )}
-        {usuario?.rol === "admin" && (
-          <>
-            <Route path="/admin/concepts" component={ImprovedConceptsPage} />
-            <Route
-              path="/admin/usuarios"
-              component={() => <div>Gestión de Usuarios - En desarrollo</div>}
-            />
-            <Route
-              path="/admin/brigadistas"
-              component={() => (
-                <div>Gestión de Brigadistas - En desarrollo</div>
-              )}
-            />
-            <Route
-              path="/admin/vehiculos"
-              component={() => <div>Gestión de Vehículos - En desarrollo</div>}
-            />
-            <Route
-              path="/admin/obras"
-              component={() => <div>Gestión de Obras - En desarrollo</div>}
-            />
-            <Route
-              path="/admin/reportes"
-              component={() => <div>Reportes - En desarrollo</div>}
-            />
-            <Route
-              path="/admin/configuracion"
-              component={() => <div>Configuración - En desarrollo</div>}
-            />
-          </>
-        )}
+      <Routes>
+        <Route path="/" element={<RoleBasedDashboard />} />
+        {/* Rutas directas de presupuestos */}
+        <Route path="/presupuestos" element={<BudgetsNew />} />
+        <Route path="/presupuestos/nuevo" element={<BudgetsNew />} />
+        {/* Rutas de programación */}
+        <Route path="/programacion" element={<ProgrammingPage />} />
+        {/* Rutas administrativas */}
+        <Route path="/admin/concepts" element={<ImprovedConceptsPage />} />
+        <Route path="/admin/presupuestos" element={<BudgetsNew />} />
+        <Route
+          path="/admin/usuarios"
+          element={<div>Gestión de Usuarios - En desarrollo</div>}
+        />
+        <Route
+          path="/admin/brigadistas"
+          element={<div>Gestión de Brigadistas - En desarrollo</div>}
+        />
+        <Route
+          path="/admin/vehiculos"
+          element={<div>Gestión de Vehículos - En desarrollo</div>}
+        />
+        <Route
+          path="/admin/obras"
+          element={<div>Gestión de Obras - En desarrollo</div>}
+        />
+        <Route
+          path="/admin/reportes"
+          element={<div>Reportes - En desarrollo</div>}
+        />
+        <Route
+          path="/admin/configuracion"
+          element={<div>Configuración - En desarrollo</div>}
+        />
+        {/* Rutas de recepcionista */}
+        <Route path="/recepcionista/presupuestos" element={<BudgetsNew />} />
+        <Route
+          path="/recepcionista/programacion"
+          element={<ProgrammingPage />}
+        />
+        <Route
+          path="/recepcionista/clientes"
+          element={<div>Gestión de Clientes - En desarrollo</div>}
+        />
+        {/* Rutas específicas por rol */}
         {usuario?.rol === "brigadista" && (
-          <Route path="/brigadista" component={BrigadistaPage} />
+          <Route path="/brigadista" element={<BrigadistaPage />} />
         )}
-        {(usuario?.rol === "jefe_laboratorio" ||
-          usuario?.rol === "admin" ||
-          usuario?.rol === "recepcionista") && (
-          <Route path="/programacion" component={ProgrammingPage} />
-        )}
-        <Route component={NotFound} />
-      </Switch>
+        <Route path="*" element={<NotFound />} />
+      </Routes>
     </Layout>
   );
 }

@@ -15,83 +15,74 @@ import {
   Truck,
   Building2,
 } from "lucide-react";
-import { useLocation, Router } from "wouter";
+import { useNavigate, Link, Outlet } from "react-router-dom";
 import { useAdminStats } from "../hooks/useAdminStats";
 
 export function AdminDashboard() {
-  // Detectar si hay un router en contexto usando useLocation
-  let hasRouter = true;
-  let navigate;
-  try {
-    const [, setLocation] = useLocation();
-    navigate = setLocation;
-  } catch (e) {
-    hasRouter = false;
-    navigate = (_path: string) => {};
-  }
+  const navigate = useNavigate();
 
   const adminModules = [
     {
       title: "Gestión de Usuarios",
       description: "Administrar usuarios del sistema",
       icon: Users,
-      path: "/admin/usuarios",
+      path: "usuarios",
       color: "bg-blue-500",
     },
     {
       title: "Presupuestos",
       description: "Ver y gestionar todos los presupuestos",
       icon: FileText,
-      path: "/presupuestos",
+      path: "presupuestos",
       color: "bg-green-500",
     },
     {
       title: "Programaciones",
       description: "Administrar programaciones del laboratorio",
       icon: Calendar,
-      path: "/programacion",
+      path: "programacion",
       color: "bg-purple-500",
     },
     {
       title: "Brigadistas",
       description: "Gestión de brigadistas y asignaciones",
       icon: UserCheck,
-      path: "/admin/brigadistas",
+      path: "brigadistas",
       color: "bg-orange-500",
     },
     {
       title: "Vehículos",
       description: "Administrar flota de vehículos",
       icon: Truck,
-      path: "/admin/vehiculos",
+      path: "vehiculos",
       color: "bg-red-500",
     },
     {
       title: "Obras y Áreas",
       description: "Gestionar obras y áreas de trabajo",
       icon: Building2,
-      path: "/admin/obras",
+      path: "obras",
       color: "bg-indigo-500",
     },
     {
       title: "Reportes",
       description: "Visualizar reportes y estadísticas",
       icon: BarChart3,
-      path: "/admin/reportes",
+      path: "reportes",
       color: "bg-teal-500",
     },
     {
       title: "Configuración",
       description: "Configuración del sistema",
       icon: Settings,
-      path: "/admin/configuracion",
+      path: "configuracion",
       color: "bg-gray-500",
     },
   ];
 
   const { data: stats, isLoading } = useAdminStats();
 
-  const content = (
+  return (
     <div className="p-6 space-y-6">
       <div className="flex items-center justify-between">
         <div>
@@ -103,6 +94,8 @@ export function AdminDashboard() {
           </p>
         </div>
       </div>
+      {/* Aquí se renderizan las rutas hijas */}
+      <Outlet />
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
         {adminModules.map((module) => {
@@ -124,13 +117,11 @@ export function AdminDashboard() {
                 <p className="text-sm text-gray-600 mb-4">
                   {module.description}
                 </p>
-                <Button
-                  onClick={() => navigate(module.path)}
-                  className="w-full"
-                  variant="outline"
-                >
-                  Acceder
-                </Button>
+                <Link to={module.path} className="w-full block">
+                  <Button className="w-full" variant="outline">
+                    Acceder
+                  </Button>
+                </Link>
               </CardContent>
             </Card>
           );
@@ -183,10 +174,4 @@ export function AdminDashboard() {
       </div>
     </div>
   );
-
-  // Si no hay router en contexto, envolver en <Router>
-  if (!hasRouter) {
-    return <Router>{content}</Router>;
-  }
-  return content;
 }

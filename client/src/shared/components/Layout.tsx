@@ -1,4 +1,4 @@
-import { Link, useLocation } from "wouter";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import React from "react";
 import { Button } from "./ui/button";
 import { SafeDisplay } from "./ui/safe-display";
@@ -64,8 +64,8 @@ function getPageTitle(location: string): string {
 function getPageDescription(location: string): string {
   const descriptions: Record<string, string> = {
     "/": "Resumen general de actividades y métricas principales",
-    "/budgets": "Gestión y seguimiento de presupuestos de proyectos",
-    "/programming": "Programación y planificación de actividades",
+    "/presupuestos": "Gestión y seguimiento de presupuestos de proyectos",
+    "/programacion": "Programación y planificación de actividades",
     "/brigadista": "Gestión de personal y equipos de trabajo",
     "/admin/concepts": "Administración de conceptos y configuraciones",
   };
@@ -73,13 +73,14 @@ function getPageDescription(location: string): string {
 }
 
 export default function Layout({ children }: LayoutProps) {
-  const [location, setLocation] = useLocation();
+  const location = useLocation();
+  const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const { usuario, logout } = useAuth();
 
   const handleLogout = () => {
     logout();
-    setLocation("/"); // Redirige al login tras cerrar sesión
+    navigate("/"); // Redirige al login tras cerrar sesión
   };
 
   const getUserInitials = () => {
@@ -125,17 +126,15 @@ export default function Layout({ children }: LayoutProps) {
               <X className="h-6 w-6" />
             </Button>
           </div>
-          <SidebarContent location={location} />
+          <SidebarContent location={location.pathname} />
         </div>
       </div>
-
-      {/* Desktop sidebar */}
+      {/* Desktop sidebar */}{" "}
       <div className="hidden md:flex md:w-64 md:flex-col md:fixed md:inset-y-0">
         <div className="flex-1 flex flex-col min-h-0 bg-white shadow-lg border-r border-[#F8F9FA]">
-          <SidebarContent location={location} />
+          <SidebarContent location={location.pathname} />
         </div>
       </div>
-
       {/* Main content */}
       <div className="md:pl-64 flex flex-col flex-1">
         {/* Mobile header */}
@@ -176,10 +175,10 @@ export default function Layout({ children }: LayoutProps) {
             <div className="flex items-center justify-between">
               <div>
                 <h2 className="text-xl font-bold text-[#2C3E50]">
-                  {getPageTitle(location)}
+                  {getPageTitle(location.pathname)}
                 </h2>
                 <p className="text-sm text-[#6C757D] mt-0.5">
-                  {getPageDescription(location)}
+                  {getPageDescription(location.pathname)}
                 </p>
               </div>
               <div className="flex items-center space-x-4">
@@ -250,7 +249,7 @@ function SidebarContent({ location }: { location: string }) {
           {navigation.map((item) => {
             const isActive = location === item.href;
             return (
-              <Link key={item.name} href={item.href}>
+              <Link key={item.name} to={item.href}>
                 <div
                   className={cn(
                     "group flex items-center px-3 py-2.5 text-sm font-medium rounded-xl transition-all duration-200 ease-in-out",
@@ -310,7 +309,7 @@ function SidebarContent({ location }: { location: string }) {
                   {adminNavigation.map((item) => {
                     const isActive = location === item.href;
                     return (
-                      <Link key={item.name} href={item.href}>
+                      <Link key={item.name} to={item.href}>
                         <div
                           className={cn(
                             "group flex items-center px-3 py-2 text-sm rounded-lg transition-all duration-200",

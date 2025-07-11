@@ -8,7 +8,7 @@ import {
 import { Button } from "../../../shared/components/ui/button";
 import { Badge } from "../../../shared/components/ui/badge";
 import { SafeDisplay } from "../../../shared/components/ui/safe-display";
-import { useLocation } from "wouter";
+import { useNavigate } from "react-router-dom";
 import {
   BarChart3,
   FileText,
@@ -86,7 +86,7 @@ interface PresupuestoReciente {
 }
 
 export function EmpleadoDashboard() {
-  const [, navigate] = useLocation();
+  const navigate = useNavigate();
 
   const { data: stats, isLoading: statsLoading } = useQuery<EmpleadoStats>({
     queryKey: ["/api/empleado/stats"],

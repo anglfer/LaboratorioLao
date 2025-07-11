@@ -312,7 +312,6 @@ export default function ProgramacionForm({
             )}
           </div>
 
-          {/* Vista previa de la obra seleccionada */}
           {obraDetalles && (
             <div className="p-4 bg-gray-50 rounded-lg space-y-2">
               <div className="grid grid-cols-2 gap-4 text-sm">
@@ -339,6 +338,7 @@ export default function ProgramacionForm({
       </Card>
 
       {/* SECCIÓN 2: DATOS DE PROGRAMACIÓN */}
+
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center space-x-2">
@@ -525,7 +525,6 @@ export default function ProgramacionForm({
               </div>
             )}
           </div>
-
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="space-y-2">
               <Label htmlFor="cantidadMuestras">Cantidad de Muestras *</Label>
