@@ -289,7 +289,12 @@ export default function CalendarView() {
                       <td className="px-2 py-1">
                         {format(new Date(prog.fechaProgramada), "dd/MM/yyyy")}
                       </td>
-                      <td className="px-2 py-1">{prog.actividad || "-"}</td>
+                      <td className="px-2 py-1">
+                        {/* Mostrar descripción de la actividad si existe */}
+                        {prog.concepto?.descripcion ||
+                          prog.conceptoCodigo ||
+                          "-"}
+                      </td>
                       <td className="px-2 py-1">
                         {prog.brigadista?.nombre || "-"}
                       </td>
@@ -304,8 +309,8 @@ export default function CalendarView() {
                         </Badge>
                       </td>
                       <td className="px-2 py-1">
-                        {prog.muestrasPrevistas ?? "-"} /{" "}
-                        {prog.muestrasObtenidas ?? "-"}
+                        {/* Mostrar cantidad de muestras si existe */}
+                        {prog.cantidadMuestras ?? "-"}
                       </td>
                       <td className="px-2 py-1">{prog.ubicacion || "-"}</td>
                     </tr>

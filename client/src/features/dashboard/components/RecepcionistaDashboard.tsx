@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { useNavigate, Link } from "react-router-dom";
 import { Outlet } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
 
 export function RecepcionistaDashboard() {
   const navigate = useNavigate();
@@ -74,6 +75,28 @@ export function RecepcionistaDashboard() {
       icon: CheckCircle,
     },
   ];
+
+  // Obtener presupuestos recientes de la API
+  const { data: presupuestosRecientes = [], isLoading: loadingPresupuestos } =
+    useQuery({
+      queryKey: ["presupuestos", "recientes"],
+      queryFn: async () => {
+        const res = await fetch("/api/presupuestos/recientes");
+        if (!res.ok) throw new Error("Error al obtener presupuestos recientes");
+        return res.json();
+      },
+    });
+
+  // Obtener programaciones de hoy de la API
+  const { data: programacionesHoy = [], isLoading: loadingProgramaciones } =
+    useQuery({
+      queryKey: ["programaciones", "hoy"],
+      queryFn: async () => {
+        const res = await fetch("/api/programaciones/hoy");
+        if (!res.ok) throw new Error("Error al obtener programaciones de hoy");
+        return res.json();
+      },
+    });
 
   return (
     <>
@@ -161,33 +184,43 @@ export function RecepcionistaDashboard() {
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
-                <div className="flex items-center justify-between py-2 border-b">
-                  <div>
-                    <p className="font-medium">Cliente ABC - Obra 001</p>
-                    <p className="text-sm text-gray-600">Creado hace 2 horas</p>
+                {loadingPresupuestos ? (
+                  <div className="text-center text-gray-500">Cargando...</div>
+                ) : presupuestosRecientes.length === 0 ? (
+                  <div className="text-center text-gray-500">
+                    No hay presupuestos recientes
                   </div>
-                  <span className="text-sm px-2 py-1 bg-yellow-100 text-yellow-800 rounded">
-                    Borrador
-                  </span>
-                </div>
-                <div className="flex items-center justify-between py-2 border-b">
-                  <div>
-                    <p className="font-medium">Cliente XYZ - Obra 002</p>
-                    <p className="text-sm text-gray-600">Enviado ayer</p>
-                  </div>
-                  <span className="text-sm px-2 py-1 bg-blue-100 text-blue-800 rounded">
-                    Enviado
-                  </span>
-                </div>
-                <div className="flex items-center justify-between py-2">
-                  <div>
-                    <p className="font-medium">Cliente DEF - Obra 003</p>
-                    <p className="text-sm text-gray-600">Aprobado hace 1 día</p>
-                  </div>
-                  <span className="text-sm px-2 py-1 bg-green-100 text-green-800 rounded">
-                    Aprobado
-                  </span>
-                </div>
+                ) : (
+                  presupuestosRecientes.map((presupuesto: any) => (
+                    <div
+                      key={presupuesto.id}
+                      className="flex items-center justify-between py-2 border-b"
+                    >
+                      <div>
+                        <p className="font-medium">
+                          {presupuesto.clienteNombre} - {presupuesto.obraClave}
+                        </p>
+                        <p className="text-sm text-gray-600">
+                          {presupuesto.fechaCreacionRelativa}
+                        </p>
+                      </div>
+                      <span
+                        className={`text-sm px-2 py-1 rounded ${
+                          presupuesto.estado === "borrador"
+                            ? "bg-yellow-100 text-yellow-800"
+                            : presupuesto.estado === "enviado"
+                            ? "bg-blue-100 text-blue-800"
+                            : presupuesto.estado === "aprobado"
+                            ? "bg-green-100 text-green-800"
+                            : "bg-gray-100 text-gray-800"
+                        }`}
+                      >
+                        {presupuesto.estado.charAt(0).toUpperCase() +
+                          presupuesto.estado.slice(1)}
+                      </span>
+                    </div>
+                  ))
+                )}
               </div>
             </CardContent>
           </Card>
@@ -198,39 +231,45 @@ export function RecepcionistaDashboard() {
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
-                <div className="flex items-center justify-between py-2 border-b">
-                  <div>
-                    <p className="font-medium">Obra 001 - Muestreo</p>
-                    <p className="text-sm text-gray-600">
-                      09:00 AM - Brigadista Juan
-                    </p>
+                {loadingProgramaciones ? (
+                  <div className="text-center text-gray-500">Cargando...</div>
+                ) : programacionesHoy.length === 0 ? (
+                  <div className="text-center text-gray-500">
+                    No hay programaciones para hoy
                   </div>
-                  <span className="text-sm px-2 py-1 bg-green-100 text-green-800 rounded">
-                    Programada
-                  </span>
-                </div>
-                <div className="flex items-center justify-between py-2 border-b">
-                  <div>
-                    <p className="font-medium">Obra 002 - Inspección</p>
-                    <p className="text-sm text-gray-600">
-                      11:30 AM - Brigadista María
-                    </p>
-                  </div>
-                  <span className="text-sm px-2 py-1 bg-yellow-100 text-yellow-800 rounded">
-                    En proceso
-                  </span>
-                </div>
-                <div className="flex items-center justify-between py-2">
-                  <div>
-                    <p className="font-medium">Obra 003 - Análisis</p>
-                    <p className="text-sm text-gray-600">
-                      02:00 PM - Brigadista Carlos
-                    </p>
-                  </div>
-                  <span className="text-sm px-2 py-1 bg-blue-100 text-blue-800 rounded">
-                    Completada
-                  </span>
-                </div>
+                ) : (
+                  programacionesHoy.map((prog: any) => (
+                    <div
+                      key={prog.id}
+                      className="flex items-center justify-between py-2 border-b"
+                    >
+                      <div>
+                        <p className="font-medium">
+                          {prog.obraClave} - {prog.actividad}
+                        </p>
+                        <p className="text-sm text-gray-600">
+                          {prog.horaProgramada} - Brigadista{" "}
+                          {prog.brigadistaNombre}
+                        </p>
+                      </div>
+                      <span
+                        className={`text-sm px-2 py-1 rounded ${
+                          prog.estado === "programada"
+                            ? "bg-green-100 text-green-800"
+                            : prog.estado === "en_proceso"
+                            ? "bg-yellow-100 text-yellow-800"
+                            : prog.estado === "completada"
+                            ? "bg-blue-100 text-blue-800"
+                            : "bg-gray-100 text-gray-800"
+                        }`}
+                      >
+                        
+                        {prog.estado.charAt(0).toUpperCase() +
+                          prog.estado.slice(1).replace("_", " ")}
+                      </span>
+                    </div>
+                  ))
+                )}
               </div>
             </CardContent>
           </Card>

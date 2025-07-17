@@ -62,8 +62,7 @@ function generatePresupuestoHTML(
   }, {});
 
   return `
-<!DOCTYPE html>
-<html lang="es">;
+ o                                                                     ng="es">;
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -722,7 +721,6 @@ export function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: error.message });
     }
   });
-
   // Cliente routes
   app.get("/api/clientes", async (req, res) => {
     try {
@@ -2174,7 +2172,7 @@ export function registerRoutes(app: Express): Promise<Server> {
       const usuarioResponse = {
         id: usuario.id,
         nombre: usuario.nombre,
-        apellidos: usuario.apellidos,
+        apellidos: usuario.apellidod,
         activo: usuario.activo,
         rol: usuario.rol
       };

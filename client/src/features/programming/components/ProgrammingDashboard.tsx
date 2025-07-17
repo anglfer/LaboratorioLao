@@ -145,6 +145,8 @@ export default function ProgrammingDashboard({
         </div>
       </div>
 
+
+
       {/* Tarjetas principales con iconos grandes y colores */}
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
         <Card className="bg-blue-50 border-blue-200">
@@ -400,6 +402,8 @@ export default function ProgrammingDashboard({
                   </span>
                 </div>
               )}
+              
+              
 
               {estadisticas.rendimientoSemanal >= 80 &&
                 estadisticas.programacionesPendientes <= 2 && (

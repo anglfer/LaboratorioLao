@@ -94,7 +94,7 @@ async function seedTestData() {
     }
     await Promise.all(subareas);
 
-    // Crear conceptos
+    // Crear conceptosx 
     const conceptos = [];
     for (let i = 1; i <= 10; i++) {
       conceptos.push(
@@ -175,7 +175,8 @@ async function seedTestData() {
     }
     await Promise.all(presupuestos);
 
-    // Crear detalles de presupuestos
+    // Crear detalles de presupue  
+    // stos
     const detalles = [];
     for (let i = 1; i <= 10; i++) {
       detalles.push(
@@ -194,7 +195,6 @@ async function seedTestData() {
       );
     }
     await Promise.all(detalles);
-
     // Crear brigadistas
     const brigadistas = [];
     for (let i = 1; i <= 10; i++) {
