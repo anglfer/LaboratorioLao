@@ -1020,6 +1020,8 @@ export function registerRoutes(app: Express): Promise<Server> {
       const finalPresupuestoData = {
         ...presupuestoData,
         claveObra: claveObra,
+        // Convertir fechaInicio de string a Date si está presente
+        fechaInicio: presupuestoData.fechaInicio ? new Date(presupuestoData.fechaInicio) : undefined,
       };
 
       console.log(

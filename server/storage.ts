@@ -1,8 +1,6 @@
 import { prisma } from "./prisma";
 import type {
   Area,
-  Subarea,
-  Concepto,
   Cliente,
   Telefono,
   Correo,
@@ -13,6 +11,8 @@ import type {
   Brigadista,
   Vehiculo,
   Prisma,
+  ConceptosJerarquicos,
+  AreasJerarquicas,
 } from "../generated/prisma";
 
 // Define types for includes
@@ -36,19 +36,7 @@ type PresupuestoWithDetails = Prisma.PresupuestoGetPayload<{
         correos: true;
       };
     };
-    detalles: {
-      include: {
-        concepto: {
-          include: {
-            subarea: {
-              include: {
-                area: true;
-              };
-            };
-          };
-        };
-      };
-    };
+    detalles: true;
   };
 }>;
 
@@ -422,20 +410,7 @@ export async function getPresupuestoById(
           correos: true,
         },
       },
-      detalles: {
-        include: {
-          concepto: {
-            include: {
-              subarea: {
-                include: {
-                  area: true,
-                },
-              },
-            },
-          },
-        },
-        orderBy: { id: "asc" },
-      },
+      detalles: true,
     },
   });
 }
@@ -508,11 +483,15 @@ export async function createPresupuesto(data: {
   formaPago?: string;
   iva?: number;
   estado?: any;
-  fechaInicio?: Date;
+  fechaInicio?: string | Date;
 }): Promise<Presupuesto> {
+  // Convertir fechaInicio a Date si está presente
+  const fechaConvertida = data.fechaInicio ? new Date(data.fechaInicio) : undefined;
+  
   return await prisma.presupuesto.create({
     data: {
       ...data,
+      fechaInicio: fechaConvertida,
       fechaSolicitud: new Date(),
     },
     include: {
@@ -597,15 +576,7 @@ export async function createPresupuestoDetalle(data: {
   return await prisma.presupuestoDetalle.create({
     data,
     include: {
-      concepto: {
-        include: {
-          subarea: {
-            include: {
-              area: true,
-            },
-          },
-        },
-      },
+      concepto: true,
     },
   });
 }
@@ -697,6 +668,15 @@ export async function recalcularTotalesPresupuesto(
 // Función para generar clave de obra automática
 export async function generateClaveObra(areaCodigo: string): Promise<string> {
   const año = new Date().getFullYear();
+
+  // Verificar que el área existe en la tabla Area
+  const area = await prisma.area.findUnique({
+    where: { codigo: areaCodigo },
+  });
+
+  if (!area) {
+    throw new Error(`El área con código "${areaCodigo}" no existe`);
+  }
 
   // Buscar o crear contador para el área y año
   let contador = await prisma.contadorObras.findUnique({

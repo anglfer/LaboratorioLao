@@ -23,9 +23,12 @@ router.get('/conceptos-jerarquicos', async (req, res) => {
 
     const where: any = {};
 
-    // Filtrar por área si se especifica
+    // Filtrar por área si se especifica (convertir a número)
     if (areaId && typeof areaId === 'string') {
-      where.areaId = areaId;
+      const areaIdNumero = parseInt(areaId, 10);
+      if (!isNaN(areaIdNumero)) {
+        where.areaId = areaIdNumero;
+      }
     }
 
     // Búsqueda por código o descripción
