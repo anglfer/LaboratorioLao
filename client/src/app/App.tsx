@@ -7,7 +7,7 @@ import { Outlet } from "react-router-dom";
 import { AdminDashboard } from "../features/dashboard/components/AdminDashboard";
 import { RecepcionistaDashboard } from "../features/dashboard/components/RecepcionistaDashboard";
 import { BudgetsNew } from "../features/budgets";
-import { ImprovedConceptsPage } from "../features/concepts";
+import { SistemaJerarquicoPage } from "../features/concepts";
 import ProgrammingPage from "../features/programming/pages/ProgrammingPage";
 import BrigadistaPage from "../features/programming/pages/BrigadistaPage";
 import NotFound from "./not-found";
@@ -28,7 +28,10 @@ function AuthenticatedRouter() {
         {/* Rutas de programación */}
         <Route path="/programacion" element={<ProgrammingPage />} />
         {/* Rutas administrativas */}
-        <Route path="/admin/concepts" element={<ImprovedConceptsPage />} />
+        <Route
+          path="/admin/sistema-jerarquico"
+          element={<SistemaJerarquicoPage />}
+        />
         <Route path="/admin/presupuestos" element={<BudgetsNew />} />
         <Route
           path="/admin/usuarios"

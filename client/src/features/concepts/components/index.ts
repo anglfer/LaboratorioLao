@@ -1,4 +1,5 @@
-export { ConceptForm } from "./ConceptForm";
-export { ConceptList } from "./ConceptList";
-export { ImprovedConceptForm } from "./ImprovedConceptForm";
-export { ImprovedConceptList } from "./ImprovedConceptList";
+// Nuevo sistema jerárquico
+export { default as SistemaJerarquico } from "./SistemaJerarquico";
+export { default as ArbolJerarquico } from "./ArbolJerarquico";
+export { default as FormularioArea } from "./FormularioArea";
+export { default as FormularioConcepto } from "./FormularioConcepto";

@@ -1,2 +1,2 @@
-export { ConceptsNew } from "./ConceptsNew";
-export { ImprovedConceptsPage } from "./ImprovedConceptsPage";
+export { ConceptosJerarquicosPage } from "./ConceptosJerarquicosPage";
+export { default as SistemaJerarquicoPage } from "./SistemaJerarquicoPage";

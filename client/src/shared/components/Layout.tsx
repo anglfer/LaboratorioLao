@@ -48,7 +48,7 @@ const navigationByRole: Record<
 };
 
 const adminNavigation = [
-  { name: "Gestión de Conceptos", href: "/admin/concepts", icon: Plus },
+  { name: "Areas y Conceptos", href: "/admin/sistema-jerarquico", icon: Plus },
 ];
 
 // Helper functions for page titles and descriptions
@@ -67,7 +67,7 @@ function getPageDescription(location: string): string {
     "/presupuestos": "Gestión y seguimiento de presupuestos de proyectos",
     "/programacion": "Programación y planificación de actividades",
     "/brigadista": "Gestión de personal y equipos de trabajo",
-    "/admin/concepts": "Administración de conceptos y configuraciones",
+    "/admin/sistema-jerarquico": "Gestión jerárquica de áreas y conceptos",
   };
   return descriptions[location] || "Bienvenido al sistema de gestión";
 }

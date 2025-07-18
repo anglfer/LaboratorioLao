@@ -206,7 +206,6 @@ model Brigadista {
 
   programaciones   Programacion[]
   programacionesApoyo Programacion[] @relation("BrigadistaApoyo")
-  usuarios         Usuario[]
 }
 
 model Vehiculo {
@@ -278,4 +277,70 @@ enum EstadoProgramacion {
   completada
   cancelada
   reprogramada
+}
+
+// Modelo para conceptos jerárquicos
+model Conceptos {
+  id          Int      @id @default(autoincrement())
+  clave       String   @unique @db.VarChar(20)
+  nombre      String   @db.Text
+  nivel       Int
+  padreId     Int?     @map("padre_id")
+  tipo        String?  @db.VarChar(50)
+  porcentaje  Decimal? @db.Decimal(5,2)
+  precio      Decimal? @db.Decimal(10,2)
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  
+  // Relaciones auto-referenciales para la jerarquía
+  padre       Conceptos? @relation("ConceptoHierarchy", fields: [padreId], references: [id])
+  hijos       Conceptos[] @relation("ConceptoHierarchy")
+  
+  @@index([nivel], name: "idx_conceptos_nivel")
+  @@index([padreId], name: "idx_conceptos_padre_id")
+  @@index([clave], name: "idx_conceptos_clave")
+}
+
+// NUEVA ESTRUCTURA JERÁRQUICA MEJORADA
+
+// Tabla de áreas jerárquicas (estructura de árbol)
+model AreasJerarquicas {
+  id        Int      @id @default(autoincrement())
+  codigo    String   @unique @db.VarChar(20)
+  nombre    String   @db.Text
+  padreId   Int?     @map("padre_id")
+  nivel     Int
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  
+  // Relaciones auto-referenciales para la jerarquía
+  padre     AreasJerarquicas? @relation("AreaHierarchy", fields: [padreId], references: [id])
+  hijos     AreasJerarquicas[] @relation("AreaHierarchy")
+  
+  // Relación con conceptos (solo las hojas pueden tener conceptos)
+  conceptos ConceptosJerarquicos[]
+  
+  @@index([nivel], name: "idx_areas_nivel")
+  @@index([padreId], name: "idx_areas_padre_id")
+  @@index([codigo], name: "idx_areas_codigo")
+  @@map("areas_jerarquicas")
+}
+
+// Tabla de conceptos (siempre hojas, asociados a un área)
+model ConceptosJerarquicos {
+  id              Int      @id @default(autoincrement())
+  codigo          String   @unique @db.VarChar(20)
+  descripcion     String   @db.Text
+  unidad          String   @db.VarChar(50)
+  precioUnitario  Decimal  @map("precio_unitario") @db.Decimal(10,2)
+  areaId          Int      @map("area_id")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+  
+  // Relación con área padre
+  area            AreasJerarquicas @relation(fields: [areaId], references: [id])
+  
+  @@index([areaId], name: "idx_conceptos_area_id")
+  @@index([codigo], name: "idx_conceptos_codigo")
+  @@map("conceptos_jerarquicos")
 }

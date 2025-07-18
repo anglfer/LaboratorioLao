@@ -54,7 +54,7 @@ Nueva interfaz mejorada para la gestión de conceptos de construcción, diseñad
 #### 3. **Con Conceptos**
 ```
 ┌─────────────────────────────────────┐
-│  📄  Conceptos Registrados  [Nuevo] │
+│  📄  Conceptos Registrados  [Nuevo]│
 │  🔍  [Buscar...]                   │
 │  ┌─────┬─────────┬──────┬────────┐  │
 │  │ #   │ Descrip │ Unid │ Precio │  │

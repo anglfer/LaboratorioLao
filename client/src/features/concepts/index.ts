@@ -1,18 +1,21 @@
 // Export main pages
-export { ConceptsNew } from "./pages/ConceptsNew";
-export { ImprovedConceptsPage } from "./pages/ImprovedConceptsPage";
+export { ConceptosJerarquicosPage } from "./pages/ConceptosJerarquicosPage";
+export { default as SistemaJerarquicoPage } from "./pages/SistemaJerarquicoPage";
 
 // Export components
-export { ConceptForm } from "./components/ConceptForm";
-export { ConceptList } from "./components/ConceptList";
-export { ImprovedConceptForm } from "./components/ImprovedConceptForm";
-export { ImprovedConceptList } from "./components/ImprovedConceptList";
+export { 
+  SistemaJerarquico,
+  ArbolJerarquico,
+  FormularioArea,
+  FormularioConcepto
+} from "./components";
 
 // Export hooks
-export * from "./hooks/useConcepts";
+export * from "./hooks/useConceptosJerarquicos";
 
 // Export types
-export * from "./types/concept";
+export * from "./types/conceptoJerarquico";
 
 // Export services
-export { conceptService } from "./services/conceptService";
+export { areasJerarquicasService } from "./services/areasJerarquicasService";
+export { conceptosJerarquicosService } from "./services/conceptosJerarquicosService";

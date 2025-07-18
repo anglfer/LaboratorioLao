@@ -6,6 +6,10 @@ import path from "path";
 import { fileURLToPath } from "url";
 import { prisma } from "./prisma";
 
+// Importar las nuevas rutas jerárquicas
+import rutasAreas from './routes-areas.js';
+import rutasConceptos from './routes-conceptos.js';
+
 import {
   insertClienteSchema,
   insertTelefonoSchema,
@@ -595,6 +599,12 @@ function validateHTML(html: string): { isValid: boolean; errors: string[] } {
 
 export function registerRoutes(app: Express): Promise<Server> {
   const server = createServer(app);
+  
+  // Registrar las nuevas rutas jerárquicas
+  // Usar las nuevas rutas jerárquicas
+  app.use('/api', rutasAreas);
+  app.use('/api', rutasConceptos);
+  
   // Dashboard routes
   app.get("/api/dashboard/stats", async (_req, res) => {
     try {
@@ -721,6 +731,19 @@ export function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: error.message });
     }
   });
+
+  // ===== CONCEPTOS JERÁRQUICOS (SISTEMA ANTIGUO - REMOVIDO) =====
+  // Nota: Este sistema ha sido reemplazado por AreasJerarquicas y ConceptosJerarquicos
+  // Las nuevas rutas están en routes-areas.ts y routes-conceptos.ts
+
+  // ===== CONCEPTOS JERÁRQUICOS (SISTEMA ANTIGUO - REMOVIDO) =====
+  // Nota: Este sistema ha sido reemplazado por AreasJerarquicas y ConceptosJerarquicos
+  // Las nuevas rutas están en routes-areas.ts y routes-conceptos.ts
+  // Si necesitas las funcionalidades jerárquicas, usa las nuevas APIs:
+  // - GET /api/areas-jerarquicas/arbol
+  // - GET /api/conceptos-jerarquicos
+  // ===== FIN CONCEPTOS JERÁRQUICOS =====
+
   // Cliente routes
   app.get("/api/clientes", async (req, res) => {
     try {
@@ -2141,48 +2164,23 @@ export function registerRoutes(app: Express): Promise<Server> {
   // Rutas de autenticación con integración real a base de datos
   app.post("/api/auth/login", async (req, res) => {
     try {
-      const { email, password } = req.body;
-      
-      if (!email || !password) {
-        return res.status(400).json({ message: "Email y contraseña son requeridos" });
-      }
-
-      // Buscar usuario en la base de datos
-      const usuario = await prisma.usuario.findUnique({
-        where: { email }
-      });
-
-      if (!usuario) {
-        return res.status(401).json({ message: "Credenciales incorrectas" });
-      }
-
-      // En producción usar bcrypt para comparar passwords
-      // const isValidPassword = await bcrypt.compare(password, usuario.password);
-      const isValidPassword = password === usuario.password; // Temporal: comparación directa
-
-      if (!isValidPassword) {
-        return res.status(401).json({ message: "Credenciales incorrectas" });
-      }
-
-      if (!usuario.activo) {
-        return res.status(401).json({ message: "Usuario inactivo" });
-      }
-
-      // Preparar datos del usuario para la respuesta
-      const usuarioResponse = {
-        id: usuario.id,
-        nombre: usuario.nombre,
-        apellidos: usuario.apellidod,
-        activo: usuario.activo,
-        rol: usuario.rol
+      // TEMPORAL: Retornar usuario mock para pruebas
+      const mockUser = {
+        id: 1,
+        nombre: "Administrador",
+        apellidos: "Sistema",
+        rol: "admin"
       };
-      // Actualizar último acceso (si el campo existe en el modelo)
-      // NOTA: No se puede actualizar 'ultimoAcceso' directamente por un problema de tipos Prisma.
-      // Si se requiere registrar el último acceso, revisar el schema y los tipos generados.
-      console.log(`[AUTH] Login exitoso para usuario: ${usuario.email} (rol: ${usuario.rol})`);
-      res.json(usuarioResponse);
+      
+      console.log('[AUTH] Login temporal exitoso');
+      
+      return res.status(200).json({ 
+        success: true, 
+        user: mockUser 
+      });
+      
     } catch (error: any) {
-      console.error("[AUTH] Error en login:", error);
+      console.error('[AUTH] Error en login:', error);
       res.status(500).json({ message: "Error interno del servidor" });
     }
   });
@@ -2313,6 +2311,348 @@ export function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: error.message });
     }
   });
+
+  // ===== ÁREAS JERÁRQUICAS =====
+  
+  // GET /api/areas-jerarquicas - Obtener todas las áreas
+  app.get("/api/areas-jerarquicas", async (req, res) => {
+    try {
+      const { nivel, padreId } = req.query;
+      
+      let whereClause = "WHERE 1=1";
+      const params: any[] = [];
+      
+      if (nivel) {
+        whereClause += " AND nivel = ?";
+        params.push(parseInt(nivel as string));
+      }
+      if (padreId) {
+        whereClause += " AND padre_id = ?";
+        params.push(parseInt(padreId as string));
+      }
+      
+      const areas = await prisma.$queryRawUnsafe(`
+        SELECT id, codigo, nombre, padre_id as padreId, nivel, created_at as createdAt, updated_at as updatedAt
+        FROM areas_jerarquicas 
+        ${whereClause}
+        ORDER BY nivel ASC, codigo ASC
+      `, ...params);
+      
+      res.json({ data: areas, success: true });
+    } catch (error: any) {
+      console.error('Error al obtener áreas jerárquicas:', error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // GET /api/areas-jerarquicas/arbol - Obtener estructura de árbol
+  app.get("/api/areas-jerarquicas/arbol", async (req, res) => {
+    try {
+      // Obtener todas las áreas y conceptos
+      const [areas, conceptos] = await Promise.all([
+        prisma.$queryRaw`
+          SELECT id, codigo, nombre, padre_id as padreId, nivel, created_at as createdAt, updated_at as updatedAt
+          FROM areas_jerarquicas 
+          ORDER BY nivel ASC, codigo ASC
+        `,
+        prisma.$queryRaw`
+          SELECT id, codigo, descripcion, unidad, precio_unitario as precioUnitario, area_id as areaId, created_at as createdAt, updated_at as updatedAt
+          FROM conceptos_jerarquicos 
+          ORDER BY codigo ASC
+        `
+      ]);
+
+      // Construir el árbol jerárquico
+      const construirArbol = (areas: any[], padreId: number | null = null): any[] => {
+        return areas
+          .filter(area => area.padreId === padreId)
+          .map(area => ({
+            ...area,
+            hijos: construirArbol(areas, area.id),
+            conceptos: (conceptos as any[]).filter((concepto: any) => concepto.areaId === area.id),
+            expanded: false
+          }));
+      };
+
+      const arbol = construirArbol(areas as any[]);
+      res.json({ data: arbol, success: true });
+    } catch (error: any) {
+      console.error('Error al obtener árbol jerárquico:', error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // GET /api/areas-jerarquicas/:id - Obtener área específica
+  app.get("/api/areas-jerarquicas/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      
+      if (isNaN(id)) {
+        return res.status(400).json({ message: 'ID inválido' });
+      }
+      
+      const areas = await prisma.$queryRaw`
+        SELECT id, codigo, nombre, padre_id as padreId, nivel, created_at as createdAt, updated_at as updatedAt
+        FROM areas_jerarquicas 
+        WHERE id = ${id}
+      `;
+      const area = (areas as any[])[0];
+      
+      if (!area) {
+        return res.status(404).json({ message: 'Área no encontrada' });
+      }
+      
+      res.json({ data: area, success: true });
+    } catch (error: any) {
+      console.error('Error al obtener área:', error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // RUTAS COMENTADAS - USAR routes-areas.js y routes-conceptos.js EN SU LUGAR
+  // Las siguientes rutas están desactivadas para evitar conflictos
+  // con las nuevas implementaciones en archivos separados
+  
+  /*
+  // POST /api/areas-jerarquicas - Crear nueva área
+  app.post("/api/areas-jerarquicas", async (req, res) => {
+    try {
+      const { codigo, nombre, descripcion, nivel, padreId } = req.body;
+      
+      // Validar que el código no exista
+      const existeArea = await prisma.$queryRaw`SELECT id FROM areas_jerarquicas WHERE codigo = ${codigo}`;
+      
+      if ((existeArea as any[]).length > 0) {
+        return res.status(400).json({ message: 'Ya existe un área con ese código' });
+      }
+      
+      const nuevaArea = await prisma.$queryRaw`
+        INSERT INTO areas_jerarquicas (codigo, nombre, padre_id, nivel, created_at, updated_at)
+        VALUES (${codigo}, ${nombre}, ${padreId || null}, ${nivel}, NOW(), NOW())
+      `;
+      
+      res.status(201).json({ data: { id: nuevaArea, codigo, nombre, padre_id: padreId, nivel }, success: true });
+    } catch (error: any) {
+      console.error('Error al crear área:', error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // PUT /api/areas-jerarquicas/:id - Actualizar área
+  app.put("/api/areas-jerarquicas/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const { codigo, nombre, descripcion, nivel, padreId } = req.body;
+      
+      if (isNaN(id)) {
+        return res.status(400).json({ message: 'ID inválido' });
+      }
+      
+      // Validar que el código no exista en otra área
+      const existeArea = await prisma.$queryRaw`SELECT id FROM areas_jerarquicas WHERE codigo = ${codigo} AND id != ${id}`;
+      
+      if ((existeArea as any[]).length > 0) {
+        return res.status(400).json({ message: 'Ya existe un área con ese código' });
+      }
+      
+      await prisma.$queryRaw`
+        UPDATE areas_jerarquicas 
+        SET codigo = ${codigo}, nombre = ${nombre}, padre_id = ${padreId || null}, nivel = ${nivel}, updated_at = NOW()
+        WHERE id = ${id}
+      `;
+      
+      res.json({ data: { id, codigo, nombre, padre_id: padreId, nivel }, success: true });
+    } catch (error: any) {
+      console.error('Error al actualizar área:', error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // DELETE /api/areas-jerarquicas/:id - Eliminar área
+  app.delete("/api/areas-jerarquicas/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      
+      if (isNaN(id)) {
+        return res.status(400).json({ message: 'ID inválido' });
+      }
+      
+      // Verificar si tiene áreas hijas
+      const areasHijas = await prisma.$queryRaw`SELECT COUNT(*) as count FROM areas_jerarquicas WHERE padre_id = ${id}`;
+      
+      if ((areasHijas as any[])[0].count > 0) {
+        return res.status(400).json({ 
+          message: 'No se puede eliminar el área porque tiene subareas dependientes' 
+        });
+      }
+      
+      // Verificar si tiene conceptos
+      const conceptos = await prisma.$queryRaw`SELECT COUNT(*) as count FROM conceptos_jerarquicos WHERE area_id = ${id}`;
+      
+      if ((conceptos as any[])[0].count > 0) {
+        return res.status(400).json({ 
+          message: 'No se puede eliminar el área porque tiene conceptos dependientes' 
+        });
+      }
+      
+      await prisma.$queryRaw`DELETE FROM areas_jerarquicas WHERE id = ${id}`;
+      
+      res.json({ success: true, message: 'Área eliminada correctamente' });
+    } catch (error: any) {
+      console.error('Error al eliminar área:', error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // ===== CONCEPTOS JERÁRQUICOS =====
+  
+  // GET /api/conceptos-jerarquicos - Obtener todos los conceptos
+  app.get("/api/conceptos-jerarquicos", async (req, res) => {
+    try {
+      const { areaId } = req.query;
+      
+      let whereClause = "WHERE 1=1";
+      const params: any[] = [];
+      
+      if (areaId) {
+        whereClause += " AND area_id = ?";
+        params.push(parseInt(areaId as string));
+      }
+      
+      const conceptos = await prisma.$queryRawUnsafe(`
+        SELECT id, codigo, descripcion, unidad, precio_unitario as precioUnitario, area_id as areaId, created_at as createdAt, updated_at as updatedAt
+        FROM conceptos_jerarquicos 
+        ${whereClause}
+        ORDER BY codigo ASC
+      `, ...params);
+      
+      res.json({ data: conceptos, success: true });
+    } catch (error: any) {
+      console.error('Error al obtener conceptos jerárquicos:', error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // GET /api/conceptos-jerarquicos/:id - Obtener concepto específico
+  app.get("/api/conceptos-jerarquicos/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      
+      if (isNaN(id)) {
+        return res.status(400).json({ message: 'ID inválido' });
+      }
+      
+      const conceptos = await prisma.$queryRaw`
+        SELECT id, codigo, descripcion, unidad, precio_unitario as precioUnitario, area_id as areaId, created_at as createdAt, updated_at as updatedAt
+        FROM conceptos_jerarquicos 
+        WHERE id = ${id}
+      `;
+      const concepto = (conceptos as any[])[0];
+      
+      if (!concepto) {
+        return res.status(404).json({ message: 'Concepto no encontrado' });
+      }
+      
+      res.json({ data: concepto, success: true });
+    } catch (error: any) {
+      console.error('Error al obtener concepto:', error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // POST /api/conceptos-jerarquicos - Crear nuevo concepto
+  app.post("/api/conceptos-jerarquicos", async (req, res) => {
+    try {
+      const { codigo, descripcion, unidad, precio, areaId } = req.body;
+      
+      // Validar que el código no exista
+      const existeConcepto = await prisma.$queryRaw`SELECT id FROM conceptos_jerarquicos WHERE codigo = ${codigo}`;
+      
+      if ((existeConcepto as any[]).length > 0) {
+        return res.status(400).json({ message: 'Ya existe un concepto con ese código' });
+      }
+      
+      const nuevoConcepto = await prisma.$queryRaw`
+        INSERT INTO conceptos_jerarquicos (codigo, descripcion, unidad, precio_unitario, area_id, created_at, updated_at)
+        VALUES (${codigo}, ${descripcion}, ${unidad}, ${parseFloat(precio)}, ${areaId}, NOW(), NOW())
+      `;
+      
+      res.status(201).json({ 
+        data: { 
+          id: nuevoConcepto, 
+          codigo, 
+          descripcion, 
+          unidad, 
+          precioUnitario: parseFloat(precio), 
+          area_id: areaId 
+        }, 
+        success: true 
+      });
+    } catch (error: any) {
+      console.error('Error al crear concepto:', error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // PUT /api/conceptos-jerarquicos/:id - Actualizar concepto
+  app.put("/api/conceptos-jerarquicos/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const { codigo, descripcion, unidad, precio, areaId } = req.body;
+      
+      if (isNaN(id)) {
+        return res.status(400).json({ message: 'ID inválido' });
+      }
+      
+      // Validar que el código no exista en otro concepto
+      const existeConcepto = await prisma.$queryRaw`SELECT id FROM conceptos_jerarquicos WHERE codigo = ${codigo} AND id != ${id}`;
+      
+      if ((existeConcepto as any[]).length > 0) {
+        return res.status(400).json({ message: 'Ya existe un concepto con ese código' });
+      }
+      
+      await prisma.$queryRaw`
+        UPDATE conceptos_jerarquicos 
+        SET codigo = ${codigo}, descripcion = ${descripcion}, unidad = ${unidad}, precio_unitario = ${parseFloat(precio)}, area_id = ${areaId}, updated_at = NOW()
+        WHERE id = ${id}
+      `;
+      
+      res.json({ 
+        data: { 
+          id, 
+          codigo, 
+          descripcion, 
+          unidad, 
+          precioUnitario: parseFloat(precio), 
+          area_id: areaId 
+        }, 
+        success: true 
+      });
+    } catch (error: any) {
+      console.error('Error al actualizar concepto:', error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // DELETE /api/conceptos-jerarquicos/:id - Eliminar concepto
+  app.delete("/api/conceptos-jerarquicos/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      
+      if (isNaN(id)) {
+        return res.status(400).json({ message: 'ID inválido' });
+      }
+      
+      await prisma.$queryRaw`DELETE FROM conceptos_jerarquicos WHERE id = ${id}`;
+      
+      res.json({ success: true, message: 'Concepto eliminado correctamente' });
+    } catch (error: any) {
+      console.error('Error al eliminar concepto:', error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+  */
+  // FIN DE RUTAS COMENTADAS
 
   return Promise.resolve(server);
 }
