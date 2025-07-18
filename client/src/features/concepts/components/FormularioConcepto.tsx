@@ -16,23 +16,42 @@ interface FormularioConceptoProps {
 }
 
 const UNIDADES_COMUNES = [
-  "PZA",
-  "M",
-  "M2",
-  "M3",
-  "KG",
-  "TON",
+  "pza",
+  "m",
+  "m²",
+  "m³",
+  "kg",
+  "ton",
   "L",
-  "ML",
-  "LOTE",
-  "GLOBAL",
-  "HR",
-  "DIA",
-  "MES",
-  "SERVICIO",
-  "VISITA",
-  "PRUEBA",
-  "MUESTRA",
+  "mL",
+  "lote",
+  "global",
+  "h",
+  "día",
+  "mes",
+  "servicio",
+  "visita",
+  "prueba",
+  "muestra",
+  "ensaye",
+  "pozo",
+  "cárcamo",
+  "estación",
+  "viaje",
+  "cálculo",
+  "diseño",
+  "análisis",
+  "informe",
+  "estudio",
+  "juego",
+  "permiso",
+  "espécimen",
+  "jornal",
+  "spot",
+  "probeta",
+  "semana",
+  "topografía",
+  "hoja",
 ];
 
 export const FormularioConcepto: React.FC<FormularioConceptoProps> = ({
@@ -239,21 +258,21 @@ export const FormularioConcepto: React.FC<FormularioConceptoProps> = ({
         {/* Unidad */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
-            Unidad *
+            Unidad * (según NOM-800 mexicana)
           </label>
           <div className="relative">
             <input
               type="text"
               value={datos.unidad}
               onChange={(e) =>
-                setDatos({ ...datos, unidad: e.target.value.toUpperCase() })
+                setDatos({ ...datos, unidad: e.target.value.toLowerCase() })
               }
               className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 ${
                 errores.unidad ? "border-red-300" : "border-gray-300"
               }`}
-              placeholder="Unidad de medida"
+              placeholder="Unidad de medida (ej: m, kg, pza, visita)"
               disabled={cargando}
-              maxLength={10}
+              maxLength={15}
               list="unidades-comunes"
             />
             <datalist id="unidades-comunes">
@@ -265,8 +284,11 @@ export const FormularioConcepto: React.FC<FormularioConceptoProps> = ({
           {errores.unidad && (
             <p className="text-sm text-red-600 mt-1">{errores.unidad}</p>
           )}
+          <p className="text-xs text-gray-500 mt-1">
+            Unidades en minúscula según NOM-800 (excepto L para litro)
+          </p>
           <div className="flex flex-wrap gap-1 mt-2">
-            {UNIDADES_COMUNES.slice(0, 8).map((unidad) => (
+            {UNIDADES_COMUNES.slice(0, 10).map((unidad) => (
               <button
                 key={unidad}
                 type="button"

@@ -44,7 +44,7 @@ const conceptosEjemplo = [
                 clave: '1.2.1.1',
                 nombre: 'DETERMINACIÓN DE LA MASA VOLUMÉTRICA DE SUELO INALTERADO POR EL MÉTODO DE LA PARAFINA. (Método no acreditado)',
                 nivel: 4,
-                tipo: 'PRUEBA',
+                tipo: 'prueba',
                 porcentaje: 26.00,
                 precio: 407.15
               }

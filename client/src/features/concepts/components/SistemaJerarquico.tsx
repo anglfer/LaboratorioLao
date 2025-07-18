@@ -7,10 +7,14 @@ import {
   FileText,
   AlertCircle,
   X,
+  Upload,
+  Download,
 } from "lucide-react";
 import ArbolJerarquico from "./ArbolJerarquico";
 import FormularioArea from "./FormularioArea";
 import FormularioConcepto from "./FormularioConcepto";
+import ModalImportarConceptos from "./ModalImportarConceptos";
+import ImportadorConceptos from "../utils/importadorConceptos";
 import {
   ArbolCompleto,
   AreaJerarquica,
@@ -30,7 +34,8 @@ type ModalState =
       tipo: "editar-concepto";
       concepto: ConceptoJerarquico;
       area: AreaJerarquica;
-    };
+    }
+  | { tipo: "importar-conceptos" };
 
 export const SistemaJerarquico: React.FC = () => {
   const [arbol, setArbol] = useState<ArbolCompleto[]>([]);
@@ -256,6 +261,67 @@ export const SistemaJerarquico: React.FC = () => {
     return null;
   };
 
+  // Funciones de importación
+  const handleImportarDemostracion = async () => {
+    try {
+      setGuardando(true);
+      await ImportadorConceptos.importarDatosDemostracion();
+      await cargarDatos();
+      setModal({ tipo: "cerrado" });
+      alert("¡Datos de demostración importados exitosamente!");
+    } catch (error) {
+      console.error("Error al importar demostración:", error);
+      setError("Error al importar los datos de demostración.");
+    } finally {
+      setGuardando(false);
+    }
+  };
+
+  const handleImportarTexto = async (texto: string) => {
+    try {
+      setGuardando(true);
+      const estructura = ImportadorConceptos.procesarTextoPegado(texto);
+      await ImportadorConceptos.guardarEstructura(estructura);
+      await cargarDatos();
+      setModal({ tipo: "cerrado" });
+
+      // Calcular estadísticas
+      const totalAreas = estructura.reduce((total, area) => {
+        const contarAreas = (a: any): number =>
+          1 +
+          (a.hijos?.reduce(
+            (sum: number, hijo: any) => sum + contarAreas(hijo),
+            0
+          ) || 0);
+        return total + contarAreas(area);
+      }, 0);
+
+      const totalConceptos = estructura.reduce((total, area) => {
+        const contarConceptos = (a: any): number => {
+          const propios = a.conceptos?.length || 0;
+          const hijos =
+            a.hijos?.reduce(
+              (sum: number, hijo: any) => sum + contarConceptos(hijo),
+              0
+            ) || 0;
+          return propios + hijos;
+        };
+        return total + contarConceptos(area);
+      }, 0);
+
+      alert(
+        `¡Importación completada exitosamente!\n\nSe procesaron:\n- ${totalAreas} áreas\n- ${totalConceptos} conceptos\n\nLas áreas y conceptos existentes no fueron duplicados.`
+      );
+    } catch (error) {
+      console.error("Error al importar conceptos:", error);
+      setError(
+        "Error al importar los conceptos. Verifique el formato del texto."
+      );
+    } finally {
+      setGuardando(false);
+    }
+  };
+
   // Filtrar árbol por búsqueda
   const arbolFiltrado = busqueda.trim()
     ? arbol.filter(
@@ -297,6 +363,24 @@ export const SistemaJerarquico: React.FC = () => {
           >
             <Plus className="w-4 h-4" />
             Nueva Área
+          </button>
+
+          <button
+            onClick={() => setModal({ tipo: "importar-conceptos" })}
+            className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+            disabled={cargando}
+          >
+            <Upload className="w-4 h-4" />
+            Importar
+          </button>
+
+          <button
+            onClick={handleImportarDemostracion}
+            className="flex items-center gap-2 px-3 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-sm"
+            disabled={cargando || guardando}
+          >
+            <Download className="w-4 h-4" />
+            Demo
           </button>
 
           <button
@@ -422,6 +506,14 @@ export const SistemaJerarquico: React.FC = () => {
                 concepto={modal.concepto}
                 area={modal.area}
                 onGuardar={handleGuardarConcepto}
+                onCancelar={() => setModal({ tipo: "cerrado" })}
+                cargando={guardando}
+              />
+            )}
+
+            {modal.tipo === "importar-conceptos" && (
+              <ModalImportarConceptos
+                onImportar={handleImportarTexto}
                 onCancelar={() => setModal({ tipo: "cerrado" })}
                 cargando={guardando}
               />
