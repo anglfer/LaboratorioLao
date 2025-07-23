@@ -16,6 +16,7 @@ import {
   Phone,
   Mail,
   Download,
+  Upload,
 } from "lucide-react";
 import {
   Card,
@@ -38,6 +39,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "../../shared/components/ui/dialog";
+import { ModalImportarClientes } from "./components/ModalImportarClientes";
 
 function ClienteForm({
   initialData,
@@ -240,6 +242,169 @@ const exportToCSV = (clientes: Cliente[]) => {
   document.body.removeChild(link);
 };
 
+// Función para importar CSV
+const importFromCSV = (
+  file: File,
+  onImport: (clientes: Partial<Cliente>[]) => void
+) => {
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try {
+      const text = e.target?.result as string;
+      const lines = text.split("\n").filter((line) => line.trim());
+
+      if (lines.length < 2) {
+        alert("El archivo CSV debe contener al menos una fila de datos");
+        return;
+      }
+
+      // Saltar la primera línea (headers)
+      const dataLines = lines.slice(1);
+
+      const clientesImportados: Partial<Cliente>[] = dataLines
+        .map((line, index) => {
+          try {
+            // Parsear CSV manualmente para manejar comillas
+            const values: string[] = [];
+            let current = "";
+            let inQuotes = false;
+
+            for (let i = 0; i < line.length; i++) {
+              const char = line[i];
+              if (char === '"') {
+                inQuotes = !inQuotes;
+              } else if (char === "," && !inQuotes) {
+                values.push(current.trim());
+                current = "";
+              } else {
+                current += char;
+              }
+            }
+            values.push(current.trim());
+
+            if (values.length < 3) {
+              throw new Error(`Fila ${index + 2}: Datos insuficientes`);
+            }
+
+            const [, nombre, direccion, telefonosStr, correosStr] = values;
+
+            const telefonos: Telefono[] = telefonosStr
+              ? telefonosStr
+                  .split(";")
+                  .map((tel, idx) => ({
+                    id: Date.now() + idx,
+                    clienteId: 0,
+                    telefono: tel.trim().replace(/"/g, ""),
+                  }))
+                  .filter((t) => t.telefono)
+              : [];
+
+            const correos: Correo[] = correosStr
+              ? correosStr
+                  .split(";")
+                  .map((email, idx) => ({
+                    id: Date.now() + idx + 1000,
+                    clienteId: 0,
+                    correo: email.trim().replace(/"/g, ""),
+                  }))
+                  .filter((c) => c.correo)
+              : [];
+
+            return {
+              nombre: nombre?.replace(/"/g, "") || "",
+              direccion: direccion?.replace(/"/g, "") || "",
+              telefonos,
+              correos,
+            };
+          } catch (error) {
+            console.warn(`Error en fila ${index + 2}:`, error);
+            return null;
+          }
+        })
+        .filter(Boolean) as Partial<Cliente>[];
+
+      if (clientesImportados.length === 0) {
+        alert(
+          "No se pudieron importar clientes. Verifica el formato del archivo."
+        );
+        return;
+      }
+
+      onImport(clientesImportados);
+    } catch (error) {
+      alert(
+        "Error al leer el archivo CSV. Verifica que el formato sea correcto."
+      );
+      console.error("Error importing CSV:", error);
+    }
+  };
+
+  reader.readAsText(file, "utf-8");
+};
+
+// Función para procesar texto pegado desde Excel
+const procesarTextoPegado = (texto: string): Partial<Cliente>[] => {
+  const lineas = texto.split("\n").filter((line) => line.trim());
+
+  if (lineas.length === 0) {
+    throw new Error("No hay datos para procesar");
+  }
+
+  const clientesImportados: Partial<Cliente>[] = lineas.map((linea, index) => {
+    try {
+      // Dividir por tabulaciones (formato de Excel)
+      const columnas = linea.split("\t").map((col) => col.trim());
+
+      if (columnas.length < 1 || !columnas[0]) {
+        throw new Error(`Fila ${index + 1}: Falta el nombre del cliente`);
+      }
+
+      const [nombre, direccion = "", telefonosStr = "", correosStr = ""] =
+        columnas;
+
+      // Procesar teléfonos múltiples
+      const telefonos: Telefono[] = telefonosStr
+        ? telefonosStr
+            .split(";")
+            .map((tel, idx) => ({
+              id: Date.now() + index * 1000 + idx,
+              clienteId: 0,
+              telefono: tel.trim(),
+            }))
+            .filter((t) => t.telefono)
+        : [];
+
+      // Procesar correos múltiples
+      const correos: Correo[] = correosStr
+        ? correosStr
+            .split(";")
+            .map((email, idx) => ({
+              id: Date.now() + index * 1000 + idx + 500,
+              clienteId: 0,
+              correo: email.trim(),
+            }))
+            .filter((c) => c.correo)
+        : [];
+
+      return {
+        nombre: nombre.trim(),
+        direccion: direccion.trim() || undefined,
+        telefonos,
+        correos,
+      };
+    } catch (error) {
+      console.warn(`Error en fila ${index + 1}:`, error);
+      throw new Error(
+        `Error en fila ${index + 1}: ${
+          error instanceof Error ? error.message : "Formato inválido"
+        }`
+      );
+    }
+  });
+
+  return clientesImportados.filter(Boolean);
+};
+
 export default function ClientesPage() {
   const { data: clientes, isLoading, error } = useClientes();
   const createCliente = useCreateCliente();
@@ -248,6 +413,8 @@ export default function ClientesPage() {
   const [search, setSearch] = useState("");
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<Cliente | null>(null);
+  const [importing, setImporting] = useState(false);
+  const [showImportModal, setShowImportModal] = useState(false);
 
   const filteredClientes = (clientes || []).filter(
     (c) =>
@@ -271,9 +438,80 @@ export default function ClientesPage() {
     }
   };
 
+  const handleImportClick = () => {
+    setShowImportModal(true);
+  };
+
+  const handleImportFile = (file: File) => {
+    setImporting(true);
+    importFromCSV(file, async (clientesImportados) => {
+      try {
+        let importados = 0;
+        let errores = 0;
+
+        for (const clienteData of clientesImportados) {
+          try {
+            await createCliente.mutateAsync(clienteData);
+            importados++;
+          } catch (error) {
+            console.error("Error importing client:", error);
+            errores++;
+          }
+        }
+
+        alert(
+          `Importación completada: ${importados} clientes importados${
+            errores > 0 ? `, ${errores} errores` : ""
+          }`
+        );
+      } catch (error) {
+        alert("Error durante la importación");
+        console.error("Import error:", error);
+      } finally {
+        setImporting(false);
+      }
+    });
+  };
+
   const handleCreateSuccess = () => {
     setShowForm(false);
     setEditing(null);
+  };
+
+  const handleImportarTexto = async (texto: string) => {
+    setImporting(true);
+    try {
+      const clientesImportados = procesarTextoPegado(texto);
+
+      let importados = 0;
+      let errores = 0;
+
+      for (const clienteData of clientesImportados) {
+        try {
+          await createCliente.mutateAsync(clienteData);
+          importados++;
+        } catch (error) {
+          console.error("Error importing client:", error);
+          errores++;
+        }
+      }
+
+      alert(
+        `Importación completada: ${importados} clientes importados${
+          errores > 0 ? `, ${errores} errores` : ""
+        }`
+      );
+      setShowImportModal(false);
+    } catch (error) {
+      alert(
+        `Error durante la importación: ${
+          error instanceof Error ? error.message : "Error desconocido"
+        }`
+      );
+      console.error("Import error:", error);
+    } finally {
+      setImporting(false);
+    }
   };
 
   if (error) {
@@ -306,13 +544,21 @@ export default function ClientesPage() {
               </p>
             </div>
             <div className="flex gap-2">
-              <Button
+              <button
                 onClick={() => exportToCSV(filteredClientes)}
-                variant="outline"
-                size="sm"
+                className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
               >
-                <Download className="h-4 w-4 mr-2" /> Exportar
-              </Button>
+                <Download className="w-4 h-4" />
+                Exportar
+              </button>
+              <button
+                onClick={handleImportClick}
+                disabled={importing}
+                className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <Upload className="w-4 h-4" />
+                {importing ? "Importando..." : "Importar"}
+              </button>
               <Button
                 onClick={() => {
                   setShowForm(true);
@@ -506,6 +752,17 @@ export default function ClientesPage() {
             />
           </DialogContent>
         </Dialog>
+
+        {/* Modal de importar clientes */}
+        {showImportModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <ModalImportarClientes
+              onImportar={handleImportarTexto}
+              onCancelar={() => setShowImportModal(false)}
+              cargando={importing}
+            />
+          </div>
+        )}
       </div>
     </div>
   );
