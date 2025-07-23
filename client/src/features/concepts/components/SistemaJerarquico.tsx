@@ -322,6 +322,28 @@ export const SistemaJerarquico: React.FC = () => {
     }
   };
 
+  // Funciones para contar totales recursivamente
+  const contarAreasRecursivo = (nodos: ArbolCompleto[]): number => {
+    return nodos.reduce((total, nodo) => {
+      const areasHijos = nodo.hijos ? contarAreasRecursivo(nodo.hijos) : 0;
+      return total + 1 + areasHijos; // 1 para el nodo actual + sus hijos
+    }, 0);
+  };
+
+  const contarConceptosRecursivo = (nodos: ArbolCompleto[]): number => {
+    return nodos.reduce((total, nodo) => {
+      const conceptosActuales = nodo.conceptos?.length || 0;
+      const conceptosHijos = nodo.hijos
+        ? contarConceptosRecursivo(nodo.hijos)
+        : 0;
+      return total + conceptosActuales + conceptosHijos;
+    }, 0);
+  };
+
+  // Calcular totales
+  const totalAreas = contarAreasRecursivo(arbol);
+  const totalConceptos = contarConceptosRecursivo(arbol);
+
   // Filtrar árbol por búsqueda
   const arbolFiltrado = busqueda.trim()
     ? arbol.filter(
@@ -428,18 +450,17 @@ export const SistemaJerarquico: React.FC = () => {
         <div className="flex items-center gap-6 text-sm text-gray-600">
           <div className="flex items-center gap-1">
             <Folder className="w-4 h-4" />
-            <span>{todasLasAreas.length} áreas</span>
+            <span>{totalAreas} áreas totales</span>
           </div>
           <div className="flex items-center gap-1">
             <FileText className="w-4 h-4" />
-            <span>
-              {arbol.reduce(
-                (total, area) => total + (area.conceptos?.length || 0),
-                0
-              )}{" "}
-              conceptos
-            </span>
+            <span>{totalConceptos} conceptos totales</span>
           </div>
+          {busqueda.trim() && (
+            <div className="text-blue-600 text-xs">
+              Mostrando resultados filtrados
+            </div>
+          )}
         </div>
       </div>
 
