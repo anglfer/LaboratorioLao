@@ -32,23 +32,19 @@ const navigationByRole: Record<
   admin: [
     { name: "Panel de Control", href: "/", icon: BarChart3 },
     { name: "Presupuestos", href: "/presupuestos", icon: FileText },
-    { name: "Programación", href: "/programacion", icon: Calendar },
   ],
   recepcionista: [
     { name: "Panel de Control", href: "/", icon: BarChart3 },
     { name: "Presupuestos", href: "/presupuestos", icon: FileText },
-    { name: "Programación", href: "/programacion", icon: Calendar },
   ],
   brigadista: [{ name: "Panel de Control", href: "/", icon: BarChart3 }],
-  jefe_laboratorio: [
-    { name: "Panel de Control", href: "/", icon: BarChart3 },
-    { name: "Programación", href: "/programacion", icon: Calendar },
-  ],
+  jefe_laboratorio: [{ name: "Panel de Control", href: "/", icon: BarChart3 }],
   laboratorista: [{ name: "Panel de Control", href: "/", icon: BarChart3 }],
 };
 
 const adminNavigation = [
   { name: "Areas y Conceptos", href: "/admin/sistema-jerarquico", icon: Plus },
+  { name: "Clientes", href: "/admin/clientes", icon: Users },
 ];
 
 // Helper functions for page titles and descriptions
@@ -65,9 +61,9 @@ function getPageDescription(location: string): string {
   const descriptions: Record<string, string> = {
     "/": "Resumen general de actividades y métricas principales",
     "/presupuestos": "Gestión y seguimiento de presupuestos de proyectos",
-    "/programacion": "Programación y planificación de actividades",
     "/brigadista": "Gestión de personal y equipos de trabajo",
     "/admin/sistema-jerarquico": "Gestión jerárquica de áreas y conceptos",
+    "/admin/clientes": "Gestión y administración de clientes",
   };
   return descriptions[location] || "Bienvenido al sistema de gestión";
 }

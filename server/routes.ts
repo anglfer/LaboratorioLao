@@ -1,22 +1,18 @@
+
 import type { Express } from "express";
 import { createServer, type Server } from "http";
-import { storage } from "./storage";
+import storage from "./storage";
 import { z } from "zod";
 import path from "path";
 import { fileURLToPath } from "url";
 import { prisma } from "./prisma";
-
-// Importar las nuevas rutas jerárquicas
 import rutasAreas from './routes-areas.js';
 import rutasConceptos from './routes-conceptos.js';
-
 import {
   insertClienteSchema,
   insertTelefonoSchema,
   insertCorreoSchema,
   insertAreaSchema,
-  insertSubareaSchema,
-  insertConceptoSchema,
   insertObraSchema,
   insertPresupuestoSchema,
   insertPresupuestoDetalleSchema,
@@ -50,558 +46,248 @@ function generatePresupuestoHTML(
     finalizado: { bg: "#f3f4f6", text: "#374151", border: "#6b7280" },
   };
 
-  const estadoConfig =
-    estadoColors[presupuesto.estado] || estadoColors["borrador"];
-
-  // Agrupar conceptos por área y subárea para el resumen ejecutivo
-  const conceptosPorArea = detalles.reduce((acc, detalle) => {
-    const area = detalle.concepto?.subarea?.area?.nombre || "Sin área";
-    const subarea = detalle.concepto?.subarea?.nombre || "Sin subárea";
-
-    if (!acc[area]) {
-      acc[area] = new Set();
-    }
-    acc[area].add(subarea);
-    return acc;
-  }, {});
+  const estadoActual = presupuesto.estado || "borrador";
+  const colorEstado = estadoColors[estadoActual as keyof typeof estadoColors] || estadoColors.borrador;
 
   return `
- o                                                                     ng="es">;
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Presupuesto ${presupuesto.claveObra} - Laboratorio LOA</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 0;
-            padding: 20px;
-            font-size: 11px;
-            line-height: 1.4;
-            color: #333;
-        }
-        
-        .header {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-            margin-bottom: 30px;
-            padding-bottom: 20px;
-            border-bottom: 2px solid #0066cc;
-        }
-        
-        .logo-section {
-            flex: 1;
-        }
-        
-        .logo {
-            max-width: 200px;
-            height: auto;
-        }
-        
-        .company-info {
-            margin-top: 10px;
-            font-size: 10px;
-            color: #666;
-        }
-        
-        .document-info {
-            text-align: right;
-            flex: 1;
-        }
-        
-        .budget-code {
-            font-size: 18px;
-            font-weight: bold;
-            color: #0066cc;
-            margin-bottom: 10px;
-        }
-        
-        .status-badge {
-            padding: 5px 12px;
-            border-radius: 15px;
-            font-size: 10px;
-            font-weight: bold;
-            background-color: ${estadoConfig.bg};
-            color: ${estadoConfig.text};
-            border: 1px solid ${estadoConfig.border};
-            text-transform: uppercase;
-        }
-        
-        .client-section {
-            background-color: #f8f9fa;
-            padding: 20px;
-            margin: 20px 0;
-            border-left: 4px solid #0066cc;
-        }
-        
-        .section-title {
-            font-size: 14px;
-            font-weight: bold;
-            color: #0066cc;
-            margin-bottom: 15px;
-            display: flex;
-            align-items: center;
-        }
-        
-        .section-title::before {
-            content: '';
-            width: 20px;
-            height: 2px;
-            background-color: #0066cc;
-            margin-right: 10px;
-        }
-        
-        .info-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 15px;
-            margin-bottom: 15px;
-        }
-        
-        .info-item {
-            margin-bottom: 8px;
-        }
-        
-        .info-label {
-            font-weight: bold;
-            color: #555;
-        }
-        
-        .concepts-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin: 20px 0;
-            font-size: 10px;
-        }
-        
-        .concepts-table th {
-            background-color: #0066cc;
-            color: white;
-            padding: 10px 8px;
-            text-align: left;
-            font-weight: bold;
-        }
-        
-        .concepts-table td {
-            padding: 8px;
-            border-bottom: 1px solid #ddd;
-        }
-        
-        .concepts-table tr:nth-child(even) {
-            background-color: #f8f9fa;
-        }
-        
-        .text-right {
-            text-align: right;
-        }
-        
-        .text-center {
-            text-align: center;
-        }
-        
-        .totals-section {
-            background-color: #f8f9fa;
-            padding: 20px;
-            margin: 20px 0;
-            border: 1px solid #ddd;
-        }
-        
-        .totals-table {
-            width: 100%;
-            font-size: 12px;
-        }
-        
-        .totals-table td {
-            padding: 8px;
-            border-bottom: 1px solid #ddd;
-        }
-        
-        .total-final {
-            font-size: 16px;
-            font-weight: bold;
-            color: #0066cc;
-        }
-        
-        .executive-summary {
-            margin: 30px 0;
-            padding: 20px;
-            background-color: #fff;
-            border: 1px solid #ddd;
-        }
-        
-        .areas-list {
-            columns: 2;
-            column-gap: 30px;
-            margin-top: 15px;
-        }
-        
-        .area-item {
-            break-inside: avoid;
-            margin-bottom: 15px;
-        }
-        
-        .area-name {
-            font-weight: bold;
-            color: #0066cc;
-            margin-bottom: 5px;
-        }
-        
-        .subarea-list {
-            margin-left: 15px;
-        }
-        
-        .subarea-item {
-            margin-bottom: 3px;
-            display: flex;
-            align-items: center;
-        }
-        
-        .subarea-included {
-            color: #22c55e;
-            font-weight: bold;
-        }
-        
-        .subarea-not-included {
-            color: #6b7280;
-        }
-        
-        .terms-section {
-            margin: 30px 0;
-            font-size: 10px;
-            line-height: 1.5;
-        }
-        
-        .terms-list {
-            list-style: decimal;
-            margin-left: 20px;
-        }
-        
-        .terms-list li {
-            margin-bottom: 10px;
-        }
-        
-        .legal-clause {
-            background-color: #fef3c7;
-            padding: 15px;
-            margin: 20px 0;
-            border-left: 4px solid #f59e0b;
-            font-style: italic;
-            font-size: 11px;
-        }
-        
-        .signatures-section {
-            margin-top: 50px;
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 50px;
-        }
-        
-        .signature-box {
-            text-align: center;
-            padding: 20px;
-            border: 1px solid #ddd;
-        }
-        
-        .signature-line {
-            border-top: 2px solid #333;
-            margin: 40px 0 10px 0;
-            height: 1px;
-        }
-        
-        .page-break {
-            page-break-before: always;
-        }
-        
-        @media print {
+    <!DOCTYPE html>
+    <html lang="es">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Presupuesto ${presupuesto.id}</title>
+        <style>
             body {
+                font-family: Arial, sans-serif;
                 margin: 0;
-                padding: 15px;
+                padding: 20px;
+                font-size: 12px;
+                line-height: 1.4;
+                color: #333;
             }
-            
-            .page-break {
-                page-break-before: always;
+            .header {
+                text-align: center;
+                margin-bottom: 30px;
+                border-bottom: 2px solid #333;
+                padding-bottom: 20px;
             }
-        }
-    </style>
-</head>
-<body>
-    <!-- PÁGINA 1: INFORMACIÓN PRINCIPAL -->
-    <div class="header">
-        <div class="logo-section">
-            <img src="/img/versionPresupuesto.png" alt="Laboratorio LOA" class="logo" />
-            <div class="company-info">
-                <strong>Laboratorio LOA</strong><br>
-                Control de Calidad | Mecánica de Suelos | Diseño de Pavimentos<br>
-                Av. la Presa 519-511, 37677 Ibarrilla, Gto.<br>
-                Tel: (477) 123-4567 | Email: controldecalidad@loalaboratorio.com<br>
-                www.loalaboratorio.com
-            </div>
+            .company-name {
+                font-size: 24px;
+                font-weight: bold;
+                color: #2563eb;
+                margin-bottom: 5px;
+            }
+            .document-title {
+                font-size: 18px;
+                font-weight: bold;
+                margin: 10px 0;
+            }
+            .status-badge {
+                display: inline-block;
+                padding: 4px 12px;
+                border-radius: 15px;
+                font-size: 10px;
+                font-weight: bold;
+                text-transform: uppercase;
+                background-color: ${colorEstado.bg};
+                color: ${colorEstado.text};
+                border: 1px solid ${colorEstado.border};
+                margin: 10px 0;
+            }
+            .info-section {
+                margin-bottom: 20px;
+            }
+            .info-grid {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 20px;
+                margin-bottom: 20px;
+            }
+            .info-block h3 {
+                font-size: 14px;
+                font-weight: bold;
+                margin-bottom: 8px;
+                color: #2563eb;
+                border-bottom: 1px solid #e5e7eb;
+                padding-bottom: 4px;
+            }
+            .info-block p {
+                margin: 4px 0;
+                font-size: 11px;
+            }
+            .items-table {
+                width: 100%;
+                border-collapse: collapse;
+                margin: 20px 0;
+                font-size: 10px;
+            }
+            .items-table th {
+                background-color: #f8fafc;
+                border: 1px solid #e5e7eb;
+                padding: 8px;
+                text-align: left;
+                font-weight: bold;
+                font-size: 10px;
+            }
+            .items-table td {
+                border: 1px solid #e5e7eb;
+                padding: 8px;
+                vertical-align: top;
+            }
+            .items-table tr:nth-child(even) {
+                background-color: #f9fafb;
+            }
+            .totals-section {
+                margin-top: 20px;
+                text-align: right;
+            }
+            .totals-table {
+                display: inline-block;
+                border: 1px solid #e5e7eb;
+            }
+            .totals-table tr td {
+                padding: 8px 15px;
+                border-bottom: 1px solid #e5e7eb;
+            }
+            .totals-table tr:last-child td {
+                border-bottom: none;
+                font-weight: bold;
+                background-color: #f8fafc;
+            }
+            .footer {
+                margin-top: 40px;
+                padding-top: 20px;
+                border-top: 1px solid #e5e7eb;
+                font-size: 10px;
+                color: #6b7280;
+                text-align: center;
+            }
+            .text-right { text-align: right; }
+            .text-center { text-align: center; }
+            .font-bold { font-weight: bold; }
+        </style>
+    </head>
+    <body>
+        <div class="header">
+            <div class="company-name">Laboratorio Lao</div>
+            <div class="document-title">PRESUPUESTO</div>
+            <div class="status-badge">${estadoActual}</div>
         </div>
-        <div class="document-info">
-            <div class="budget-code">PRESUPUESTO ${presupuesto.claveObra || "SIN-ASIGNAR"}</div>
-            <div class="status-badge">${presupuesto.estado || "borrador"}</div>
-            <div style="margin-top: 15px; font-size: 10px;">
-                <strong>Fecha de Generación:</strong><br>
-                ${fechaGeneracion}<br><br>
-                <strong>Folio:</strong> ${presupuesto.id || "N/A"}
-            </div>
-        </div>
-    </div>
 
-    <!-- INFORMACIÓN DEL CLIENTE Y PROYECTO -->
-    <div class="client-section">
-        <div class="section-title">INFORMACIÓN DEL CLIENTE Y PROYECTO</div>
-        
         <div class="info-grid">
-            <div>
-                <div class="info-item">
-                    <span class="info-label">Dirigido a:</span> ${presupuesto.cliente?.nombre || "Cliente no especificado"}
-                </div>
-                <div class="info-item">
-                    <span class="info-label">Dirección:</span> ${presupuesto.cliente?.direccion || "No especificada"}
-                </div>
-                <div class="info-item">
-                    <span class="info-label">Atención:</span> ${presupuesto.contactoResponsable || "No especificado"}
-                </div>
+            <div class="info-block">
+                <h3>Información del Presupuesto</h3>
+                <p><strong>Número:</strong> ${presupuesto.id}</p>
+                <p><strong>Fecha:</strong> ${new Date(presupuesto.fechaSolicitud || new Date()).toLocaleDateString('es-MX')}</p>
+                <p><strong>Clave de Obra:</strong> ${presupuesto.claveObra || 'Por asignar'}</p>
+                <p><strong>Estado:</strong> ${estadoActual}</p>
             </div>
-            <div>
-                <div class="info-item">
-                    <span class="info-label">Contratista:</span> ${presupuesto.nombreContratista || "No especificado"}
-                </div>
-                <div class="info-item">
-                    <span class="info-label">Fecha de Solicitud:</span> ${presupuesto.fechaSolicitud ? new Date(presupuesto.fechaSolicitud).toLocaleDateString("es-MX") : "No especificada"}
-                </div>
-                <div class="info-item">
-                    <span class="info-label">Fecha Propuesta de Inicio:</span> ${presupuesto.fechaInicio ? new Date(presupuesto.fechaInicio).toLocaleDateString("es-MX") : "Por definir"}
-                </div>
+            
+            <div class="info-block">
+                <h3>Información del Cliente</h3>
+                <p><strong>Cliente:</strong> ${presupuesto.cliente?.nombre || 'Cliente no especificado'}</p>
+                <p><strong>Contratista:</strong> ${presupuesto.nombreContratista || 'No especificado'}</p>
+                <p><strong>Contacto:</strong> ${presupuesto.contactoResponsable || 'No especificado'}</p>
+                <p><strong>Dirección:</strong> ${presupuesto.direccion || 'No especificada'}</p>
             </div>
         </div>
-        
-        <div class="info-item">
-            <span class="info-label">Descripción de la Obra:</span><br>
-            ${presupuesto.descripcionObra || "No especificada"}
-        </div>
-        
-        ${
-          presupuesto.tramo || presupuesto.colonia || presupuesto.calle
-            ? `
-        <div class="info-item" style="margin-top: 15px;">
-            <span class="info-label">Ubicación:</span><br>
-            ${[presupuesto.tramo, presupuesto.colonia, presupuesto.calle].filter(Boolean).join(", ")}
-        </div>
-        `
-            : ""
-        }
-    </div>
 
-    <!-- DESGLOSE DE SERVICIOS -->
-    <div class="section-title">DESGLOSE DETALLADO DE SERVICIOS</div>
-    
-    <table class="concepts-table">
-        <thead>
-            <tr>
-                <th style="width: 8%;">No.</th>
-                <th style="width: 50%;">Descripción del Servicio</th>
-                <th style="width: 10%;">Unidad</th>
-                <th style="width: 10%;">Cantidad</th>
-                <th style="width: 11%;">Precio Unitario</th>
-                <th style="width: 11%;">Importe</th>
-            </tr>
-        </thead>
-        <tbody>
-            ${detalles
-              .map(
-                (detalle, index) => `
+        ${presupuesto.descripcionObra ? `
+        <div class="info-section">
+            <h3>Descripción de la Obra</h3>
+            <p>${presupuesto.descripcionObra}</p>
+        </div>
+        ` : ''}
+
+        ${presupuesto.alcance ? `
+        <div class="info-section">
+            <h3>Alcance del Trabajo</h3>
+            <p>${presupuesto.alcance}</p>
+        </div>
+        ` : ''}
+
+        <table class="items-table">
+            <thead>
                 <tr>
-                    <td class="text-center">${index + 1}</td>
-                    <td>
-                        <strong>${detalle.concepto?.codigo || "N/A"}</strong><br>
-                        ${detalle.concepto?.descripcion || "Descripción no disponible"}
-                    </td>
-                    <td class="text-center">${detalle.concepto?.unidad || "N/A"}</td>
-                    <td class="text-center">${Number(detalle.cantidad || 0).toLocaleString("es-MX", { minimumFractionDigits: 2 })}</td>
-                    <td class="text-right">$${Number(detalle.precioUnitario || 0).toLocaleString("es-MX", { minimumFractionDigits: 2 })}</td>
-                    <td class="text-right">$${Number(detalle.subtotal || 0).toLocaleString("es-MX", { minimumFractionDigits: 2 })}</td>
+                    <th style="width: 15%">Código</th>
+                    <th style="width: 40%">Descripción</th>
+                    <th style="width: 10%">Unidad</th>
+                    <th style="width: 10%" class="text-center">Cantidad</th>
+                    <th style="width: 12%" class="text-right">Precio Unit.</th>
+                    <th style="width: 13%" class="text-right">Subtotal</th>
                 </tr>
-            `,
-              )
-              .join("")}
-        </tbody>
-    </table>
-
-    <!-- TOTALES -->
-    <div class="totals-section">
-        <table class="totals-table">
-            <tr>
-                <td style="width: 70%; text-align: right; font-weight: bold;">SUBTOTAL:</td>
-                <td style="width: 30%; text-align: right; font-weight: bold;">$${Number(subtotal).toLocaleString("es-MX", { minimumFractionDigits: 2 })}</td>
-            </tr>
-            <tr>
-                <td style="text-align: right; font-weight: bold;">IVA (16%):</td>
-                <td style="text-align: right; font-weight: bold;">$${Number(iva).toLocaleString("es-MX", { minimumFractionDigits: 2 })}</td>
-            </tr>
-            <tr style="border-top: 2px solid #0066cc;">
-                <td style="text-align: right;" class="total-final">TOTAL:</td>
-                <td style="text-align: right;" class="total-final">$${Number(total).toLocaleString("es-MX", { minimumFractionDigits: 2 })}</td>
-            </tr>
+            </thead>
+            <tbody>
+                ${detalles.map(detalle => `
+                    <tr>
+                        <td>${detalle.concepto?.codigo || detalle.conceptoCodigo}</td>
+                        <td>${detalle.concepto?.descripcion || 'Descripción no disponible'}</td>
+                        <td class="text-center">${detalle.concepto?.unidad || '-'}</td>
+                        <td class="text-center">${Number(detalle.cantidad).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                        <td class="text-right">$${Number(detalle.precioUnitario).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                        <td class="text-right">$${(Number(detalle.cantidad) * Number(detalle.precioUnitario)).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                    </tr>
+                `).join('')}
+            </tbody>
         </table>
-        
-        ${
-          presupuesto.formaPago
-            ? `
-        <div style="margin-top: 15px;">
-            <span class="info-label">Forma de Pago:</span> ${presupuesto.formaPago}
-        </div>
-        `
-            : ""
-        }
-    </div>
 
-    <!-- PÁGINA 2: RESUMEN EJECUTIVO Y TÉRMINOS -->
-    <div class="page-break"></div>
-    
-    <div class="executive-summary">
-        <div class="section-title">RESUMEN EJECUTIVO POR ÁREAS DE SERVICIO</div>
-        <p style="margin-bottom: 15px; color: #666;">
-            A continuación se presenta un resumen de todas las áreas de servicio disponibles, 
-            resaltando aquellas incluidas en este presupuesto:
-        </p>
-        
-        <div class="areas-list">
-            ${Object.entries(conceptosPorArea)
-              .map(
-                ([area, subareas]) => `
-                <div class="area-item">
-                    <div class="area-name">${area}</div>
-                    <div class="subarea-list">
-                        ${Array.from(subareas)
-                          .map(
-                            (subarea) => `
-                            <div class="subarea-item">
-                                <span class="subarea-included">✓ ${subarea}</span>
-                            </div>
-                        `,
-                          )
-                          .join("")}
-                    </div>
-                </div>
-            `,
-              )
-              .join("")}
+        <div class="totals-section">
+            <table class="totals-table">
+                <tr>
+                    <td><strong>Subtotal:</strong></td>
+                    <td class="text-right">$${Number(subtotal).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                </tr>
+                <tr>
+                    <td><strong>IVA (${((presupuesto.iva || 0.16) * 100).toFixed(0)}%):</strong></td>
+                    <td class="text-right">$${Number(iva).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                </tr>
+                <tr>
+                    <td><strong>TOTAL:</strong></td>
+                    <td class="text-right">$${Number(total).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                </tr>
+            </table>
         </div>
-    </div>
 
-    <!-- TÉRMINOS Y CONDICIONES -->
-    <div class="terms-section">
-        <div class="section-title">TÉRMINOS Y CONDICIONES COMERCIALES</div>
-        
-        <ol class="terms-list">
-            <li>Las cantidades en presupuesto pueden sufrir variación en función de las pruebas elaboradas, por lo que el presente presupuesto es una referencia de los costos. En la realización de visitas a obra para actividades de muestreo se deberá considerar el costo de viáticos de traslado (CC.060) por actividad.</li>
-            
-            <li>El horario de servicio es de 08:00 a 17:00 hrs de lunes a viernes, sábados de 08:00 a 14:00 hrs. Trabajos fuera del horario se tomarán como tiempo extraordinario con un costo de $394.70 más IVA por hora.</li>
-            
-            <li>Una vez finalizados los trabajos y entregados los informes correspondientes, se dará un período de 30 días para mantener los materiales en laboratorio; posteriormente se desecharán los mismos.</li>
-            
-            <li>Los accesos al lugar de la obra, la ubicación de las exploraciones y los permisos necesarios para su realización correrán por cuenta del contratante.</li>
-            
-            <li>Para iniciar los trabajos se requiere la aceptación del presupuesto firmando la orden de servicio correspondiente, preferentemente por el representante legal. La entrega de información final con los resultados se realizará una vez liquidado el monto de los trabajos ejecutados.</li>
-            
-            <li>En caso de requerir cualquier tipo de modificación en el alcance de este presupuesto después de su firma, se realizará un nuevo presupuesto.</li>
-            
-            <li>Anexo I. Métodos de prueba, Frecuencia de muestreo, Criterios de aceptación y Rechazo, Políticas de Laboratorio, Imparcialidad y Confidencialidad.</li>
-        </ol>
-    </div>
-
-    <!-- CLÁUSULA LEGAL -->
-    <div class="legal-clause">
-        <strong>CLÁUSULA DE ACEPTACIÓN:</strong> 
-        La firma de este documento por parte del cliente implica la aceptación total de los términos y condiciones aquí establecidos, 
-        así como la autorización para la ejecución de los servicios descritos, constituyendo este presupuesto un acuerdo vinculante entre las partes.
-    </div>
-
-    <!-- SECCIÓN DE FIRMAS -->
-    <div class="signatures-section">
-        <div class="signature-box">
-            <div style="margin-bottom: 20px;">
-                <strong>LABORATORIO LOA</strong>
-            </div>
-            <div class="signature-line"></div>
-            <div style="margin-top: 10px;">
-                <div><strong>Nombre:</strong> _________________________</div>
-                <div style="margin-top: 5px;"><strong>Cargo:</strong> _________________________</div>
-                <div style="margin-top: 5px;"><strong>Fecha:</strong> _________________________</div>
-            </div>
+        ${presupuesto.manejaAnticipo && presupuesto.porcentajeAnticipo ? `
+        <div class="info-section">
+            <h3>Condiciones de Pago</h3>
+            <p><strong>Anticipo requerido:</strong> ${presupuesto.porcentajeAnticipo}% del total = $${(Number(total) * Number(presupuesto.porcentajeAnticipo) / 100).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
         </div>
-        
-        <div class="signature-box">
-            <div style="margin-bottom: 20px;">
-                <strong>CLIENTE</strong><br>
-                <small>${presupuesto.cliente?.nombre || "Nombre del Cliente"}</small>
-            </div>
-            <div class="signature-line"></div>
-            <div style="margin-top: 10px;">
-                <div><strong>Nombre:</strong> _________________________</div>
-                <div style="margin-top: 5px;"><strong>Cargo:</strong> _________________________</div>
-                <div style="margin-top: 5px;"><strong>Fecha:</strong> _________________________</div>
-            </div>
+        ` : ''}
+
+        <div class="footer">
+            <p>Documento generado el ${fechaGeneracion}</p>
+            <p>Este presupuesto tiene una vigencia de 30 días a partir de la fecha de emisión</p>
         </div>
-    </div>
-</body>
-</html>
+    </body>
+    </html>
   `;
 }
 
 // HTML validation function to prevent PDF corruption
-function validateHTML(html: string): { isValid: boolean; errors: string[] } {
-  const errors: string[] = [];
+function validateHTML(html: string): boolean {
+  try {
+    // Basic validation - check for malformed HTML that could break PDF generation
+    const suspiciousPatterns = [
+      /<script[^>]*>/i,
+      /<iframe[^>]*>/i,
+      /javascript:/i,
+      /data:text\/html/i,
+      /<object[^>]*>/i,
+      /<embed[^>]*>/i,
+    ];
 
-  // Check for basic HTML structure
-  if (!html.includes("<!DOCTYPE html>")) {
-    errors.push("Missing DOCTYPE declaration");
+    return !suspiciousPatterns.some(pattern => pattern.test(html));
+  } catch (error) {
+    console.error("HTML validation error:", error);
+    return false;
   }
-  if (!html.includes("<html") || !html.includes("</html>")) {
-    errors.push("Missing html tags");
-  }
-
-  if (!html.includes("<head>") || !html.includes("</head>")) {
-    errors.push("Missing head tags");
-  }
-
-  if (!html.includes("<body>") || !html.includes("</body>")) {
-    errors.push("Missing body tags");
-  }
-
-  // Check for unclosed tags that can cause rendering issues
-  const openTags = html.match(/<[^/][^>]*>/g) || [];
-  const closeTags = html.match(/<\/[^>]*>/g) || [];
-
-  if (openTags.length === 0) {
-    errors.push("No opening tags found");
-  }
-
-  // Check for problematic characters that might cause encoding issues
-  const problematicChars = /[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/;
-  if (problematicChars.test(html)) {
-    errors.push("Contains control characters that may cause corruption");
-  }
-
-  // Check minimum length
-  if (html.length < 1000) {
-    errors.push("HTML content seems tooshort");
-  }
-
-  return {
-    isValid: errors.length === 0,
-    errors,
-  };
 }
 
 export function registerRoutes(app: Express): Promise<Server> {
   const server = createServer(app);
   
   // Registrar las nuevas rutas jerárquicas
-  // Usar las nuevas rutas jerárquicas
   app.use('/api', rutasAreas);
   app.use('/api', rutasConceptos);
   
@@ -650,106 +336,23 @@ export function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Subareas routes
-  app.get("/api/subareas", async (req, res) => {
-    try {
-      const areaCodigo = req.query.area as string;
-      const subareas = areaCodigo
-        ? await storage.getSubareasByArea(areaCodigo)
-        : await storage.getAllSubareas();
-      res.json(subareas);
-    } catch (error: any) {
-      res.status(500).json({ message: error.message });
-    }
-  });
-
-  app.post("/api/subareas", async (req, res) => {
-    try {
-      const result = insertSubareaSchema.safeParse(req.body);
-      if (!result.success) {
-        return res
-          .status(400)
-          .json({ message: "Validation error", errors: result.error.errors });
-      }
-      const subarea = await storage.createSubarea(result.data);
-      res.status(201).json(subarea);
-    } catch (error: any) {
-      res.status(500).json({ message: error.message });
-    }
-  });
-
-  // Conceptos routes
-  app.get("/api/conceptos", async (req, res) => {
-    try {
-      const subareaId = req.query.subarea
-        ? parseInt(req.query.subarea as string)
-        : undefined;
-      const conceptos = subareaId
-        ? await storage.getConceptosBySubarea(subareaId)
-        : await storage.getAllConceptos();
-      res.json(conceptos);
-    } catch (error: any) {
-      res.status(500).json({ message: error.message });
-    }
-  });
-
-  app.post("/api/conceptos", async (req, res) => {
-    try {
-      const result = insertConceptoSchema.safeParse(req.body);
-      if (!result.success) {
-        return res
-          .status(400)
-          .json({ message: "Validation error", errors: result.error.errors });
-      }
-      const concepto = await storage.createConcepto(result.data);
-      res.status(201).json(concepto);
-    } catch (error: any) {
-      res.status(500).json({ message: error.message });
-    }
-  });
-
-  // Rutas específicas para el feature de conceptos
-  app.get("/api/areas/:codigo/subareas", async (req, res) => {
-    try {
-      const areaCodigo = req.params.codigo;
-      const subareas = await storage.getSubareasByArea(areaCodigo);
-      res.json(subareas);
-    } catch (error: any) {
-      res.status(500).json({ message: error.message });
-    }
-  });
-
-  app.get("/api/subareas/:id/conceptos", async (req, res) => {
-    try {
-      const subareaId = parseInt(req.params.id);
-      if (isNaN(subareaId)) {
-        return res.status(400).json({ message: "ID de subárea inválido" });
-      }
-      const conceptos = await storage.getConceptosBySubarea(subareaId);
-      res.json(conceptos);
-    } catch (error: any) {
-      res.status(500).json({ message: error.message });
-    }
-  });
-
-  // ===== CONCEPTOS JERÁRQUICOS (SISTEMA ANTIGUO - REMOVIDO) =====
-  // Nota: Este sistema ha sido reemplazado por AreasJerarquicas y ConceptosJerarquicos
-  // Las nuevas rutas están en routes-areas.ts y routes-conceptos.ts
-
-  // ===== CONCEPTOS JERÁRQUICOS (SISTEMA ANTIGUO - REMOVIDO) =====
-  // Nota: Este sistema ha sido reemplazado por AreasJerarquicas y ConceptosJerarquicos
-  // Las nuevas rutas están en routes-areas.ts y routes-conceptos.ts
-  // Si necesitas las funcionalidades jerárquicas, usa las nuevas APIs:
-  // - GET /api/areas-jerarquicas/arbol
-  // - GET /api/conceptos-jerarquicos
-  // ===== FIN CONCEPTOS JERÁRQUICOS =====
-
   // Cliente routes
   app.get("/api/clientes", async (req, res) => {
     try {
       const clientes = await storage.getAllClientes();
       res.json(clientes);
     } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Nuevo endpoint para clientes con contactos completos
+  app.get("/api/clientes/full", async (req, res) => {
+    try {
+      const clientes = await storage.getAllClientesFull();
+      res.json(clientes);
+    } catch (error: any) {
+      console.error("[API] Error getting full clientes:", error);
       res.status(500).json({ message: error.message });
     }
   });
@@ -769,18 +372,53 @@ export function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/clientes", async (req, res) => {
     try {
+      console.log("[API] Creando cliente:", req.body);
       const result = insertClienteSchema.safeParse(req.body);
       if (!result.success) {
+        console.log("[API] Error de validación:", result.error.errors);
         return res
           .status(400)
           .json({ message: "Validation error", errors: result.error.errors });
       }
       const cliente = await storage.createCliente(result.data);
+      console.log("[API] Cliente creado exitosamente:", cliente);
       res.status(201).json(cliente);
+    } catch (error: any) {
+      console.error("[API] Error al crear cliente:", error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.put("/api/clientes/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const result = insertClienteSchema.partial().safeParse(req.body);
+      if (!result.success) {
+        return res
+          .status(400)
+          .json({ message: "Validation error", errors: result.error.errors });
+      }
+      const cliente = await storage.updateCliente(id, result.data);
+      res.json(cliente);
     } catch (error: any) {
       res.status(500).json({ message: error.message });
     }
   });
+
+
+
+  
+  app.delete("/api/clientes/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      await storage.deleteCliente(id);
+      res.status(204).send();
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Teléfonos routes
   app.post("/api/clientes/:id/telefonos", async (req, res) => {
     try {
       const clienteId = parseInt(req.params.id);
@@ -789,7 +427,7 @@ export function registerRoutes(app: Express): Promise<Server> {
         clienteId,
         "Datos:",
         req.body,
-      );
+      );  
 
       // Agregar clienteId al body antes de validar
       const dataToValidate = { ...req.body, clienteId };
@@ -809,6 +447,8 @@ export function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: error.message });
     }
   });
+
+  // Correos routes
   app.post("/api/clientes/:id/correos", async (req, res) => {
     try {
       const clienteId = parseInt(req.params.id);
@@ -922,56 +562,21 @@ export function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: error.message });
     }
   });
+
   app.post("/api/presupuestos", async (req, res) => {
     try {
       const { conceptos, areaCodigo, ...presupuestoData } = req.body;
       console.log("[POST /api/presupuestos] Request body:", req.body);
 
       // Validar límites de valores antes de procesamiento
-      if (conceptos && conceptos.length > 0) {
-        for (const concepto of conceptos) {
-          // Validar cantidad
-          if (concepto.cantidad > 999999) {
-            return res.status(400).json({
-              message: `La cantidad para el concepto ${concepto.conceptoCodigo} excede el límite permitido (999,999)`,
-            });
-          }
+      if (presupuestoData.subtotal && presupuestoData.subtotal > 9999999999.99) {
+        return res.status(400).json({
+          message: "El subtotal excede el límite permitido ($9,999,999,999.99)",
+        });
+      }
 
-          // Validar precio unitario
-          if (concepto.precioUnitario > 9999999.99) {
-            return res.status(400).json({
-              message: `El precio unitario para el concepto ${concepto.conceptoCodigo} excede el límite permitido ($9,999,999.99)`,
-            });
-          }
-
-          // Validar subtotal individual
-          const subtotalConcepto = concepto.cantidad * concepto.precioUnitario;
-          if (subtotalConcepto > 9999999999.99) {
-            return res.status(400).json({
-              message: `El subtotal para el concepto ${concepto.conceptoCodigo} excede el límite permitido ($9,999,999,999.99)`,
-            });
-          }
-        }
-
-        // Validar subtotal total
-        const subtotalTotal = conceptos.reduce(
-          (sum: number, concepto: any) =>
-            sum + concepto.cantidad * concepto.precioUnitario,
-          0,
-        );
-
-        if (subtotalTotal > 9999999999.99) {
-          return res.status(400).json({
-            message:
-              "El subtotal total del presupuesto excede el límite permitido ($9,999,999,999.99)",
-          });
-        }
-
-        // Validar total con IVA
-        const ivaMonto =
-          subtotalTotal * (presupuestoData.iva || SYSTEM_CONSTANTS.IVA_RATE);
-        const totalConIva = subtotalTotal + ivaMonto;
-
+      if (presupuestoData.total) {
+        const totalConIva = Number(presupuestoData.total);
         if (totalConIva > 9999999999.99) {
           return res.status(400).json({
             message:
@@ -983,16 +588,18 @@ export function registerRoutes(app: Express): Promise<Server> {
       // Si se proporciona areaCodigo, necesitamos crear o encontrar una obra
       let claveObra = presupuestoData.claveObra;
 
-      if (areaCodigo && !claveObra) {
-        // Generar clave de obra automáticamente
+      if (areaCodigo) {
         try {
-          claveObra = await storage.generateClaveObra(areaCodigo);
-          console.log(
-            "[POST /api/presupuestos] Generated claveObra:",
-            claveObra,
-          );
+          // Si no hay claveObra, generar una nueva
+          if (!claveObra) {
+            claveObra = await storage.generateClaveObra(areaCodigo);
+            console.log(
+              "[POST /api/presupuestos] Generated claveObra:",
+              claveObra,
+            );
+          }
 
-          // Crear la obra si no existe
+          // Verificar si la obra existe y crearla si no existe
           const existingObra = await storage.getObraById(claveObra);
           if (!existingObra) {
             await storage.createObra({
@@ -1003,6 +610,11 @@ export function registerRoutes(app: Express): Promise<Server> {
             });
             console.log(
               "[POST /api/presupuestos] Created new obra:",
+              claveObra,
+            );
+          } else {
+            console.log(
+              "[POST /api/presupuestos] Obra already exists:",
               claveObra,
             );
           }
@@ -1020,8 +632,6 @@ export function registerRoutes(app: Express): Promise<Server> {
       const finalPresupuestoData = {
         ...presupuestoData,
         claveObra: claveObra,
-        // Convertir fechaInicio de string a Date si está presente
-        fechaInicio: presupuestoData.fechaInicio ? new Date(presupuestoData.fechaInicio) : undefined,
       };
 
       console.log(
@@ -1075,6 +685,7 @@ export function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: error.message });
     }
   });
+
   app.put("/api/presupuestos/:id", async (req, res) => {
     try {
       const id = parseInt(req.params.id);
@@ -1120,14 +731,16 @@ export function registerRoutes(app: Express): Promise<Server> {
             estado: "en_proceso",
           });
         }
-        // Recalcular totales
+
+        // Recalcular totales si hay conceptos
         const detalles = await storage.getPresupuestoDetalles(id);
-        const subtotal = detalles.reduce((sum, detalle) => {
-          const cantidad = Number(detalle.cantidad);
-          const precio = Number(detalle.precioUnitario);
-          return sum + cantidad * precio;
-        }, 0);
-        const iva = Number(presupuesto.iva) || 0;
+        const subtotal = detalles.reduce(
+          (total: number, detalle: any) =>
+            total +
+            Number(detalle.precioUnitario) * Number(detalle.cantidad),
+          0,
+        );
+        const iva = Number(presupuesto.iva) || 0.16;
         const ivaMonto = subtotal * iva;
         const total = subtotal + ivaMonto;
 
@@ -1168,6 +781,7 @@ export function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: error.message });
     }
   });
+
   app.post("/api/presupuestos/:id/detalles", async (req, res) => {
     try {
       const presupuestoId = parseInt(req.params.id);
@@ -1181,6 +795,7 @@ export function registerRoutes(app: Express): Promise<Server> {
           .status(400)
           .json({ message: "Validation error", errors: result.error.errors });
       }
+
       const detalle = await storage.createPresupuestoDetalle(result.data);
 
       // Recalcular totales después de agregar detalle
@@ -1231,251 +846,70 @@ export function registerRoutes(app: Express): Promise<Server> {
     } catch (error: any) {
       res.status(500).json({ message: error.message });
     }
-  }); // PDF generation route
+  });
+
+  // PDF generation route
   app.get("/api/presupuestos/:id/pdf", async (req, res) => {
     let browser;
     try {
       const id = parseInt(req.params.id);
-      console.log(`[PDF] Generating PDF for presupuesto ${id}`);
-
+      
+      // Obtener presupuesto con detalles
       const presupuesto = await storage.getPresupuestoById(id);
       if (!presupuesto) {
         return res.status(404).json({ message: "Presupuesto not found" });
       }
 
-      const detalles = presupuesto.detalles || [];
-      console.log(`[PDF] Found ${detalles.length} detalles`);
+      const detalles = await storage.getPresupuestoDetalles(id);
+
+      // Generar HTML
       const html = generatePresupuestoHTML(presupuesto, detalles, true);
-      console.log(`[PDF] Generated HTML, length: ${html.length}`);
-
-      // Validate HTML before processing
-      const validation = validateHTML(html);
-      if (!validation.isValid) {
-        console.error("[PDF] HTML validation failed:", validation.errors);
-        throw new Error(
-          `HTML validation failed: ${validation.errors.join(", ")}`,
-        );
-      }
-      console.log("[PDF] HTML validation passed");
-
-      // Validate HTML before generating PDF
-      const { isValid, errors } = validateHTML(html);
-      if (!isValid) {
-        return res
-          .status(500)
-          .json({ message: "Invalid HTML generated", errors });
+      
+      // Validar HTML
+      if (!validateHTML(html)) {
+        return res.status(400).json({ 
+          message: "Invalid HTML content detected" 
+        });
       }
 
-      // Improved puppeteer configuration for PDF corruption issues
+      // Configurar Puppeteer
       browser = await puppeteer.launch({
         headless: true,
-        args: [
-          "--no-sandbox",
-          "--disable-setuid-sandbox",
-          "--disable-dev-shm-usage",
-          "--disable-accelerated-2d-canvas",
-          "--no-first-run",
-          "--no-zygote",
-          "--disable-gpu",
-        ],
+        args: ['--no-sandbox', '--disable-setuid-sandbox']
       });
 
       const page = await browser.newPage();
-
-      // Set viewport and user agent to ensure consistent rendering
-      await page.setViewport({ width: 1280, height: 720 });
-      await page.setUserAgent(
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
-      );
-
-      console.log(`[PDF] Setting page content...`);
-      await page.setContent(html, {
-        waitUntil: ["load", "domcontentloaded", "networkidle0"],
-        timeout: 60000,
+      
+      // Configurar el contenido HTML
+      await page.setContent(html, { 
+        waitUntil: 'networkidle0',
+        timeout: 30000 
       });
-      // Wait for fonts and styles to load
-      await new Promise((resolve) => setTimeout(resolve, 2000));
 
-      console.log(`[PDF] Generating PDF...`);
+      // Generar PDF
       const pdf = await page.pdf({
-        format: "A4",
+        format: 'A4',
         printBackground: true,
-        preferCSSPageSize: false,
-        displayHeaderFooter: false,
         margin: {
-          top: "20mm",
-          right: "20mm",
-          bottom: "20mm",
-          left: "20mm",
-        },
-        timeout: 60000,
+          top: '20mm',
+          right: '15mm',
+          bottom: '20mm',
+          left: '15mm'
+        }
       });
 
-      console.log(
-        `[PDF] Generated PDF successfully, size: ${pdf.length} bytes`,
-      );
+      // Configurar headers de respuesta
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="presupuesto-${id}.pdf"`);
+      res.setHeader('Content-Length', pdf.length.toString());
+      
+      res.send(pdf);
 
-      // Verify PDF is not empty or corrupted
-      if (!pdf || pdf.length === 0) {
-        throw new Error("Generated PDF is empty");
-      } // Check if PDF starts with valid PDF header
-      if (
-        !(
-          pdf[0] === 0x25 &&
-          pdf[1] === 0x50 &&
-          pdf[2] === 0x44 &&
-          pdf[3] === 0x46
-        )
-      ) {
-        throw new Error("Generated PDF has invalid header");
-      }
-
-      // Set proper headers for PDF download
-      res.setHeader("Content-Type", "application/pdf");
-      res.setHeader(
-        "Content-Disposition",
-        `attachment; filename="presupuesto-${presupuesto.claveObra || presupuesto.id}.pdf"`,
-      );
-      res.setHeader("Content-Length", pdf.length.toString());
-      res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
-      res.setHeader("Pragma", "no-cache");
-      res.setHeader("Expires", "0");
-
-      // Send PDF as binary data
-      res.end(pdf, "binary");
     } catch (error: any) {
       console.error("[PDF] Error generating PDF:", error);
-      res
-        .status(500)
-        .json({ message: `Error generating PDF: ${error.message}` });
-    } finally {
-      if (browser) {
-        try {
-          await browser.close();
-          console.log("[PDF] Browser closed successfully");
-        } catch (closeError) {
-          console.error("[PDF] Error closing browser:", closeError);
-        }
-      }
-    }
-  });
-
-  // Debug route to see HTML content
-  app.get("/api/presupuestos/:id/html", async (req, res) => {
-    try {
-      const id = parseInt(req.params.id);
-      const presupuesto = await storage.getPresupuestoById(id);
-      if (!presupuesto) {
-        return res.status(404).json({ message: "Presupuesto not found" });
-      }
-
-      const detalles = presupuesto.detalles || [];
-      const html = generatePresupuestoHTML(presupuesto, detalles);
-
-      res.setHeader("Content-Type", "text/html; charset=utf-8");
-      res.send(html);
-    } catch (error: any) {
-      res.status(500).json({ message: error.message });
-    }
-  });
-
-  // PDF test endpoint - generates PDF and returns metadata for debugging
-  app.get("/api/presupuestos/:id/pdf-test", async (req, res) => {
-    let browser;
-    try {
-      const id = parseInt(req.params.id);
-      console.log(`[PDF-TEST] Testing PDF generation for presupuesto ${id}`);
-
-      const presupuesto = await storage.getPresupuestoById(id);
-      if (!presupuesto) {
-        return res.status(404).json({ message: "Presupuesto not found" });
-      }
-
-      const detalles = presupuesto.detalles || [];
-      const html = generatePresupuestoHTML(presupuesto, detalles, true);
-
-      // Validate HTML
-      const validation = validateHTML(html);
-
-      browser = await puppeteer.launch({
-        headless: true,
-        args: [
-          "--no-sandbox",
-          "--disable-setuid-sandbox",
-          "--disable-dev-shm-usage",
-          "--disable-accelerated-2d-canvas",
-          "--no-first-run",
-          "--no-zygote",
-          "--disable-gpu",
-        ],
-      });
-
-      const page = await browser.newPage();
-      await page.setViewport({ width: 1280, height: 720 });
-      await page.setUserAgent(
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
-      );
-
-      await page.setContent(html, {
-        waitUntil: ["load", "domcontentloaded", "networkidle0"],
-        timeout: 60000,
-      });
-
-      await new Promise((resolve) => setTimeout(resolve, 2000));
-
-      const pdf = await page.pdf({
-        format: "A4",
-        printBackground: true,
-        preferCSSPageSize: false,
-        displayHeaderFooter: false,
-        margin: {
-          top: "20mm",
-          right: "20mm",
-          bottom: "20mm",
-          left: "20mm",
-        },
-        timeout: 60000,
-      }); // PDF integrity checks
-      const pdfHeader = pdf.slice(0, 5).toString();
-      const pdfFooter = pdf.slice(-5).toString();
-
-      const result = {
-        success: true,
-        htmlValidation: validation,
-        pdfMetadata: {
-          size: pdf.length,
-          header: pdfHeader,
-          footer: pdfFooter,
-          hasValidHeader:
-            pdf[0] === 0x25 &&
-            pdf[1] === 0x50 &&
-            pdf[2] === 0x44 &&
-            pdf[3] === 0x46, // %PDF
-          isEmpty: pdf.length === 0,
-          firstBytes: Array.from(pdf.slice(0, 20))
-            .map((b) => b.toString(16).padStart(2, "0"))
-            .join(" "),
-          lastBytes: Array.from(pdf.slice(-20))
-            .map((b) => b.toString(16).padStart(2, "0"))
-            .join(" "),
-        },
-        presupuestoData: {
-          id: presupuesto.id,
-          claveObra: presupuesto.claveObra,
-          detallesCount: detalles.length,
-          estado: presupuesto.estado,
-          subtotal: presupuesto.subtotal,
-          total: presupuesto.total,
-        },
-      };
-
-      res.json(result);
-    } catch (error: any) {
-      console.error("[PDF-TEST] Error:", error);
-      res.status(500).json({
-        success: false,
-        error: error.message,
-        stack: error.stack,
+      res.status(500).json({ 
+        message: "Error generating PDF", 
+        error: error.message 
       });
     } finally {
       if (browser) {
@@ -1484,686 +918,7 @@ export function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // ============ ENDPOINTS DE PROGRAMACIONES ============
-
-  // Obtener programaciones con filtros
-  app.get("/api/programming/programaciones", async (req, res) => {
-    try {
-      const filters = {
-        fechaDesde: req.query.fechaDesde as string,
-        fechaHasta: req.query.fechaHasta as string,
-        brigadistaId: req.query.brigadistaId
-          ? parseInt(req.query.brigadistaId as string)
-          : undefined,
-        estado: req.query.estado as string,
-        claveObra: req.query.claveObra as string,
-      };
-
-      const programaciones = await storage.getAllProgramaciones(filters);
-      res.json(programaciones);
-    } catch (error: any) {
-      console.error("Error obteniendo programaciones:", error);
-      res.status(500).json({ message: error.message });
-    }
-  });
-
-  // Obtener programación por ID
-  app.get("/api/programming/programaciones/:id", async (req, res) => {
-    try {
-      const id = parseInt(req.params.id);
-      const programacion = await storage.getProgramacionById(id);
-
-      if (!programacion) {
-        return res.status(404).json({ message: "Programación no encontrada" });
-      }
-
-      res.json(programacion);
-    } catch (error: any) {
-      console.error("Error obteniendo programación:", error);
-      res.status(500).json({ message: error.message });
-    }
-  });
-
-  // Crear nueva programación
-  app.post("/api/programming/programaciones", async (req, res) => {
-    try {
-      const programacion = await storage.createProgramacion({
-        ...req.body,
-        fechaProgramada: new Date(req.body.fechaProgramada),
-      });
-      res.status(201).json(programacion);
-    } catch (error: any) {
-      console.error("Error creando programación:", error);
-      res.status(500).json({ message: error.message });
-    }
-  });
-
-  // Actualizar programación
-  app.put("/api/programming/programaciones/:id", async (req, res) => {
-    try {
-      const id = parseInt(req.params.id);
-      const data = { ...req.body };
-
-      if (data.fechaProgramada) {
-        data.fechaProgramada = new Date(data.fechaProgramada);
-      }
-
-      const programacion = await storage.updateProgramacion(id, data);
-      res.json(programacion);
-    } catch (error: any) {
-      console.error("Error actualizando programación:", error);
-      res.status(500).json({ message: error.message });
-    }
-  });
-
-  // Eliminar programación
-  app.delete("/api/programming/programaciones/:id", async (req, res) => {
-    try {
-      const id = parseInt(req.params.id);
-      await storage.deleteProgramacion(id);
-      res.status(204).send();
-    } catch (error: any) {
-      console.error("Error eliminando programación:", error);
-      res.status(500).json({ message: error.message });
-    }
-  });
-
-  // Obtener programaciones por brigadista
-  app.get("/api/programming/programaciones/brigadista", async (req, res) => {
-    try {
-      const brigadistaId = parseInt(req.query.brigadistaId as string);
-      const fecha = req.query.fecha as string;
-
-      // Construir filtros según la fecha proporcionada
-      const filters = fecha
-        ? { fechaDesde: fecha, fechaHasta: fecha }
-        : undefined;
-
-      const programaciones = await storage.getProgramacionesByBrigadista(
-        brigadistaId,
-        filters,
-      );
-      res.json(programaciones);
-    } catch (error: any) {
-      console.error("Error obteniendo programaciones del brigadista:", error);
-      res.status(500).json({ message: error.message });
-    }
-  });
-
-  // Obtener información del brigadista actual (mock - en producción vendría del token de sesión)
-  app.get("/api/programming/brigadista/perfil", async (req, res) => {
-    try {
-      // Por ahora devolvemos el primer brigadista como ejemplo
-      const brigadista = await storage.getBrigadistaById(1);
-      if (!brigadista) {
-        return res.status(404).json({ message: "Brigadista no encontrado" });
-      }
-      res.json(brigadista);
-    } catch (error: any) {
-      console.error("Error obteniendo perfil del brigadista:", error);
-      res.status(500).json({ message: error.message });
-    }
-  });
-
-  // Obtener programaciones del brigadista actual
-  app.get("/api/programming/brigadista/programaciones", async (req, res) => {
-    try {
-      const { fechaDesde, fechaHasta, estado, brigadistaId } = req.query;
-      // Validar que brigadistaId esté presente y sea número
-      const brigadistaIdNum = parseInt(brigadistaId as string);
-      if (!brigadistaIdNum || isNaN(brigadistaIdNum)) {
-        return res.status(400).json({ message: "brigadistaId es requerido y debe ser numérico" });
-      }
-      const programaciones = await storage.getProgramacionesByBrigadista(brigadistaIdNum, {
-        fechaDesde: fechaDesde as string,
-        fechaHasta: fechaHasta as string,
-        estado: estado as string,
-      });
-      res.json(programaciones);
-    } catch (error: any) {
-      console.error("Error obteniendo programaciones del brigadista:", error);
-      res.status(500).json({ message: error.message });
-    }
-  });
-
-  // ============ ACCIONES DE PROGRAMACIONES ============
-
-  // Iniciar actividad
-  app.post("/api/programming/programaciones/:id/iniciar", async (req, res) => {
-    try {
-      const { id } = req.params;
-      const { muestrasObtenidas, fechaInicio } = req.body;
-
-      const programacion = await storage.iniciarProgramacion(Number(id), {
-        muestrasObtenidas,
-        fechaInicio: fechaInicio ? new Date(fechaInicio) : undefined,
-      });
-
-      res.json(programacion);
-    } catch (error: any) {
-      console.error("Error iniciando programación:", error);
-      res.status(500).json({ message: error.message });
-    }
-  });
-
-  // Completar actividad
-  app.post(
-    "/api/programming/programaciones/:id/completar",
-    async (req, res) => {
-      try {
-        const { id } = req.params;
-        const { muestrasObtenidas, fechaCompletado, observaciones } = req.body;
-
-        const programacion = await storage.completarProgramacion(Number(id), {
-          muestrasObtenidas,
-          fechaCompletado: fechaCompletado
-            ? new Date(fechaCompletado)
-            : undefined,
-          observaciones,
-        });
-
-        res.json(programacion);
-      } catch (error: any) {
-        console.error("Error completando programación:", error);
-        res.status(500).json({ message: error.message });
-      }
-    },
-  );
-
-  // Cancelar actividad
-  app.post("/api/programming/programaciones/:id/cancelar", async (req, res) => {
-    try {
-      const { id } = req.params;
-      const { motivoCancelacion } = req.body;
-
-      const programacion = await storage.cancelarProgramacion(Number(id), {
-        motivoCancelacion,
-      });
-
-      res.json(programacion);
-    } catch (error: any) {
-      console.error("Error cancelando programación:", error);
-      res.status(500).json({ message: error.message });
-    }
-  });
-
-  // Reprogramar actividad
-  app.post(
-    "/api/programming/programaciones/:id/reprogramar",
-    async (req, res) => {
-      try {
-        const { id } = req.params;
-        const {
-          fechaProgramada,
-          horaProgramada,
-          brigadistaId,
-          vehiculoId,
-          motivoCancelacion,
-        } = req.body;
-
-        const programacion = await storage.reprogramarProgramacion(Number(id), {
-          fechaProgramada: new Date(fechaProgramada),
-          horaProgramada,
-          brigadistaId,
-          vehiculoId,
-          motivoCancelacion,
-        });
-
-        res.json(programacion);
-      } catch (error: any) {
-        console.error("Error reprogramando:", error);
-        res.status(500).json({ message: error.message });
-      }
-    },
-  );
-
-  // ============ ENDPOINTS DE BRIGADISTAS Y VEHÍCULOS ============
-
-  // Obtener brigadistas
-  app.get("/api/programming/brigadistas", async (_req, res) => {
-    try {
-      const brigadistas = await storage.getAllBrigadistas();
-      res.json(brigadistas);
-    } catch (error: any) {
-      console.error("Error obteniendo brigadistas:", error);
-      res.status(500).json({ message: error.message });
-    }
-  });
-  // Obtener brigadistas disponibles
-  app.get("/api/programming/brigadistas/disponibles", async (req, res) => {
-    try {
-      const { fecha, hora } = req.query;
-      const brigadistas = await storage.getBrigadistasDisponibles(
-        fecha as string,
-        hora as string,
-      );
-      res.json(brigadistas);
-    } catch (error: any) {
-      console.error("Error obteniendo brigadistas disponibles:", error);
-      res.status(500).json({ message: error.message });
-    }
-  });
-
-  // Obtener vehículos
-  app.get("/api/programming/vehiculos", async (_req, res) => {
-    try {
-      const vehiculos = await storage.getAllVehiculos();
-      res.json(vehiculos);
-    } catch (error: any) {
-      console.error("Error obteniendo vehículos:", error);
-      res.status(500).json({ message: error.message });
-    }
-  });
-  // Obtener vehículos disponibles
-  app.get("/api/programming/vehiculos/disponibles", async (req, res) => {
-    try {
-      const { fecha, hora } = req.query;
-      const vehiculos = await storage.getVehiculosDisponibles(
-        fecha as string,
-        hora as string,
-      );
-      res.json(vehiculos);
-    } catch (error: any) {
-      console.error("Error obteniendo vehículos disponibles:", error);
-      res.status(500).json({ message: error.message });
-    }
-  });
-
-  // Obtener obras aprobadas para programación
-  app.get("/api/programming/obras-aprobadas", async (_req, res) => {
-    try {
-      const presupuestosAprobados = await storage.getPresupuestosAprobados();
-
-      // Agrupar presupuestos por clave de obra para consolidar conceptos
-      const obrasMap = new Map();
-
-      presupuestosAprobados.forEach((presupuesto) => {
-        const claveObra = presupuesto.claveObra || `OBRA-${presupuesto.id}`;
-
-        if (!obrasMap.has(claveObra)) {
-          const ubicacion = [
-            presupuesto.tramo,
-            presupuesto.colonia,
-            presupuesto.calle,
-          ]
-            .filter(Boolean)
-            .join(" ");
-
-          obrasMap.set(claveObra, {
-            clave: claveObra,
-            clienteNombre:
-              presupuesto.cliente?.nombre || "Cliente no especificado",
-            descripcionObra:
-              presupuesto.descripcionObra || "Descripción no disponible",
-            ubicacion: ubicacion || "Ubicación no especificada",
-            contratista:
-              presupuesto.nombreContratista ||
-              presupuesto.cliente?.nombre ||
-              "Contratista no especificado",
-            conceptos: [],
-          });
-        }
-
-        // Agregar conceptos de este presupuesto a la obra
-        const obra = obrasMap.get(claveObra);
-        if (presupuesto.detalles) {
-          presupuesto.detalles.forEach((detalle) => {
-            // Verificar que el concepto no esté ya agregado
-            const conceptoExiste = obra.conceptos.some(
-              (c: any) => c.codigo === detalle.concepto.codigo,
-            );
-            if (!conceptoExiste) {
-              obra.conceptos.push({
-                codigo: detalle.concepto.codigo,
-                descripcion:
-                  detalle.concepto.descripcion || "Descripción no disponible",
-                unidad: detalle.concepto.unidad || "pza",
-                cantidad: detalle.cantidad || 1,
-              });
-            }
-          });
-        }
-      });
-
-      // Convertir el Map a array
-      const obrasAprobadas = Array.from(obrasMap.values());
-
-      res.json(obrasAprobadas);
-    } catch (error: any) {
-      console.error("Error obteniendo obras aprobadas:", error);
-      res.status(500).json({ message: error.message });
-    }
-  });
-  // Obtener estadísticas del dashboard de programming
-  app.get("/api/programming/dashboard/stats", async (req, res) => {
-    try {
-      const stats = await storage.getDashboardStats();
-      res.json(stats);
-    } catch (error: any) {
-      console.error("Error obteniendo estadísticas:", error);
-      res.status(500).json({ message: error.message });
-    }
-  }); // Obtener datos de gráfica del dashboard de programming
-  app.get("/api/programming/dashboard/grafica", async (req, res) => {
-    try {
-      const { fechaInicio } = req.query;
-      const graficaData = await storage.getDashboardGrafica(
-        fechaInicio as string,
-      );
-      res.json(graficaData);
-    } catch (error: any) {
-      console.error("Error obteniendo datos de gráfica:", error);
-      res.status(500).json({ message: error.message });
-    }
-  });
-
-  // Obtener estadísticas rápidas para la página principal
-  app.get("/api/programming/quick-stats", async (req, res) => {
-    try {
-      const stats = await storage.getQuickStats();
-      res.json(stats);
-    } catch (error: any) {
-      console.error("Error obteniendo estadísticas rápidas:", error);
-      res.status(500).json({ message: error.message });
-    }
-  });
-
-  // Cliente routes - serve static files from client/dist
-  app.use("*", (req, res, next) => {
-    // Let vite handle client-side routing
-    next();
-  });
-
-  app.get("/api/empleado/stats", async (_req, res) => {
-    try {
-      const [
-        obrasEnProceso,
-        programacionesHoy,
-        presupuestosPendientes,
-        presupuestosAprobados,
-        totalConceptos,
-      ] = await Promise.all([
-        prisma.obra.count(),
-        prisma.programacion.count({ 
-          where: { 
-            fechaProgramada: {
-              gte: new Date(new Date().toDateString()),
-              lt: new Date(new Date().getTime() + 24 * 60 * 60 * 1000)
-            }
-          } 
-        }),
-        prisma.presupuesto.count({ where: { estado: "enviado" } }),
-        prisma.presupuesto.count({ where: { estado: "aprobado" } }),
-        prisma.concepto.count(),
-      ]);
-
-      // Calcular el total de ventas del mes actual
-      const inicioMes = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
-      const finMes = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0);
-      
-      const ventasMes = await prisma.presupuesto.aggregate({
-        _sum: { total: true },
-        where: {
-          estado: "aprobado",
-          fechaSolicitud: {
-            gte: inicioMes,
-            lte: finMes,
-          },
-        },
-      });
-
-      // Calcular facturación pendiente (presupuestos aprobados pero no finalizados)
-      const facturacionPendiente = await prisma.presupuesto.aggregate({
-        _sum: { total: true },
-        where: { estado: "aprobado" }
-      });
-
-      res.json({
-        obrasEnProceso,
-        muestrasEnLaboratorio: programacionesHoy, // Usamos programaciones de hoy como muestras
-        presupuestosPendientes,
-        informesPorGenerar: totalConceptos, // Total de conceptos como informes
-        facturacionPendiente: facturacionPendiente._sum.total || 0,
-        tiempoPromedioEnsayo: 24, // Valor simulado
-        eficienciaLaboratorio: 85, // Valor simulado
-        ventasMes: ventasMes._sum.total || 0,
-        presupuestosAprobados,
-      });
-    } catch (error: any) {
-      res.status(500).json({ message: error.message });
-    }
-  });
-
-  app.get("/api/empleado/alertas", async (_req, res) => {
-    try {
-      // Simulamos alertas basadas en datos reales
-      const alertas = [];
-      
-      // Verificar presupuestos vencidos
-      const presupuestosVencidos = await prisma.presupuesto.count({
-        where: {
-          estado: "enviado",
-          fechaSolicitud: {
-            lt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) // Más de 7 días
-          }
-        }
-      });
-
-      if (presupuestosVencidos > 0) {
-        alertas.push({
-          id: 1,
-          tipo: "importante",
-          mensaje: `${presupuestosVencidos} presupuestos enviados hace más de 7 días sin respuesta`,
-          fecha: new Date().toLocaleString()
-        });
-      }
-
-      // Verificar programaciones de hoy
-      const programacionesHoy = await prisma.programacion.count({
-        where: {
-          fechaProgramada: {
-            gte: new Date(new Date().toDateString()),
-            lt: new Date(new Date().getTime() + 24 * 60 * 60 * 1000)
-          }
-        }
-      });
-
-      if (programacionesHoy > 5) {
-        alertas.push({
-          id: 2,
-          tipo: "info",
-          mensaje: `${programacionesHoy} programaciones de muestreo programadas para hoy`,
-          fecha: new Date().toLocaleString()
-        });
-      }
-
-      // Si no hay alertas, mostrar mensaje positivo
-      if (alertas.length === 0) {
-        alertas.push({
-          id: 0,
-          tipo: "info",
-          mensaje: "Todas las operaciones funcionando correctamente",
-          fecha: new Date().toLocaleString()
-        });
-      }
-
-      res.json(alertas);
-    } catch (error: any) {
-      res.status(500).json({ message: error.message });
-    }
-  });
-
-  app.get("/api/empleado/presupuestos-recientes", async (_req, res) => {
-    try {
-      const presupuestos = await prisma.presupuesto.findMany({
-        orderBy: { fechaSolicitud: "desc" },
-        take: 10,
-        select: {
-          id: true,
-          claveObra: true,
-          cliente: true,
-          estado: true,
-          total: true,
-          fechaSolicitud: true,
-        },
-      });
-      res.json(presupuestos);
-    } catch (error: any) {
-      res.status(500).json({ message: error.message });
-    }
-  });
-
-  // Endpoint para datos de gráficas del dashboard
-  app.get("/api/empleado/charts/ventas-mensuales", async (_req, res) => {
-    try {
-      // Obtener presupuestos aprobados de los últimos 12 meses
-      const presupuestosAprobados = await prisma.presupuesto.findMany({
-        where: {
-          estado: "aprobado",
-          fechaSolicitud: {
-            gte: new Date(new Date().setMonth(new Date().getMonth() - 12))
-          }
-        },
-        select: {
-          total: true,
-          fechaSolicitud: true
-        }
-      });
-
-      // Agrupar por mes
-      const ventasMensuales = presupuestosAprobados.reduce((acc: any[], presupuesto) => {
-        const fecha = new Date(presupuesto.fechaSolicitud!);
-        const mes = fecha.getMonth() + 1;
-        const año = fecha.getFullYear();
-        const clave = `${año}-${mes.toString().padStart(2, '0')}`;
-        
-        const existing = acc.find(item => item.periodo === clave);
-        if (existing) {
-          existing.total += Number(presupuesto.total || 0);
-          existing.cantidad += 1;
-        } else {
-          acc.push({
-            periodo: clave,
-            mes,
-            año,
-            total: Number(presupuesto.total || 0),
-            cantidad: 1
-          });
-        }
-        return acc;
-      }, []);
-
-      res.json(ventasMensuales.sort((a, b) => `${a.año}-${a.mes}`.localeCompare(`${b.año}-${b.mes}`)));
-    } catch (error: any) {
-      res.status(500).json({ message: error.message });
-    }
-  });
-
-  app.get("/api/empleado/charts/estado-presupuestos", async (_req, res) => {
-    try {
-      const estadoPresupuestos = await prisma.presupuesto.groupBy({
-        by: ['estado'],
-        _count: { id: true },
-        _sum: { total: true }
-      });
-      res.json(estadoPresupuestos);
-    } catch (error: any) {
-      res.status(500).json({ message: error.message });
-    }
-  });
-
-  app.get("/api/empleado/charts/rendimiento-laboratorio", async (_req, res) => {
-    try {
-      // Simular datos de rendimiento basados en programaciones
-      const programaciones = await prisma.programacion.findMany({
-        where: {
-          fechaProgramada: {
-            gte: new Date(new Date().setDate(new Date().getDate() - 30))
-          }
-        },
-        select: {
-          fechaProgramada: true,
-          cantidadMuestras: true,
-          estado: true
-        }
-      });
-
-      const rendimiento = programaciones.reduce((acc: any[], prog) => {
-        const fecha = prog.fechaProgramada.toISOString().split('T')[0];
-        const existing = acc.find(item => item.fecha === fecha);
-        
-        if (existing) {
-          existing.muestras_procesadas += prog.cantidadMuestras;
-          existing.programaciones += 1;
-        } else {
-          acc.push({
-            fecha,
-            muestras_procesadas: prog.cantidadMuestras,
-            programaciones: 1,
-            tiempo_promedio: Math.floor(Math.random() * 8) + 4 // Simulado entre 4-12 horas
-          });
-        }
-        return acc;
-      }, []);
-
-      res.json(rendimiento);
-    } catch (error: any) {
-      res.status(500).json({ message: error.message });
-    }
-  });
-
-  app.get("/api/empleado/charts/areas-trabajo", async (_req, res) => {
-    try {
-      const areas = await prisma.area.findMany({
-        include: {
-          subareas: {
-            include: {
-              conceptos: {
-                include: {
-                  detalles: {
-                    include: {
-                      presupuesto: true
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-      });
-
-      const areasData = areas.map(area => {
-        const totalConceptos = area.subareas.reduce((sum, subarea) => 
-          sum + subarea.conceptos.length, 0
-        );
-        const totalPresupuestos = area.subareas.reduce((sum, subarea) => 
-          sum + subarea.conceptos.reduce((conceptSum, concepto) => 
-            conceptSum + concepto.detalles.length, 0
-          ), 0
-        );
-        const totalMonto = area.subareas.reduce((sum, subarea) => 
-          sum + subarea.conceptos.reduce((conceptSum, concepto) => 
-            conceptSum + concepto.detalles.reduce((detalleSum, detalle) => 
-              detalleSum + Number(detalle.precioUnitario) * Number(detalle.cantidad), 0
-            ), 0
-          ), 0
-        );
-
-        return {
-          nombre: area.nombre,
-          totalConceptos,
-          totalPresupuestos,
-          totalMonto
-        };
-      });
-
-      res.json(areasData);
-    } catch (error: any) {
-      res.status(500).json({ message: error.message });
-    }
-  });
-
-  // Rutas de autenticación con integración real a base de datos
+  // Rutas de autenticación básicas
   app.post("/api/auth/login", async (req, res) => {
     try {
       // TEMPORAL: Retornar usuario mock para pruebas
@@ -2195,468 +950,180 @@ export function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Rutas para brigadistas - obtener actividades asignadas desde la base de datos
-  app.get("/api/brigadista/:id/actividades", async (req, res) => {
+  // Estadísticas simplificadas para empleados
+  app.get("/api/empleado/stats", async (_req, res) => {
     try {
-      const brigadistaId = parseInt(req.params.id);
-      const fecha = req.query.fecha as string || new Date().toISOString().split('T')[0];
-      
-      // Buscar programaciones asignadas al brigadista para la fecha especificada
-      const programaciones = await prisma.programacion.findMany({
-        where: {
-          OR: [
-            { brigadistaId },
-            { brigadistaApoyoId: brigadistaId }
-          ],
-          fechaProgramada: {
-            gte: new Date(fecha + 'T00:00:00.000Z'),
-            lt: new Date(fecha + 'T23:59:59.999Z')
-          }
-        },
-        include: {
-          obra: true,
-          concepto: true,
-          vehiculo: true,
-          brigadista: true,
-          brigadistaApoyo: true
-        },
-        orderBy: {
-          horaProgramada: 'asc'
-        }
-      });
-
-      // Formatear datos para el frontend
-      const actividades = programaciones.map(prog => ({
-        id: prog.id,
-        obra: { 
-          clave: prog.claveObra,
-          nombreObra: prog.obra?.contratista || 'Obra sin nombre'
-        },
-        concepto: { 
-          codigo: prog.conceptoCodigo,
-          descripcion: prog.concepto?.descripcion || 'Concepto sin descripción'
-        },
-        vehiculo: { 
-          clave: prog.vehiculo?.clave || 'N/A',
-          descripcion: prog.vehiculo?.descripcion || 'Vehículo no asignado'
-        },
-        cantidadMuestras: prog.cantidadMuestras,
-        horaProgramada: prog.horaProgramada,
-        estado: prog.estado,
-        tipoProgramacion: prog.tipoProgramacion,
-        nombreResidente: prog.nombreResidente,
-        telefonoResidente: prog.telefonoResidente,
-        observaciones: prog.observaciones,
-        fechaInicio: prog.fechaInicio,
-        fechaCompletado: prog.fechaCompletado,
-        muestrasObtenidas: prog.muestrasObtenidas
-      }));
-
-      console.log(`[BRIGADISTA] Encontradas ${actividades.length} actividades para brigadista ${brigadistaId} en fecha ${fecha}`);
-      res.json(actividades);
-    } catch (error: any) {
-      console.error("[BRIGADISTA] Error obteniendo actividades:", error);
-      res.status(500).json({ message: error.message });
-    }
-  });
-
-  // Actualizar estado de programación con base de datos real
-  app.patch("/api/programacion/:id/estado", async (req, res) => {
-    try {
-      const id = parseInt(req.params.id);
-      const { estado, datos } = req.body;
-      
-      // Preparar datos de actualización
-      const updateData: any = { estado };
-      
-      if (estado === 'en_proceso') {
-        updateData.fechaInicio = new Date();
-      } else if (estado === 'completada') {
-        updateData.fechaCompletado = new Date();
-        if (datos?.muestrasObtenidas) {
-          updateData.muestrasObtenidas = parseInt(datos.muestrasObtenidas);
-        }
-      } else if (estado === 'cancelada' && datos?.motivoCancelacion) {
-        updateData.motivoCancelacion = datos.motivoCancelacion;
-      }
-
-      // Actualizar en la base de datos
-      const programacionActualizada = await prisma.programacion.update({
-        where: { id },
-        data: updateData,
-        include: {
-          obra: true,
-          concepto: true,
-          vehiculo: true,
-          brigadista: true
-        }
-      });
-
-      // Formatear respuesta
-      const response = {
-        id: programacionActualizada.id,
-        estado: programacionActualizada.estado,
-        fechaInicio: programacionActualizada.fechaInicio,
-        fechaCompletado: programacionActualizada.fechaCompletado,
-        muestrasObtenidas: programacionActualizada.muestrasObtenidas,
-        motivoCancelacion: programacionActualizada.motivoCancelacion,
-        obra: { clave: programacionActualizada.claveObra },
-        concepto: { descripcion: programacionActualizada.concepto?.descripcion },
-        vehiculo: { descripcion: programacionActualizada.vehiculo?.descripcion },
-        brigadista: { nombre: programacionActualizada.brigadista?.nombre }
-      };
-
-      console.log(`[PROGRAMACION] Estado actualizado para programación ${id}: ${estado}`);
-      res.json(response);
-    } catch (error: any) {
-      console.error("[PROGRAMACION] Error actualizando estado:", error);
-      res.status(500).json({ message: error.message });
-    }
-  });
-
-  // ===== ÁREAS JERÁRQUICAS =====
-  
-  // GET /api/areas-jerarquicas - Obtener todas las áreas
-  app.get("/api/areas-jerarquicas", async (req, res) => {
-    try {
-      const { nivel, padreId } = req.query;
-      
-      let whereClause = "WHERE 1=1";
-      const params: any[] = [];
-      
-      if (nivel) {
-        whereClause += " AND nivel = ?";
-        params.push(parseInt(nivel as string));
-      }
-      if (padreId) {
-        whereClause += " AND padre_id = ?";
-        params.push(parseInt(padreId as string));
-      }
-      
-      const areas = await prisma.$queryRawUnsafe(`
-        SELECT id, codigo, nombre, padre_id as padreId, nivel, created_at as createdAt, updated_at as updatedAt
-        FROM areas_jerarquicas 
-        ${whereClause}
-        ORDER BY nivel ASC, codigo ASC
-      `, ...params);
-      
-      res.json({ data: areas, success: true });
-    } catch (error: any) {
-      console.error('Error al obtener áreas jerárquicas:', error);
-      res.status(500).json({ message: error.message });
-    }
-  });
-
-  // GET /api/areas-jerarquicas/arbol - Obtener estructura de árbol
-  app.get("/api/areas-jerarquicas/arbol", async (req, res) => {
-    try {
-      // Obtener todas las áreas y conceptos
-      const [areas, conceptos] = await Promise.all([
-        prisma.$queryRaw`
-          SELECT id, codigo, nombre, padre_id as padreId, nivel, created_at as createdAt, updated_at as updatedAt
-          FROM areas_jerarquicas 
-          ORDER BY nivel ASC, codigo ASC
-        `,
-        prisma.$queryRaw`
-          SELECT id, codigo, descripcion, unidad, precio_unitario as precioUnitario, area_id as areaId, created_at as createdAt, updated_at as updatedAt
-          FROM conceptos_jerarquicos 
-          ORDER BY codigo ASC
-        `
+      const [totalClientes, totalPresupuestos, totalObras, presupuestosAprobados] = await Promise.all([
+        prisma.cliente.count(),
+        prisma.presupuesto.count(),
+        prisma.obra.count(),
+        prisma.presupuesto.count({ where: { estado: "aprobado" } }),
       ]);
 
-      // Construir el árbol jerárquico
-      const construirArbol = (areas: any[], padreId: number | null = null): any[] => {
-        return areas
-          .filter(area => area.padreId === padreId)
-          .map(area => ({
-            ...area,
-            hijos: construirArbol(areas, area.id),
-            conceptos: (conceptos as any[]).filter((concepto: any) => concepto.areaId === area.id),
-            expanded: false
-          }));
-      };
+      // Calcular el total de ventas del mes actual
+      const inicioMes = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+      const finMes = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0);
+      
+      const ventasMes = await prisma.presupuesto.aggregate({
+        _sum: { total: true },
+        where: {
+          estado: "aprobado",
+          fechaSolicitud: {
+            gte: inicioMes,
+            lte: finMes,
+          },
+        },
+      });
 
-      const arbol = construirArbol(areas as any[]);
-      res.json({ data: arbol, success: true });
-    } catch (error: any) {
-      console.error('Error al obtener árbol jerárquico:', error);
-      res.status(500).json({ message: error.message });
-    }
-  });
+      // Calcular facturación pendiente (presupuestos aprobados pero no finalizados)
+      const facturacionPendiente = await prisma.presupuesto.aggregate({
+        _sum: { total: true },
+        where: { estado: "aprobado" }
+      });
 
-  // GET /api/areas-jerarquicas/:id - Obtener área específica
-  app.get("/api/areas-jerarquicas/:id", async (req, res) => {
-    try {
-      const id = parseInt(req.params.id);
-      
-      if (isNaN(id)) {
-        return res.status(400).json({ message: 'ID inválido' });
-      }
-      
-      const areas = await prisma.$queryRaw`
-        SELECT id, codigo, nombre, padre_id as padreId, nivel, created_at as createdAt, updated_at as updatedAt
-        FROM areas_jerarquicas 
-        WHERE id = ${id}
-      `;
-      const area = (areas as any[])[0];
-      
-      if (!area) {
-        return res.status(404).json({ message: 'Área no encontrada' });
-      }
-      
-      res.json({ data: area, success: true });
-    } catch (error: any) {
-      console.error('Error al obtener área:', error);
-      res.status(500).json({ message: error.message });
-    }
-  });
-
-  // RUTAS COMENTADAS - USAR routes-areas.js y routes-conceptos.js EN SU LUGAR
-  // Las siguientes rutas están desactivadas para evitar conflictos
-  // con las nuevas implementaciones en archivos separados
-  
-  /*
-  // POST /api/areas-jerarquicas - Crear nueva área
-  app.post("/api/areas-jerarquicas", async (req, res) => {
-    try {
-      const { codigo, nombre, descripcion, nivel, padreId } = req.body;
-      
-      // Validar que el código no exista
-      const existeArea = await prisma.$queryRaw`SELECT id FROM areas_jerarquicas WHERE codigo = ${codigo}`;
-      
-      if ((existeArea as any[]).length > 0) {
-        return res.status(400).json({ message: 'Ya existe un área con ese código' });
-      }
-      
-      const nuevaArea = await prisma.$queryRaw`
-        INSERT INTO areas_jerarquicas (codigo, nombre, padre_id, nivel, created_at, updated_at)
-        VALUES (${codigo}, ${nombre}, ${padreId || null}, ${nivel}, NOW(), NOW())
-      `;
-      
-      res.status(201).json({ data: { id: nuevaArea, codigo, nombre, padre_id: padreId, nivel }, success: true });
-    } catch (error: any) {
-      console.error('Error al crear área:', error);
-      res.status(500).json({ message: error.message });
-    }
-  });
-
-  // PUT /api/areas-jerarquicas/:id - Actualizar área
-  app.put("/api/areas-jerarquicas/:id", async (req, res) => {
-    try {
-      const id = parseInt(req.params.id);
-      const { codigo, nombre, descripcion, nivel, padreId } = req.body;
-      
-      if (isNaN(id)) {
-        return res.status(400).json({ message: 'ID inválido' });
-      }
-      
-      // Validar que el código no exista en otra área
-      const existeArea = await prisma.$queryRaw`SELECT id FROM areas_jerarquicas WHERE codigo = ${codigo} AND id != ${id}`;
-      
-      if ((existeArea as any[]).length > 0) {
-        return res.status(400).json({ message: 'Ya existe un área con ese código' });
-      }
-      
-      await prisma.$queryRaw`
-        UPDATE areas_jerarquicas 
-        SET codigo = ${codigo}, nombre = ${nombre}, padre_id = ${padreId || null}, nivel = ${nivel}, updated_at = NOW()
-        WHERE id = ${id}
-      `;
-      
-      res.json({ data: { id, codigo, nombre, padre_id: padreId, nivel }, success: true });
-    } catch (error: any) {
-      console.error('Error al actualizar área:', error);
-      res.status(500).json({ message: error.message });
-    }
-  });
-
-  // DELETE /api/areas-jerarquicas/:id - Eliminar área
-  app.delete("/api/areas-jerarquicas/:id", async (req, res) => {
-    try {
-      const id = parseInt(req.params.id);
-      
-      if (isNaN(id)) {
-        return res.status(400).json({ message: 'ID inválido' });
-      }
-      
-      // Verificar si tiene áreas hijas
-      const areasHijas = await prisma.$queryRaw`SELECT COUNT(*) as count FROM areas_jerarquicas WHERE padre_id = ${id}`;
-      
-      if ((areasHijas as any[])[0].count > 0) {
-        return res.status(400).json({ 
-          message: 'No se puede eliminar el área porque tiene subareas dependientes' 
-        });
-      }
-      
-      // Verificar si tiene conceptos
-      const conceptos = await prisma.$queryRaw`SELECT COUNT(*) as count FROM conceptos_jerarquicos WHERE area_id = ${id}`;
-      
-      if ((conceptos as any[])[0].count > 0) {
-        return res.status(400).json({ 
-          message: 'No se puede eliminar el área porque tiene conceptos dependientes' 
-        });
-      }
-      
-      await prisma.$queryRaw`DELETE FROM areas_jerarquicas WHERE id = ${id}`;
-      
-      res.json({ success: true, message: 'Área eliminada correctamente' });
-    } catch (error: any) {
-      console.error('Error al eliminar área:', error);
-      res.status(500).json({ message: error.message });
-    }
-  });
-
-  // ===== CONCEPTOS JERÁRQUICOS =====
-  
-  // GET /api/conceptos-jerarquicos - Obtener todos los conceptos
-  app.get("/api/conceptos-jerarquicos", async (req, res) => {
-    try {
-      const { areaId } = req.query;
-      
-      let whereClause = "WHERE 1=1";
-      const params: any[] = [];
-      
-      if (areaId) {
-        whereClause += " AND area_id = ?";
-        params.push(parseInt(areaId as string));
-      }
-      
-      const conceptos = await prisma.$queryRawUnsafe(`
-        SELECT id, codigo, descripcion, unidad, precio_unitario as precioUnitario, area_id as areaId, created_at as createdAt, updated_at as updatedAt
-        FROM conceptos_jerarquicos 
-        ${whereClause}
-        ORDER BY codigo ASC
-      `, ...params);
-      
-      res.json({ data: conceptos, success: true });
-    } catch (error: any) {
-      console.error('Error al obtener conceptos jerárquicos:', error);
-      res.status(500).json({ message: error.message });
-    }
-  });
-
-  // GET /api/conceptos-jerarquicos/:id - Obtener concepto específico
-  app.get("/api/conceptos-jerarquicos/:id", async (req, res) => {
-    try {
-      const id = parseInt(req.params.id);
-      
-      if (isNaN(id)) {
-        return res.status(400).json({ message: 'ID inválido' });
-      }
-      
-      const conceptos = await prisma.$queryRaw`
-        SELECT id, codigo, descripcion, unidad, precio_unitario as precioUnitario, area_id as areaId, created_at as createdAt, updated_at as updatedAt
-        FROM conceptos_jerarquicos 
-        WHERE id = ${id}
-      `;
-      const concepto = (conceptos as any[])[0];
-      
-      if (!concepto) {
-        return res.status(404).json({ message: 'Concepto no encontrado' });
-      }
-      
-      res.json({ data: concepto, success: true });
-    } catch (error: any) {
-      console.error('Error al obtener concepto:', error);
-      res.status(500).json({ message: error.message });
-    }
-  });
-
-  // POST /api/conceptos-jerarquicos - Crear nuevo concepto
-  app.post("/api/conceptos-jerarquicos", async (req, res) => {
-    try {
-      const { codigo, descripcion, unidad, precio, areaId } = req.body;
-      
-      // Validar que el código no exista
-      const existeConcepto = await prisma.$queryRaw`SELECT id FROM conceptos_jerarquicos WHERE codigo = ${codigo}`;
-      
-      if ((existeConcepto as any[]).length > 0) {
-        return res.status(400).json({ message: 'Ya existe un concepto con ese código' });
-      }
-      
-      const nuevoConcepto = await prisma.$queryRaw`
-        INSERT INTO conceptos_jerarquicos (codigo, descripcion, unidad, precio_unitario, area_id, created_at, updated_at)
-        VALUES (${codigo}, ${descripcion}, ${unidad}, ${parseFloat(precio)}, ${areaId}, NOW(), NOW())
-      `;
-      
-      res.status(201).json({ 
-        data: { 
-          id: nuevoConcepto, 
-          codigo, 
-          descripcion, 
-          unidad, 
-          precioUnitario: parseFloat(precio), 
-          area_id: areaId 
-        }, 
-        success: true 
+      res.json({
+        totalClientes,
+        totalPresupuestos,
+        totalObras,
+        presupuestosPendientes: await prisma.presupuesto.count({ where: { estado: "enviado" } }),
+        facturacionPendiente: facturacionPendiente._sum.total || 0,
+        ventasMes: ventasMes._sum.total || 0,
+        presupuestosAprobados,
       });
     } catch (error: any) {
-      console.error('Error al crear concepto:', error);
       res.status(500).json({ message: error.message });
     }
   });
 
-  // PUT /api/conceptos-jerarquicos/:id - Actualizar concepto
-  app.put("/api/conceptos-jerarquicos/:id", async (req, res) => {
+  app.get("/api/empleado/presupuestos-recientes", async (_req, res) => {
     try {
-      const id = parseInt(req.params.id);
-      const { codigo, descripcion, unidad, precio, areaId } = req.body;
-      
-      if (isNaN(id)) {
-        return res.status(400).json({ message: 'ID inválido' });
-      }
-      
-      // Validar que el código no exista en otro concepto
-      const existeConcepto = await prisma.$queryRaw`SELECT id FROM conceptos_jerarquicos WHERE codigo = ${codigo} AND id != ${id}`;
-      
-      if ((existeConcepto as any[]).length > 0) {
-        return res.status(400).json({ message: 'Ya existe un concepto con ese código' });
-      }
-      
-      await prisma.$queryRaw`
-        UPDATE conceptos_jerarquicos 
-        SET codigo = ${codigo}, descripcion = ${descripcion}, unidad = ${unidad}, precio_unitario = ${parseFloat(precio)}, area_id = ${areaId}, updated_at = NOW()
-        WHERE id = ${id}
-      `;
-      
-      res.json({ 
-        data: { 
-          id, 
-          codigo, 
-          descripcion, 
-          unidad, 
-          precioUnitario: parseFloat(precio), 
-          area_id: areaId 
-        }, 
-        success: true 
+      const presupuestos = await prisma.presupuesto.findMany({
+        orderBy: { fechaSolicitud: "desc" },
+        take: 10,
+        select: {
+          id: true,
+          claveObra: true,
+          cliente: {
+            select: {
+              nombre: true
+            }
+          },
+          estado: true,
+          total: true,
+          fechaSolicitud: true,
+        },
       });
+      res.json(presupuestos);
     } catch (error: any) {
-      console.error('Error al actualizar concepto:', error);
       res.status(500).json({ message: error.message });
     }
   });
 
-  // DELETE /api/conceptos-jerarquicos/:id - Eliminar concepto
-  app.delete("/api/conceptos-jerarquicos/:id", async (req, res) => {
+  // Endpoint para datos de gráficas del dashboard
+  app.get("/api/empleado/charts/ventas-mensuales", async (_req, res) => {
     try {
-      const id = parseInt(req.params.id);
-      
-      if (isNaN(id)) {
-        return res.status(400).json({ message: 'ID inválido' });
-      }
-      
-      await prisma.$queryRaw`DELETE FROM conceptos_jerarquicos WHERE id = ${id}`;
-      
-      res.json({ success: true, message: 'Concepto eliminado correctamente' });
+      // Obtener presupuestos aprobados de los últimos 12 meses
+      const presupuestosAprobados = await prisma.presupuesto.findMany({
+        where: {
+          estado: "aprobado",
+          fechaSolicitud: {
+            gte: new Date(new Date().setMonth(new Date().getMonth() - 12))
+          }
+        },
+        select: {
+          total: true,
+          fechaSolicitud: true
+        }
+      });
+
+      // Agrupar por mes
+      const ventasPorMes = presupuestosAprobados.reduce((acc: any[], presupuesto) => {
+        const fecha = new Date(presupuesto.fechaSolicitud!);
+        const mesAno = `${fecha.getFullYear()}-${(fecha.getMonth() + 1).toString().padStart(2, '0')}`;
+        
+        const existente = acc.find(item => item.mes === mesAno);
+        if (existente) {
+          existente.ventas += Number(presupuesto.total) || 0;
+        } else {
+          acc.push({
+            mes: mesAno,
+            ventas: Number(presupuesto.total) || 0
+          });
+        }
+        return acc;
+      }, []);
+
+      // Ordenar por mes
+      ventasPorMes.sort((a, b) => a.mes.localeCompare(b.mes));
+
+      res.json(ventasPorMes);
     } catch (error: any) {
-      console.error('Error al eliminar concepto:', error);
       res.status(500).json({ message: error.message });
     }
   });
-  */
-  // FIN DE RUTAS COMENTADAS
+
+  app.get("/api/empleado/charts/estado-presupuestos", async (_req, res) => {
+    try {
+      const estadosPresupuestos = await prisma.presupuesto.groupBy({
+        by: ['estado'],
+        _count: {
+          id: true
+        }
+      });
+
+      const chartData = estadosPresupuestos.map(item => ({
+        estado: item.estado || 'Sin estado',
+        cantidad: item._count.id
+      }));
+
+      res.json(chartData);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.get("/api/empleado/charts/areas-trabajo", async (_req, res) => {
+    try {
+      const areasData = await prisma.area.findMany({
+        include: {
+          obras: {
+            include: {
+              presupuestos: {
+                include: {
+                  detalles: true
+                }
+              }
+            }
+          }
+        }
+      });
+
+      const chartData = areasData.map(area => {
+        const totalPresupuestos = area.obras.reduce((sum, obra) => sum + obra.presupuestos.length, 0);
+        const totalMonto = area.obras.reduce((sum, obra) => 
+          sum + obra.presupuestos.reduce((presSum, pres) => 
+            presSum + Number(pres.total || 0), 0
+          ), 0
+        );
+
+        return {
+          nombre: area.nombre || area.codigo,
+          totalPresupuestos,
+          totalMonto
+        };
+      });
+
+      res.json(chartData);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Cliente routes - serve static files from client/dist
+  app.use("*", (req, res, next) => {
+    // Let vite handle client-side routing
+    next();
+  });
 
   return Promise.resolve(server);
 }
-
-export default registerRoutes;

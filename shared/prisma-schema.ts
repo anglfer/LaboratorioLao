@@ -130,11 +130,14 @@ const baseBudgetSchema = z.object({
   projectDescription: z
     .string({ required_error: "La descripción del proyecto es requerida" })
     .min(10, "La descripción debe ser más específica"),
-  projectStartDate: z.coerce.date().optional(),
-  projectSection: z.string().optional(),
-  projectNeighborhood: z.string().optional(),
-  projectStreet: z.string().optional(),
+  projectScope: z
+    .string()
+    .min(10, "El alcance debe ser más específico")
+    .optional(),
   projectResponsible: z.string().optional(),
+  projectAddress: z
+    .string({ required_error: "La dirección es requerida" })
+    .min(5, "La dirección debe ser más específica"),
   location: z
     .string({ required_error: "La ubicación es requerida" })
     .min(5, "La ubicación debe ser más específica"),
@@ -161,36 +164,35 @@ const baseBudgetSchema = z.object({
       invalid_type_error: "El monto total debe ser un número",
     })
     .positive("El monto total debe ser mayor a cero"),
-  paymentMethod: z.string().optional(),
+  paymentPolicies: z.string().optional(),
+  hasAdvancePayment: z.boolean().default(false),
+  advancePaymentPercentage: z
+    .number()
+    .min(0, "El porcentaje de anticipo no puede ser negativo")
+    .max(100, "El porcentaje de anticipo no puede ser mayor a 100")
+    .optional(),
   status: budgetStatusEnum.default("draft"),
 });
 
-export const insertBudgetSchema = baseBudgetSchema.refine(
-  (data) => {
-    if (
-      typeof data.subtotalAmount !== "number" ||
-      typeof data.ivaAmount !== "number" ||
-      typeof data.totalAmount !== "number"
-    ) {
-      return true; // Let individual field validations catch type errors
-    }
-    const calculatedIva = Number(
-      (data.subtotalAmount * SYSTEM_CONSTANTS.IVA_RATE).toFixed(2),
-    );
-    const calculatedTotal = Number(
-      (data.subtotalAmount + calculatedIva).toFixed(2),
-    );
-    // Allow for small floating point discrepancies
-    return (
-      Math.abs(data.ivaAmount - calculatedIva) < 0.01 &&
-      Math.abs(data.totalAmount - calculatedTotal) < 0.01
-    );
-  },
-  {
-    message: "Los montos de IVA y total no coinciden con el cálculo esperado",
-    path: ["totalAmount"],
-  },
-);
+export const PresupuestoSchema = z.object({
+  id: z.number().int(),
+  fechaSolicitud: z.coerce.date(),
+  claveObra: z.string().optional(),
+  clienteId: z.number().int().optional(),
+  nombreContratista: z.string().optional(),
+  descripcionObra: z.string().optional(),
+  alcance: z.string().optional(),
+  direccion: z.string().optional(),
+  contactoResponsable: z.string().optional(),
+  manejaAnticipo: z.boolean().optional(),
+  porcentajeAnticipo: z.number().optional(),
+  iva: z.number().optional(),
+  subtotal: z.number().optional(),
+  ivaMonto: z.number().optional(),
+  total: z.number().optional(),
+  estado: z.any().optional(),
+  razonRechazo: z.string().optional(),
+});
 
 const baseBudgetItemSchema = z.object({
   budgetId: z.number({ required_error: "El presupuesto es requerido" }),
@@ -302,7 +304,7 @@ export const insertTestCatalogSchema = z.object({
 export type InsertClient = z.infer<typeof insertClientSchema>;
 export type InsertProject = z.infer<typeof insertProjectSchema>;
 export type InsertTestConcept = z.infer<typeof insertTestConceptSchema>;
-export type InsertBudget = z.infer<typeof insertBudgetSchema>;
+export type InsertBudget = z.infer<typeof baseBudgetSchema>;
 export type InsertBudgetItem = z.infer<typeof insertBudgetItemSchema>;
 export type InsertServiceOrder = z.infer<typeof insertServiceOrderSchema>;
 export type InsertSample = z.infer<typeof insertSampleSchema>;

@@ -98,11 +98,15 @@ const budgetSchema = z
     descripcionObra: z
       .string()
       .min(1, "La descripción de la obra es requerida"),
-    tramo: z.string().optional(),
-    colonia: z.string().optional(),
-    calle: z.string().optional(),
+    alcance: z
+      .string()
+      .min(10, "El alcance debe ser más específico")
+      .optional(),
+    direccion: z
+      .string()
+      .min(5, "La dirección debe ser más específica")
+      .optional(),
     contactoResponsable: z.string().optional(),
-    fechaInicio: z.string().optional(),
     // Conceptos
     areaCodigo: z.string().min(1, "Debe seleccionar un área"),
     conceptosSeleccionados: z
@@ -139,8 +143,13 @@ const budgetSchema = z
         }
       ),
 
-    // Forma de pago
-    formaPago: z.string().optional(),
+    // Anticipo
+    manejaAnticipo: z.boolean().optional(),
+    porcentajeAnticipo: z
+      .number()
+      .min(0, "El porcentaje no puede ser negativo")
+      .max(100, "El porcentaje no puede ser mayor a 100")
+      .optional(),
   })
   .refine(
     (data) => {
@@ -548,20 +557,20 @@ export default function AdvancedBudgetForm({
         );
         setValue("descripcionObra", initialData.descripcionObra);
       }
-      if (initialData.tramo) {
-        console.log("[AdvancedBudgetForm] Setting tramo:", initialData.tramo);
-        setValue("tramo", initialData.tramo);
-      }
-      if (initialData.colonia) {
+      // Cargar alcance y dirección
+      if (initialData.alcance) {
         console.log(
-          "[AdvancedBudgetForm] Setting colonia:",
-          initialData.colonia
+          "[AdvancedBudgetForm] Setting alcance:",
+          initialData.alcance
         );
-        setValue("colonia", initialData.colonia);
+        setValue("alcance", initialData.alcance);
       }
-      if (initialData.calle) {
-        console.log("[AdvancedBudgetForm] Setting calle:", initialData.calle);
-        setValue("calle", initialData.calle);
+      if (initialData.direccion) {
+        console.log(
+          "[AdvancedBudgetForm] Setting direccion:",
+          initialData.direccion
+        );
+        setValue("direccion", initialData.direccion);
       }
       if (initialData.contactoResponsable) {
         console.log(
@@ -570,13 +579,7 @@ export default function AdvancedBudgetForm({
         );
         setValue("contactoResponsable", initialData.contactoResponsable);
       }
-      if (initialData.fechaInicio) {
-        // Formatear la fecha para el input tipo date (YYYY-MM-DD)
-        const fechaFormatted = new Date(initialData.fechaInicio)
-          .toISOString()
-          .split("T")[0];
-        setValue("fechaInicio", fechaFormatted);
-      }
+
       // Cargar área de la obra
       if (initialData.obra?.areaCodigo && areasJerarquicas) {
         console.log(
@@ -598,13 +601,21 @@ export default function AdvancedBudgetForm({
         }
       }
 
-      // Cargar forma de pago
-      if (initialData.formaPago) {
+      // Cargar anticipo
+      if (initialData.manejaAnticipo !== undefined) {
         console.log(
-          "[AdvancedBudgetForm] Setting formaPago:",
-          initialData.formaPago
+          "[AdvancedBudgetForm] Setting manejaAnticipo:",
+          initialData.manejaAnticipo
         );
-        setValue("formaPago", initialData.formaPago);
+        setValue("manejaAnticipo", initialData.manejaAnticipo);
+      }
+
+      // Cargar configuración de anticipo
+      if (initialData.manejaAnticipo !== undefined) {
+        setValue("manejaAnticipo", initialData.manejaAnticipo);
+      }
+      if (initialData.porcentajeAnticipo) {
+        setValue("porcentajeAnticipo", initialData.porcentajeAnticipo);
       } // Cargar conceptos desde detalles
       if (initialData.detalles && initialData.detalles.length > 0) {
         console.log(
@@ -663,7 +674,7 @@ export default function AdvancedBudgetForm({
       console.log("[DEBUG] Current form values:");
       console.log("- selectedClienteId:", selectedClienteId);
       console.log("- selectedArea:", selectedArea);
-      console.log("- formaPago:", watch("formaPago"));
+      console.log("- manejaAnticipo:", watch("manejaAnticipo"));
       console.log("- conceptos:", watch("conceptos"));
     }
   }, [selectedClienteId, selectedArea, watch, isEditMode]);
@@ -947,23 +958,21 @@ export default function AdvancedBudgetForm({
       // Crear presupuesto
       const presupuestoData = {
         claveObra,
+        areaCodigo: data.areaCodigo, // ✅ AGREGAR EL AREACÓDIGO
         clienteId,
         nombreContratista: data.nombreContratista,
         descripcionObra: data.descripcionObra,
-        tramo: data.tramo,
-        colonia: data.colonia,
-        calle: data.calle,
+        alcance: data.alcance,
+        direccion: data.direccion,
         contactoResponsable: data.contactoResponsable,
-        formaPago: data.formaPago,
+        manejaAnticipo: data.manejaAnticipo,
+        porcentajeAnticipo: data.porcentajeAnticipo,
         iva: SYSTEM_CONSTANTS.IVA_RATE,
         subtotal,
         ivaMonto,
         total,
         estado: "borrador",
         fechaSolicitud: new Date().toISOString(),
-        fechaInicio: data.fechaInicio
-          ? new Date(data.fechaInicio).toISOString()
-          : null,
         conceptos: data.conceptos.map((concepto) => ({
           conceptoCodigo: concepto.conceptoCodigo,
           cantidad: concepto.cantidad,
@@ -1505,52 +1514,47 @@ export default function AdvancedBudgetForm({
                     )}
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div className="space-y-2">
-                      <Label
-                        htmlFor="tramo"
-                        className="text-sm font-medium text-gray-700"
-                      >
-                        Tramo
-                      </Label>
-                      <Input
-                        id="tramo"
-                        placeholder="Ej: Km 0+000 - Km 5+000"
-                        {...register("tramo")}
-                        className="border-gray-300 focus:border-green-500 focus:ring-green-500"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label
-                        htmlFor="colonia"
-                        className="text-sm font-medium text-gray-700"
-                      >
-                        Colonia
-                      </Label>
-                      <Input
-                        id="colonia"
-                        placeholder="Nombre de la colonia"
-                        {...register("colonia")}
-                        className="border-gray-300 focus:border-green-500 focus:ring-green-500"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label
-                        htmlFor="calle"
-                        className="text-sm font-medium text-gray-700"
-                      >
-                        Calle
-                      </Label>
-                      <Input
-                        id="calle"
-                        placeholder="Nombre de la calle"
-                        {...register("calle")}
-                        className="border-gray-300 focus:border-green-500 focus:ring-green-500"
-                      />
-                    </div>
+                  <div className="space-y-2">
+                    <Label
+                      htmlFor="alcance"
+                      className="text-sm font-medium text-gray-700"
+                    >
+                      Alcance del Proyecto
+                    </Label>
+                    <Textarea
+                      id="alcance"
+                      placeholder="Detalla el alcance específico del proyecto, incluye todos los trabajos que se realizarán..."
+                      rows={3}
+                      {...register("alcance")}
+                      className="border-gray-300 focus:border-green-500 focus:ring-green-500 resize-none"
+                    />
+                    {errors.alcance && (
+                      <p className="text-sm text-red-600">
+                        {errors.alcance.message}
+                      </p>
+                    )}
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label
+                        htmlFor="direccion"
+                        className="text-sm font-medium text-gray-700"
+                      >
+                        Dirección de la Obra
+                      </Label>
+                      <Input
+                        id="direccion"
+                        placeholder="Dirección completa donde se realizará la obra"
+                        {...register("direccion")}
+                        className="border-gray-300 focus:border-green-500 focus:ring-green-500"
+                      />
+                      {errors.direccion && (
+                        <p className="text-sm text-red-600">
+                          {errors.direccion.message}
+                        </p>
+                      )}
+                    </div>
                     <div className="space-y-2">
                       <Label
                         htmlFor="contactoResponsable"
@@ -1562,20 +1566,6 @@ export default function AdvancedBudgetForm({
                         id="contactoResponsable"
                         placeholder="Nombre del responsable en obra"
                         {...register("contactoResponsable")}
-                        className="border-gray-300 focus:border-green-500 focus:ring-green-500"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label
-                        htmlFor="fechaInicio"
-                        className="text-sm font-medium text-gray-700"
-                      >
-                        Fecha de Inicio
-                      </Label>
-                      <Input
-                        id="fechaInicio"
-                        type="date"
-                        {...register("fechaInicio")}
                         className="border-gray-300 focus:border-green-500 focus:ring-green-500"
                       />
                     </div>
@@ -2575,9 +2565,7 @@ export default function AdvancedBudgetForm({
                       <div className="p-2 bg-white/20 rounded-lg text-white text-xl">
                         💰
                       </div>
-                      <span className="font-semibold">
-                        Totales y Forma de Pago
-                      </span>
+                      <span className="font-semibold">Anticipo</span>
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="p-8 space-y-6">
@@ -2719,94 +2707,103 @@ export default function AdvancedBudgetForm({
                       </div>
                     </div>
 
-                    <div className="space-y-3">
-                      <Label
-                        htmlFor="formaPago"
-                        className="text-lg font-semibold flex items-center space-x-2"
-                        style={{ color: "#2C3E50" }}
-                      >
-                        <svg
-                          className="h-5 w-5"
-                          style={{ color: "#68A53B" }}
-                          fill="currentColor"
-                          viewBox="0 0 20 20"
+                    <div className="space-y-6">
+                      {/* Manejo de Anticipo */}
+                      <div className="space-y-4">
+                        <Label
+                          className="text-lg font-semibold flex items-center space-x-2"
+                          style={{ color: "#2C3E50" }}
                         >
-                          <path d="M4 4a2 2 0 00-2 2v1h16V6a2 2 0 00-2-2H4z" />
-                          <path
-                            fillRule="evenodd"
-                            d="M18 9H2v5a2 2 0 002 2h12a2 2 0 002-2V9zM4 13a1 1 0 011-1h1a1 1 0 110 2H5a1 1 0 01-1-1zm5-1a1 1 0 100 2h1a1 1 0 100-2H9z"
-                            clipRule="evenodd"
+                          <svg
+                            className="h-5 w-5"
+                            style={{ color: "#68A53B" }}
+                            fill="currentColor"
+                            viewBox="0 0 20 20"
+                          >
+                            <path d="M4 4a2 2 0 00-2 2v1h16V6a2 2 0 00-2-2H4z" />
+                            <path
+                              fillRule="evenodd"
+                              d="M18 9H2v5a2 2 0 002 2h12a2 2 0 002-2V9zM4 13a1 1 0 011-1h1a1 1 0 110 2H5a1 1 0 01-1-1zm5-1a1 1 0 100 2h1a1 1 0 100-2H9z"
+                              clipRule="evenodd"
+                            />
+                          </svg>
+                          <span>Anticipo</span>
+                        </Label>
+
+                        <div className="flex items-center space-x-3">
+                          <input
+                            type="checkbox"
+                            id="manejaAnticipo"
+                            {...register("manejaAnticipo")}
+                            className="w-4 h-4 rounded focus:ring-2 focus:ring-[#68A53B]"
+                            style={{ accentColor: "#68A53B" }}
                           />
-                        </svg>
-                        <span>Forma de Pago</span>
-                      </Label>
-                      <Select
-                        value={watch("formaPago")}
-                        onValueChange={(value) => setValue("formaPago", value)}
-                      >
-                        <SelectTrigger
-                          className="h-12 border-2 rounded-xl shadow-sm transition-all"
-                          style={{
-                            borderColor: "#6C757D",
-                            backgroundColor: "#FFFFFF",
-                          }}
-                        >
-                          <SelectValue placeholder="Seleccionar forma de pago..." />
-                        </SelectTrigger>
-                        <SelectContent
-                          className="rounded-xl border-2 shadow-xl"
-                          style={{ backgroundColor: "#FFFFFF" }}
-                        >
-                          <SelectItem
-                            value="efectivo"
-                            className="py-3 px-4 hover:bg-green-50 focus:bg-green-50 rounded-lg m-1 transition-colors"
+                          <Label
+                            htmlFor="manejaAnticipo"
+                            className="text-base font-medium cursor-pointer"
+                            style={{ color: "#2C3E50" }}
                           >
-                            <div className="flex items-center space-x-2">
-                              <div
-                                className="w-3 h-3 rounded-full"
-                                style={{ backgroundColor: "#68A53B" }}
-                              ></div>
-                              <span>Efectivo</span>
+                            ¿Se requiere anticipo?
+                          </Label>
+                        </div>
+
+                        {watch("manejaAnticipo") && (
+                          <div className="ml-7 space-y-3">
+                            <Label
+                              htmlFor="porcentajeAnticipo"
+                              className="text-sm font-medium"
+                              style={{ color: "#2C3E50" }}
+                            >
+                              Porcentaje de anticipo (%)
+                            </Label>
+                            <div className="flex items-center space-x-3">
+                              <Input
+                                id="porcentajeAnticipo"
+                                type="number"
+                                min="0"
+                                max="100"
+                                step="0.1"
+                                placeholder="0"
+                                {...register("porcentajeAnticipo", {
+                                  valueAsNumber: true,
+                                })}
+                                className="w-24 border-2 rounded-lg"
+                                style={{
+                                  borderColor: "#6C757D",
+                                  backgroundColor: "#FFFFFF",
+                                }}
+                              />
+                              <span
+                                className="text-2xl font-bold"
+                                style={{ color: "#68A53B" }}
+                              >
+                                %
+                              </span>
+                              {watch("porcentajeAnticipo") && (
+                                <span
+                                  className="text-lg font-semibold"
+                                  style={{ color: "#2C3E50" }}
+                                >
+                                  = $
+                                  {(
+                                    (total *
+                                      (watch("porcentajeAnticipo") || 0)) /
+                                    100
+                                  ).toFixed(2)}
+                                </span>
+                              )}
                             </div>
-                          </SelectItem>
-                          <SelectItem
-                            value="transferencia"
-                            className="py-3 px-4 hover:bg-blue-50 focus:bg-blue-50 rounded-lg m-1 transition-colors"
-                          >
-                            <div className="flex items-center space-x-2">
-                              <div
-                                className="w-3 h-3 rounded-full"
-                                style={{ backgroundColor: "#2C3E50" }}
-                              ></div>
-                              <span>Transferencia</span>
-                            </div>
-                          </SelectItem>
-                          <SelectItem
-                            value="cheque"
-                            className="py-3 px-4 hover:bg-orange-50 focus:bg-orange-50 rounded-lg m-1 transition-colors"
-                          >
-                            <div className="flex items-center space-x-2">
-                              <div
-                                className="w-3 h-3 rounded-full"
-                                style={{ backgroundColor: "#E67E22" }}
-                              ></div>
-                              <span>Cheque</span>
-                            </div>
-                          </SelectItem>
-                          <SelectItem
-                            value="credito"
-                            className="py-3 px-4 hover:bg-yellow-50 focus:bg-yellow-50 rounded-lg m-1 transition-colors"
-                          >
-                            <div className="flex items-center space-x-2">
-                              <div
-                                className="w-3 h-3 rounded-full"
-                                style={{ backgroundColor: "#F39C12" }}
-                              ></div>
-                              <span>Crédito</span>
-                            </div>
-                          </SelectItem>
-                        </SelectContent>
-                      </Select>
+                            {errors.porcentajeAnticipo && (
+                              <p
+                                className="text-sm"
+                                style={{ color: "#C0392B" }}
+                              >
+                                {errors.porcentajeAnticipo.message}
+                              </p>
+                            )}
+                          </div>
+                        )}
+                      </div>
                     </div>
 
                     <Separator

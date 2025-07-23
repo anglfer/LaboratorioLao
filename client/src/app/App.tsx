@@ -8,8 +8,7 @@ import { AdminDashboard } from "../features/dashboard/components/AdminDashboard"
 import { RecepcionistaDashboard } from "../features/dashboard/components/RecepcionistaDashboard";
 import { BudgetsNew } from "../features/budgets";
 import { SistemaJerarquicoPage } from "../features/concepts";
-import ProgrammingPage from "../features/programming/pages/ProgrammingPage";
-import BrigadistaPage from "../features/programming/pages/BrigadistaPage";
+import ClientesPage from "../features/clientes/ClientesPage";
 import NotFound from "./not-found";
 import { useAuth } from "../features/dashboard/hooks/useAuth";
 import { LoginForm } from "../shared/components/LoginForm";
@@ -25,8 +24,6 @@ function AuthenticatedRouter() {
         {/* Rutas directas de presupuestos */}
         <Route path="/presupuestos" element={<BudgetsNew />} />
         <Route path="/presupuestos/nuevo" element={<BudgetsNew />} />
-        {/* Rutas de programación */}
-        <Route path="/programacion" element={<ProgrammingPage />} />
         {/* Rutas administrativas */}
         <Route
           path="/admin/sistema-jerarquico"
@@ -38,17 +35,10 @@ function AuthenticatedRouter() {
           element={<div>Gestión de Usuarios - En desarrollo</div>}
         />
         <Route
-          path="/admin/brigadistas"
-          element={<div>Gestión de Brigadistas - En desarrollo</div>}
-        />
-        <Route
-          path="/admin/vehiculos"
-          element={<div>Gestión de Vehículos - En desarrollo</div>}
-        />
-        <Route
           path="/admin/obras"
           element={<div>Gestión de Obras - En desarrollo</div>}
         />
+        <Route path="/admin/clientes" element={<ClientesPage />} />
         <Route
           path="/admin/reportes"
           element={<div>Reportes - En desarrollo</div>}
@@ -60,17 +50,10 @@ function AuthenticatedRouter() {
         {/* Rutas de recepcionista */}
         <Route path="/recepcionista/presupuestos" element={<BudgetsNew />} />
         <Route
-          path="/recepcionista/programacion"
-          element={<ProgrammingPage />}
-        />
-        <Route
           path="/recepcionista/clientes"
           element={<div>Gestión de Clientes - En desarrollo</div>}
         />
         {/* Rutas específicas por rol */}
-        {usuario?.rol === "brigadista" && (
-          <Route path="/brigadista" element={<BrigadistaPage />} />
-        )}
         <Route path="*" element={<NotFound />} />
       </Routes>
     </Layout>

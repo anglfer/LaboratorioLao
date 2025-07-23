@@ -37,13 +37,6 @@ export function RecepcionistaDashboard() {
       color: "bg-blue-500",
     },
     {
-      title: "Programaciones",
-      description: "Crear y gestionar programaciones",
-      icon: Calendar,
-      path: "programacion",
-      color: "bg-purple-500",
-    },
-    {
       title: "Clientes",
       description: "Administrar información de clientes",
       icon: Users,
@@ -87,16 +80,15 @@ export function RecepcionistaDashboard() {
       },
     });
 
-  // Obtener programaciones de hoy de la API
-  const { data: programacionesHoy = [], isLoading: loadingProgramaciones } =
-    useQuery({
-      queryKey: ["programaciones", "hoy"],
-      queryFn: async () => {
-        const res = await fetch("/api/programaciones/hoy");
-        if (!res.ok) throw new Error("Error al obtener programaciones de hoy");
-        return res.json();
-      },
-    });
+  // Obtener estadísticas básicas
+  const { data: estadisticas = {}, isLoading: loadingStats } = useQuery({
+    queryKey: ["dashboard", "stats"],
+    queryFn: async () => {
+      const res = await fetch("/api/dashboard/stats");
+      if (!res.ok) throw new Error("Error al obtener estadísticas");
+      return res.json();
+    },
+  });
 
   return (
     <>
@@ -107,7 +99,7 @@ export function RecepcionistaDashboard() {
               Panel de Recepción
             </h1>
             <p className="text-gray-600 mt-2">
-              Gestiona presupuestos, programaciones y clientes
+              Gestiona presupuestos y clientes
             </p>
           </div>
           <Link to="presupuestos/nuevo">
@@ -217,55 +209,6 @@ export function RecepcionistaDashboard() {
                       >
                         {presupuesto.estado.charAt(0).toUpperCase() +
                           presupuesto.estado.slice(1)}
-                      </span>
-                    </div>
-                  ))
-                )}
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Programaciones de Hoy</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                {loadingProgramaciones ? (
-                  <div className="text-center text-gray-500">Cargando...</div>
-                ) : programacionesHoy.length === 0 ? (
-                  <div className="text-center text-gray-500">
-                    No hay programaciones para hoy
-                  </div>
-                ) : (
-                  programacionesHoy.map((prog: any) => (
-                    <div
-                      key={prog.id}
-                      className="flex items-center justify-between py-2 border-b"
-                    >
-                      <div>
-                        <p className="font-medium">
-                          {prog.obraClave} - {prog.actividad}
-                        </p>
-                        <p className="text-sm text-gray-600">
-                          {prog.horaProgramada} - Brigadista{" "}
-                          {prog.brigadistaNombre}
-                        </p>
-                      </div>
-                      <span
-                        className={`text-sm px-2 py-1 rounded ${
-                          prog.estado === "programada"
-                            ? "bg-green-100 text-green-800"
-                            : prog.estado === "en_proceso"
-                            ? "bg-yellow-100 text-yellow-800"
-                            : prog.estado === "completada"
-                            ? "bg-blue-100 text-blue-800"
-                            : "bg-gray-100 text-gray-800"
-                        }`}
-                      >
-                        
-                        {prog.estado.charAt(0).toUpperCase() +
-                          prog.estado.slice(1).replace("_", " ")}
                       </span>
                     </div>
                   ))

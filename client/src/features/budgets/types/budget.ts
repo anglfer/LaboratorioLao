@@ -88,16 +88,16 @@ export interface BudgetFormData {
   copiarDeCliente?: boolean;
   nombreContratista: string;
   descripcionObra: string;
-  tramo?: string;
-  colonia?: string;
-  calle?: string;
+  alcance?: string;
+  direccion?: string;
   contactoResponsable?: string;
-  fechaInicio?: string;
   areaCodigo: string;
   conceptos: Array<{
     conceptoCodigo: string;
     cantidad: number;
     precioUnitario: number;
   }>;
-  formaPago?: string;
+  conceptosSeleccionados?: string[];
+  manejaAnticipo?: boolean;
+  porcentajeAnticipo?: number;
 }

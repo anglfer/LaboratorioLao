@@ -37,27 +37,6 @@ export function AdminDashboard() {
       color: "bg-green-500",
     },
     {
-      title: "Programaciones",
-      description: "Administrar programaciones del laboratorio",
-      icon: Calendar,
-      path: "programacion",
-      color: "bg-purple-500",
-    },
-    {
-      title: "Brigadistas",
-      description: "Gestión de brigadistas y asignaciones",
-      icon: UserCheck,
-      path: "brigadistas",
-      color: "bg-orange-500",
-    },
-    {
-      title: "Vehículos",
-      description: "Administrar flota de vehículos",
-      icon: Truck,
-      path: "vehiculos",
-      color: "bg-red-500",
-    },
-    {
       title: "Obras y Áreas",
       description: "Gestionar obras y áreas de trabajo",
       icon: Building2,

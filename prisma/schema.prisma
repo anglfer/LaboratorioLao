@@ -59,9 +59,9 @@ model Obra {
   areaCodigo   String   @db.VarChar(50)
   contratista  String?  @db.VarChar(50)
   estado       Int?     @db.TinyInt
+  fechaInicio  DateTime? @db.Timestamp(0) @map("fecha_inicio")
   area         Area     @relation(fields: [areaCodigo], references: [codigo])
   presupuestos Presupuesto[]
-  programaciones Programacion[]
 
   @@index([areaCodigo], name: "idx_obra_area_codigo")
 }
@@ -85,9 +85,8 @@ model Presupuesto {
   
   // Detalles de la obra
   descripcionObra   String?              @db.Text @map("descripcion_obra")
-  tramo            String?              @db.VarChar(255)
-  colonia          String?              @db.VarChar(255)
-  calle            String?              @db.VarChar(255)
+  alcance           String?              @db.Text
+  direccion         String?              @db.VarChar(500)
   contactoResponsable String?           @db.VarChar(255) @map("contacto_responsable")
   
   // Totales
@@ -96,13 +95,13 @@ model Presupuesto {
   ivaMonto         Decimal?             @db.Decimal(12,2) @default(0) @map("iva_monto")
   total            Decimal?             @db.Decimal(12,2) @default(0)
   
-  // Forma de pago
-  formaPago        String?              @db.VarChar(100) @map("forma_pago")
+  // Políticas de pago (solo anticipo)
+  manejaAnticipo   Boolean?             @default(false) @map("maneja_anticipo")
+  porcentajeAnticipo Decimal?           @db.Decimal(5,2) @map("porcentaje_anticipo")
   
   // Estados y fechas
   estado           PresupuestoEstado?   @default(borrador)
   fechaSolicitud   DateTime?            @db.Timestamp(0) @default(now()) @map("fecha_solicitud")
-  fechaInicio      DateTime?            @db.Timestamp(0) @map("fecha_inicio")
   razonRechazo     String?              @db.Text @map("razon_rechazo")
   
   // Relaciones
@@ -111,7 +110,6 @@ model Presupuesto {
   detalles         PresupuestoDetalle[]
 
   @@index([claveObra], name: "idx_presupuestos_clave_obra")
-  @@index([clienteId], name: "idx_presupuestos_cliente_id")
 }
 
 enum PresupuestoEstado {
@@ -130,6 +128,7 @@ model PresupuestoDetalle {
   precioUnitario  Decimal            @db.Decimal(10,2)
   subtotal        Decimal?           @db.Decimal(12,2)
   estado          DetalleEstado?     @default(en_proceso)
+  
   presupuesto     Presupuesto        @relation(fields: [presupuestoId], references: [id], onDelete: Cascade)
   concepto        ConceptosJerarquicos @relation(fields: [conceptoCodigo], references: [codigo])
 
@@ -139,10 +138,11 @@ model PresupuestoDetalle {
 
 enum DetalleEstado {
   en_proceso
-  hecho
+  completado
+  cancelado
 }
 
-// Nuevas entidades para el módulo de programación
+// Módulo de autenticación simplificado (solo para presupuestos)
 model Usuario {
   id               Int      @id @default(autoincrement())
   nombre           String   @db.VarChar(100)
@@ -156,10 +156,6 @@ model Usuario {
 
   role             Role     @relation(fields: [rolId], references: [id])
 
-  // Si necesitas relación con brigadista, puedes agregarla aquí
-  // brigadistaId     Int?     @map("brigadista_id")
-  // brigadista       Brigadista? @relation(fields: [brigadistaId], references: [id])
-
   @@index([rolId], name: "idx_usuario_rol")
 }
 
@@ -167,93 +163,6 @@ enum RolUsuario {
   admin
   recepcionista
   jefe_laboratorio
-  brigadista
-  laboratorista
-}
-
-model Brigadista {
-  id               Int      @id @default(autoincrement())
-  nombre           String   @db.VarChar(255)
-  telefono         String?  @db.VarChar(255)
-  email            String?  @db.VarChar(255)
-  activo           Boolean  @default(true)
-  fechaRegistro    DateTime @default(now()) @map("fecha_registro")
-  disponible       Boolean  @default(true) @map("disponible")
-  tipoServicio     String?  @db.VarChar(100) @map("tipo_servicio")
-
-  programaciones   Programacion[]
-  programacionesApoyo Programacion[] @relation("BrigadistaApoyo")
-}
-
-model Vehiculo {
-  id               Int      @id @default(autoincrement())
-  clave            String   @unique @db.VarChar(50)
-  descripcion      String   @db.VarChar(255)
-  activo           Boolean  @default(true)
-  fechaRegistro    DateTime @default(now()) @map("fecha_registro")
-  
-  programaciones   Programacion[]
-}
-
-model Programacion {
-  id                    Int                  @id @default(autoincrement())
-  claveObra             String               @db.VarChar(20) @map("clave_obra")
-  fechaProgramada       DateTime             @db.Date @map("fecha_programada")
-  horaProgramada        String               @db.VarChar(10) @map("hora_programada")
-  tipoProgramacion      TipoProgramacion     @map("tipo_programacion")
-  nombreResidente       String?              @db.VarChar(255) @map("nombre_residente")
-  telefonoResidente     String?              @db.VarChar(255) @map("telefono_residente")
-  conceptoCodigo        String               @db.VarChar(50) @map("concepto_codigo")
-  cantidadMuestras      Int                  @map("cantidad_muestras")
-  tipoRecoleccion       TipoRecoleccion      @map("tipo_recoleccion")
-  brigadistaId          Int                  @map("brigadista_id")
-  brigadistaApoyoId     Int?                 @map("brigadista_apoyo_id")
-  vehiculoId            Int                  @map("vehiculo_id")
-  claveEquipo           String?              @db.VarChar(50) @map("clave_equipo")
-  observaciones         String?              @db.Text
-  instrucciones         String?              @db.Text
-  condicionesEspeciales String?              @db.Text @map("condiciones_especiales")
-  estado                EstadoProgramacion   @default(programada)
-  fechaCreacion         DateTime             @default(now()) @map("fecha_creacion")
-  fechaActualizacion    DateTime             @updatedAt @map("fecha_actualizacion")
-  motivoCancelacion     String?              @db.Text @map("motivo_cancelacion")
-  muestrasObtenidas     Int?                 @map("muestras_obtenidas")
-  fechaInicio           DateTime?            @map("fecha_inicio")
-  fechaCompletado       DateTime?            @map("fecha_completado")
-  
-  // Relaciones
-  obra                  Obra                 @relation(fields: [claveObra], references: [clave])
-  concepto              ConceptosJerarquicos @relation("ProgramacionConcepto", fields: [conceptoCodigo], references: [codigo])
-  brigadista            Brigadista           @relation(fields: [brigadistaId], references: [id])
-  brigadistaApoyo       Brigadista?          @relation("BrigadistaApoyo", fields: [brigadistaApoyoId], references: [id])
-  vehiculo              Vehiculo             @relation(fields: [vehiculoId], references: [id])
-  
-  @@index([claveObra], name: "idx_programacion_clave_obra")
-  @@index([fechaProgramada], name: "idx_programacion_fecha")
-  @@index([brigadistaId], name: "idx_programacion_brigadista")
-  @@index([estado], name: "idx_programacion_estado")
-}
-
-enum TipoProgramacion {
-  obra_por_visita
-  obra_por_estancia
-}
-
-enum TipoRecoleccion {
-  metros_cuadrados
-  metros_cubicos  
-  metros_lineales
-  sondeo
-  piezas
-  condensacion
-}
-
-enum EstadoProgramacion {
-  programada
-  en_proceso
-  completada
-  cancelada
-  reprogramada
 }
 
 // Tabla de áreas jerárquicas (estructura de árbol)
@@ -293,9 +202,8 @@ model ConceptosJerarquicos {
   // Relación con área padre
   area            AreasJerarquicas @relation(fields: [areaId], references: [id])
   
-  // Relaciones con presupuestos y programaciones
+  // Relaciones con presupuestos
   detalles        PresupuestoDetalle[]
-  programaciones  Programacion[] @relation("ProgramacionConcepto")
   
   @@index([areaId], name: "idx_conceptos_area_id")
   @@index([codigo], name: "idx_conceptos_codigo")

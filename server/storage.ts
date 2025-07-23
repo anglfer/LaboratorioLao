@@ -1,3 +1,4 @@
+
 import { prisma } from "./prisma";
 import type {
   Area,
@@ -7,13 +8,27 @@ import type {
   Obra,
   Presupuesto,
   PresupuestoDetalle,
-  Programacion,
-  Brigadista,
-  Vehiculo,
   Prisma,
   ConceptosJerarquicos,
   AreasJerarquicas,
 } from "../generated/prisma";
+
+// Clientes con contactos (full)
+async function getAllClientesFull(): Promise<ClienteWithContacts[]> {
+  try {
+    const clientes = await prisma.cliente.findMany({
+      include: {
+        telefonos: true,
+        correos: true,
+      },
+      orderBy: { fechaRegistro: "desc" },
+    });
+    return clientes;
+  } catch (error) {
+    console.error("[getAllClientesFull] Error al obtener clientes:", error);
+    throw error;
+  }
+}
 
 // Define types for includes
 type ClienteWithContacts = Prisma.ClienteGetPayload<{
@@ -36,183 +51,61 @@ type PresupuestoWithDetails = Prisma.PresupuestoGetPayload<{
         correos: true;
       };
     };
-    detalles: true;
+    detalles: {
+      include: {
+        concepto: true;
+      };
+    };
   };
 }>;
 
 // Areas
-export async function getAllAreas(): Promise<Area[]> {
+async function getAllAreas() {
   return await prisma.area.findMany({
-    orderBy: { nombre: "asc" },
+    orderBy: { codigo: "asc" },
   });
 }
 
-export async function createArea(data: {
-  codigo: string;
-  nombre?: string;
-}): Promise<Area> {
+async function getAreaById(codigo: string) {
+  return await prisma.area.findUnique({
+    where: { codigo },
+    include: {
+      obras: true,
+    },
+  });
+}
+
+async function createArea(data: { codigo: string; nombre?: string }) {
   return await prisma.area.create({
     data,
   });
 }
 
-export async function updateArea(
-  codigo: string,
-  data: { nombre?: string },
-): Promise<Area> {
+async function updateArea(codigo: string, data: { nombre?: string }) {
   return await prisma.area.update({
     where: { codigo },
     data,
   });
 }
 
-export async function deleteArea(codigo: string): Promise<void> {
+async function deleteArea(codigo: string): Promise<void> {
   await prisma.area.delete({
     where: { codigo },
   });
 }
 
-// Subareas
-export async function getAllSubareas() {
-  return await prisma.subarea.findMany({
-    include: {
-      area: true,
-    },
-    orderBy: { nombre: "asc" },
-  });
-}
-
-export async function getSubareasByArea(areaCodigo: string) {
-  return await prisma.subarea.findMany({
-    where: { areaCodigo },
-    include: {
-      area: true,
-    },
-    orderBy: { nombre: "asc" },
-  });
-}
-
-export async function createSubarea(data: {
-  nombre?: string;
-  areaCodigo?: string;
-}) {
-  return await prisma.subarea.create({
-    data,
-    include: {
-      area: true,
-    },
-  });
-}
-
-export async function updateSubarea(
-  id: number,
-  data: { nombre?: string; areaCodigo?: string },
-) {
-  return await prisma.subarea.update({
-    where: { id },
-    data,
-    include: {
-      area: true,
-    },
-  });
-}
-
-export async function deleteSubarea(id: number): Promise<void> {
-  await prisma.subarea.delete({
-    where: { id },
-  });
-}
-
-// Conceptos
-export async function getAllConceptos() {
-  return await prisma.concepto.findMany({
-    include: {
-      subarea: {
-        include: {
-          area: true,
-        },
-      },
-    },
-    orderBy: { codigo: "asc" },
-  });
-}
-
-export async function getConceptosBySubarea(subareaId: number) {
-  return await prisma.concepto.findMany({
-    where: { subareaId },
-    include: {
-      subarea: {
-        include: {
-          area: true,
-        },
-      },
-    },
-    orderBy: { codigo: "asc" },
-  });
-}
-
-export async function createConcepto(data: {
-  codigo: string;
-  subareaId?: number;
-  descripcion?: string;
-  unidad?: string;
-  p_u?: number;
-}) {
-  console.log('DEBUG createConcepto - subareaId recibido:', data.subareaId);
-  return await prisma.concepto.create({
-    data,
-    include: {
-      subarea: {
-        include: {
-          area: true,
-        },
-      },
-    },
-  });
-}
-
-export async function updateConcepto(
-  codigo: string,
-  data: {
-    subareaId?: number;
-    descripcion?: string;
-    unidad?: string;
-    p_u?: number;
-  },
-) {
-  return await prisma.concepto.update({
-    where: { codigo },
-    data,
-    include: {
-      subarea: {
-        include: {
-          area: true,
-        },
-      },
-    },
-  });
-}
-
-export async function deleteConcepto(codigo: string): Promise<void> {
-  await prisma.concepto.delete({
-    where: { codigo },
-  });
-}
-
 // Clientes
-export async function getAllClientes(): Promise<ClienteWithContacts[]> {
+async function getAllClientes(): Promise<ClienteWithContacts[]> {
   return await prisma.cliente.findMany({
     include: {
       telefonos: true,
       correos: true,
     },
-    orderBy: { nombre: "asc" },
+    orderBy: { fechaRegistro: "desc" },
   });
 }
 
-export async function getClienteById(
-  id: number,
-): Promise<ClienteWithContacts | null> {
+async function getClienteById(id: number): Promise<ClienteWithContacts | null> {
   return await prisma.cliente.findUnique({
     where: { id },
     include: {
@@ -222,42 +115,75 @@ export async function getClienteById(
   });
 }
 
-export async function createCliente(data: {
-  nombre?: string;
+
+// Permite crear cliente con telefonos y correos
+async function createCliente(data: {
+  nombre: string;
   direccion?: string;
-  fechaRegistro?: Date;
   activo?: boolean;
-}): Promise<Cliente> {
+  telefonos?: { telefono: string }[];
+  correos?: { correo: string }[];
+}): Promise<ClienteWithContacts> {
+  const { telefonos, correos, ...clienteData } = data;
   return await prisma.cliente.create({
     data: {
-      ...data,
-      fechaRegistro: data.fechaRegistro || new Date(),
+      ...clienteData,
+      telefonos: telefonos && telefonos.length > 0 ? {
+        create: telefonos.map(t => ({ telefono: t.telefono }))
+      } : undefined,
+      correos: correos && correos.length > 0 ? {
+        create: correos.map(c => ({ correo: c.correo }))
+      } : undefined,
     },
+    include: {
+      telefonos: true,
+      correos: true,
+    }
   });
 }
 
-export async function updateCliente(
+
+// Permite actualizar cliente y reemplazar telefonos/correos
+async function updateCliente(
   id: number,
   data: {
     nombre?: string;
     direccion?: string;
     activo?: boolean;
+    telefonos?: { telefono: string }[];
+    correos?: { correo: string }[];
   },
-): Promise<Cliente> {
+): Promise<ClienteWithContacts> {
+  const { telefonos, correos, ...clienteData } = data;
+  // Borra los teléfonos y correos existentes y crea los nuevos
+  await prisma.telefono.deleteMany({ where: { clienteId: id } });
+  await prisma.correo.deleteMany({ where: { clienteId: id } });
   return await prisma.cliente.update({
     where: { id },
-    data,
+    data: {
+      ...clienteData,
+      telefonos: telefonos && telefonos.length > 0 ? {
+        create: telefonos.map(t => ({ telefono: t.telefono }))
+      } : undefined,
+      correos: correos && correos.length > 0 ? {
+        create: correos.map(c => ({ correo: c.correo }))
+      } : undefined,
+    },
+    include: {
+      telefonos: true,
+      correos: true,
+    }
   });
 }
 
-export async function deleteCliente(id: number): Promise<void> {
+async function deleteCliente(id: number): Promise<void> {
   await prisma.cliente.delete({
     where: { id },
   });
 }
 
-// Teléfonos
-export async function createTelefono(data: {
+// Telefonos
+async function createTelefono(data: {
   clienteId: number;
   telefono: string;
 }): Promise<Telefono> {
@@ -266,24 +192,14 @@ export async function createTelefono(data: {
   });
 }
 
-export async function updateTelefono(
-  id: number,
-  data: { clienteId?: number; telefono?: string },
-): Promise<Telefono> {
-  return await prisma.telefono.update({
-    where: { id },
-    data,
-  });
-}
-
-export async function deleteTelefono(id: number): Promise<void> {
+async function deleteTelefono(id: number): Promise<void> {
   await prisma.telefono.delete({
     where: { id },
   });
 }
 
 // Correos
-export async function createCorreo(data: {
+async function createCorreo(data: {
   clienteId: number;
   correo: string;
 }): Promise<Correo> {
@@ -292,52 +208,45 @@ export async function createCorreo(data: {
   });
 }
 
-export async function updateCorreo(
-  id: number,
-  data: { clienteId?: number; correo?: string },
-): Promise<Correo> {
-  return await prisma.correo.update({
-    where: { id },
-    data,
-  });
-}
-
-export async function deleteCorreo(id: number): Promise<void> {
+async function deleteCorreo(id: number): Promise<void> {
   await prisma.correo.delete({
     where: { id },
   });
 }
 
 // Obras
-export async function getAllObras() {
+async function getAllObras() {
   return await prisma.obra.findMany({
     include: {
       area: true,
+      presupuestos: true,
     },
     orderBy: { clave: "desc" },
   });
 }
 
-export async function getObraById(clave: string) {
-  return await prisma.obra.findUnique({
-    where: { clave },
-    include: {
-      area: true,
-    },
-  });
-}
-
-export async function getObrasByArea(areaCodigo: string) {
+async function getObrasByArea(areaCodigo: string) {
   return await prisma.obra.findMany({
     where: { areaCodigo },
     include: {
       area: true,
+      presupuestos: true,
     },
     orderBy: { clave: "desc" },
   });
 }
 
-export async function createObra(data: {
+async function getObraById(clave: string) {
+  return await prisma.obra.findUnique({
+    where: { clave },
+    include: {
+      area: true,
+      presupuestos: true,
+    },
+  });
+}
+
+async function createObra(data: {
   clave: string;
   areaCodigo: string;
   contratista?: string;
@@ -345,15 +254,13 @@ export async function createObra(data: {
 }): Promise<Obra> {
   return await prisma.obra.create({
     data,
-    include: {
-      area: true,
-    },
   });
 }
 
-export async function updateObra(
+async function updateObra(
   clave: string,
   data: {
+    areaCodigo?: string;
     contratista?: string;
     estado?: number;
   },
@@ -361,85 +268,18 @@ export async function updateObra(
   return await prisma.obra.update({
     where: { clave },
     data,
-    include: {
-      area: true,
-    },
   });
 }
 
-export async function deleteObra(clave: string): Promise<void> {
+async function deleteObra(clave: string): Promise<void> {
   await prisma.obra.delete({
     where: { clave },
   });
 }
 
 // Presupuestos
-export async function getAllPresupuestos() {
+async function getAllPresupuestos(): Promise<PresupuestoWithDetails[]> {
   return await prisma.presupuesto.findMany({
-    include: {
-      obra: {
-        include: {
-          area: true,
-        },
-      },
-      cliente: {
-        include: {
-          telefonos: true,
-          correos: true,
-        },
-      },
-    },
-    orderBy: { fechaSolicitud: "desc" },
-  });
-}
-
-export async function getPresupuestoById(
-  id: number,
-): Promise<PresupuestoWithDetails | null> {
-  return await prisma.presupuesto.findUnique({
-    where: { id },
-    include: {
-      obra: {
-        include: {
-          area: true,
-        },
-      },
-      cliente: {
-        include: {
-          telefonos: true,
-          correos: true,
-        },
-      },
-      detalles: true,
-    },
-  });
-}
-
-export async function getPresupuestosByObra(claveObra: string) {
-  return await prisma.presupuesto.findMany({
-    where: { claveObra },
-    include: {
-      obra: {
-        include: {
-          area: true,
-        },
-      },
-      cliente: {
-        include: {
-          telefonos: true,
-          correos: true,
-        },
-      },
-    },
-    orderBy: { fechaSolicitud: "desc" },
-  });
-}
-
-export async function getPresupuestosAprobados() {
-  return await prisma.presupuesto.findMany({
-    where: {
-      estado: "aprobado",
-    },
     include: {
       obra: {
         include: {
@@ -454,46 +294,41 @@ export async function getPresupuestosAprobados() {
       },
       detalles: {
         include: {
-          concepto: {
-            include: {
-              subarea: {
-                include: {
-                  area: true,
-                },
-              },
-            },
-          },
+          concepto: true,
         },
-        orderBy: { id: "asc" },
       },
     },
     orderBy: { fechaSolicitud: "desc" },
   });
 }
 
-export async function createPresupuesto(data: {
-  claveObra?: string;
-  clienteId?: number;
-  nombreContratista?: string;
-  descripcionObra?: string;
-  tramo?: string;
-  colonia?: string;
-  calle?: string;
-  contactoResponsable?: string;
-  formaPago?: string;
-  iva?: number;
-  estado?: any;
-  fechaInicio?: string | Date;
-}): Promise<Presupuesto> {
-  // Convertir fechaInicio a Date si está presente
-  const fechaConvertida = data.fechaInicio ? new Date(data.fechaInicio) : undefined;
-  
-  return await prisma.presupuesto.create({
-    data: {
-      ...data,
-      fechaInicio: fechaConvertida,
-      fechaSolicitud: new Date(),
+async function getPresupuestoById(id: number): Promise<PresupuestoWithDetails | null> {
+  return await prisma.presupuesto.findUnique({
+    where: { id },
+    include: {
+      obra: {
+        include: {
+          area: true,
+        },
+      },
+      cliente: {
+        include: {
+          telefonos: true,
+          correos: true,
+        },
+      },
+      detalles: {
+        include: {
+          concepto: true,
+        },
+      },
     },
+  });
+}
+
+async function getPresupuestosByObra(claveObra: string) {
+  return await prisma.presupuesto.findMany({
+    where: { claveObra },
     include: {
       obra: {
         include: {
@@ -501,873 +336,299 @@ export async function createPresupuesto(data: {
         },
       },
       cliente: true,
+      detalles: true,
+    },
+    orderBy: { fechaSolicitud: "desc" },
+  });
+}
+
+async function getPresupuestosAprobados() {
+  return await prisma.presupuesto.findMany({
+    where: { estado: "aprobado" },
+    include: {
+      obra: {
+        include: {
+          area: true,
+        },
+      },
+      cliente: true,
+      detalles: true,
+    },
+    orderBy: { fechaSolicitud: "desc" },
+  });
+}
+
+async function createPresupuesto(data: {
+  clienteId?: number;
+  claveObra?: string;
+  fechaSolicitud?: Date;
+  nombreContratista?: string;
+  contactoResponsable?: string;
+  direccion?: string;
+  descripcionObra?: string;
+  alcance?: string;
+  subtotal?: number;
+  iva?: number;
+  ivaMonto?: number;
+  total?: number;
+  estado?: any;
+  manejaAnticipo?: boolean;
+  porcentajeAnticipo?: number;
+  montoAnticipo?: number;
+}): Promise<Presupuesto> {
+  return await prisma.presupuesto.create({
+    data: {
+      ...data,
+      fechaSolicitud: data.fechaSolicitud || new Date(),
+      estado: data.estado || "borrador",
     },
   });
 }
 
-export async function updatePresupuesto(
+async function updatePresupuesto(
   id: number,
-  data: {
-    claveObra?: string;
-    clienteId?: number;
-    nombreContratista?: string;
-    descripcionObra?: string;
-    tramo?: string;
-    colonia?: string;
-    calle?: string;
-    contactoResponsable?: string;
-    formaPago?: string;
-    iva?: number;
-    subtotal?: number;
-    ivaMonto?: number;
-    total?: number;
-    estado?: any;
-    fechaInicio?: Date;
-    razonRechazo?: string;
-  },
+  data: Partial<{
+    clienteId: number;
+    claveObra: string;
+    fechaSolicitud: Date;
+    nombreContratista: string;
+    contactoResponsable: string;
+    direccion: string;
+    descripcionObra: string;
+    alcance: string;
+    subtotal: number;
+    iva: number;
+    ivaMonto: number;
+    total: number;
+    estado: any;
+    manejaAnticipo: boolean;
+    porcentajeAnticipo: number;
+    montoAnticipo: number;
+  }>,
 ): Promise<Presupuesto> {
   return await prisma.presupuesto.update({
     where: { id },
     data,
-    include: {
-      obra: {
-        include: {
-          area: true,
-        },
-      },
-      cliente: true,
-    },
   });
 }
 
-export async function deletePresupuesto(id: number): Promise<void> {
+async function deletePresupuesto(id: number): Promise<void> {
   await prisma.presupuesto.delete({
     where: { id },
   });
 }
 
 // Presupuesto Detalles
-export async function getPresupuestoDetalles(presupuestoId: number) {
+async function getPresupuestoDetalles(presupuestoId: number) {
   return await prisma.presupuestoDetalle.findMany({
     where: { presupuestoId },
     include: {
-      concepto: {
-        include: {
-          subarea: {
-            include: {
-              area: true,
-            },
-          },
-        },
-      },
+      concepto: true,
     },
     orderBy: { id: "asc" },
   });
 }
 
-export async function createPresupuestoDetalle(data: {
+async function createPresupuestoDetalle(data: {
   presupuestoId: number;
   conceptoCodigo: string;
-  cantidad?: number;
+  cantidad: number;
   precioUnitario: number;
   subtotal?: number;
   estado?: any;
-}) {
+}): Promise<PresupuestoDetalle> {
   return await prisma.presupuestoDetalle.create({
-    data,
-    include: {
-      concepto: true,
+    data: {
+      ...data,
+      subtotal: data.subtotal || data.cantidad * data.precioUnitario,
+      estado: data.estado || "en_proceso",
     },
   });
 }
 
-export async function updatePresupuestoDetalle(
+async function updatePresupuestoDetalle(
   id: number,
-  data: {
-    conceptoCodigo?: string;
-    cantidad?: number;
-    precioUnitario?: number;
-    subtotal?: number;
-    estado?: any;
-  },
-) {
+  data: Partial<{
+    conceptoCodigo: string;
+    cantidad: number;
+    precioUnitario: number;
+    subtotal: number;
+    estado: any;
+  }>,
+): Promise<PresupuestoDetalle> {
   return await prisma.presupuestoDetalle.update({
     where: { id },
     data,
-    include: {
-      concepto: {
-        include: {
-          subarea: {
-            include: {
-              area: true,
-            },
-          },
-        },
-      },
-    },
   });
 }
 
-export async function deletePresupuestoDetalle(id: number): Promise<void> {
+async function deletePresupuestoDetalle(id: number): Promise<void> {
   await prisma.presupuestoDetalle.delete({
     where: { id },
   });
 }
 
-export async function deletePresupuestoDetallesByPresupuestoId(
-  presupuestoId: number,
-): Promise<void> {
+async function deletePresupuestoDetallesByPresupuestoId(presupuestoId: number): Promise<void> {
   await prisma.presupuestoDetalle.deleteMany({
     where: { presupuestoId },
   });
 }
 
-// Función auxiliar para calcular totales de presupuesto
-export async function recalcularTotalesPresupuesto(
-  presupuestoId: number,
-): Promise<Presupuesto> {
+// Utilidades
+async function recalcularTotalesPresupuesto(presupuestoId: number): Promise<void> {
+  // Obtener todos los detalles del presupuesto
   const detalles = await prisma.presupuestoDetalle.findMany({
     where: { presupuestoId },
   });
 
-  const subtotal = detalles.reduce((sum, detalle) => {
-    const subtotalDetalle = detalle.subtotal ? Number(detalle.subtotal) : 0;
-    return sum + subtotalDetalle;
-  }, 0);
+  // Calcular subtotal
+  const subtotal = detalles.reduce(
+    (total, detalle) =>
+      total + Number(detalle.precioUnitario) * Number(detalle.cantidad),
+    0,
+  );
 
-  const presupuesto = await prisma.presupuesto.findUnique({
+  // Obtener el presupuesto para el IVA
+  const presupuestoData = await prisma.presupuesto.findUnique({
     where: { id: presupuestoId },
   });
 
-  if (!presupuesto) {
-    throw new Error("Presupuesto no encontrado");
-  }
-
-  const ivaPorcentaje = presupuesto.iva ? Number(presupuesto.iva) : 0;
-  const ivaMonto = subtotal * ivaPorcentaje;
+  const iva = Number(presupuestoData?.iva) || 0.16;
+  const ivaMonto = subtotal * iva;
   const total = subtotal + ivaMonto;
 
-  return await prisma.presupuesto.update({
+  // Actualizar el presupuesto
+  await prisma.presupuesto.update({
     where: { id: presupuestoId },
     data: {
       subtotal,
       ivaMonto,
       total,
     },
-    include: {
-      obra: {
-        include: {
-          area: true,
-        },
-      },
-      cliente: true,
-    },
   });
 }
 
-// Función para generar clave de obra automática
-export async function generateClaveObra(areaCodigo: string): Promise<string> {
-  const año = new Date().getFullYear();
+async function generateClaveObra(areaCodigo: string): Promise<string> {
+  try {
+    console.log(`[Storage] Generando clave para área: ${areaCodigo}`);
 
-  // Verificar que el área existe en la tabla Area
-  const area = await prisma.area.findUnique({
-    where: { codigo: areaCodigo },
-  });
-
-  if (!area) {
-    throw new Error(`El área con código "${areaCodigo}" no existe`);
-  }
-
-  // Buscar o crear contador para el área y año
-  let contador = await prisma.contadorObras.findUnique({
-    where: {
-      areaCodigo_año: {
-        areaCodigo,
-        año,
-      },
-    },
-  });
-
-  if (!contador) {
-    // Crear nuevo contador si no existe
-    contador = await prisma.contadorObras.create({
-      data: {
-        areaCodigo,
-        año,
-        contador: 1,
-      },
+    // Verificar que el área existe
+    const area = await prisma.area.findUnique({
+      where: { codigo: areaCodigo },
     });
-  } else {
-    // Incrementar contador existente
-    contador = await prisma.contadorObras.update({
+
+    if (!area) {
+      throw new Error(`Área con código ${areaCodigo} no encontrada`);
+    }
+
+    // Obtener el año actual
+    const currentYear = new Date().getFullYear();
+    console.log(`[Storage] Año actual: ${currentYear}`);
+
+    // Buscar todas las obras existentes para esta área en este año
+    const prefix = `${areaCodigo}-${currentYear}-`;
+    console.log(`[Storage] Buscando obras con prefijo: ${prefix}`);
+
+    const existingObras = await prisma.obra.findMany({
       where: {
-        areaCodigo_año: {
-          areaCodigo,
-          año,
+        areaCodigo: areaCodigo,
+        clave: {
+          startsWith: prefix,
         },
       },
-      data: {
-        contador: (contador.contador || 0) + 1,
+      select: {
+        clave: true,
+      },
+      orderBy: {
+        clave: "desc",
       },
     });
+
+    console.log(
+      `[Storage] Obras encontradas: ${existingObras.length}`,
+      existingObras.map((o) => o.clave),
+    );
+
+    // Obtener el número más alto usado
+    let maxNumber = 0;
+    for (const obra of existingObras) {
+      const numberPart = obra.clave.replace(prefix, "");
+      const number = parseInt(numberPart, 10);
+      if (!isNaN(number) && number > maxNumber) {
+        maxNumber = number;
+      }
+    }
+
+    console.log(`[Storage] Número máximo encontrado: ${maxNumber}`);
+
+    // Generar el siguiente número
+    const nextNumber = maxNumber + 1;
+    const claveObra = `${areaCodigo}-${currentYear}-${nextNumber.toString().padStart(4, "0")}`;
+
+    console.log(`[Storage] Nueva clave generada: ${claveObra}`);
+
+    // Verificar que la clave no existe (doble verificación)
+    const existingObra = await prisma.obra.findUnique({
+      where: { clave: claveObra },
+    });
+
+    if (existingObra) {
+      throw new Error(`La clave ${claveObra} ya existe en la base de datos`);
+    }
+
+    return claveObra;
+  } catch (error) {
+    console.error("[Storage] Error generando clave de obra:", error);
+    throw error;
   }
-
-  // Formatear clave: [ÁREA]-[YY]-[001] (código en mayúsculas, año con 2 dígitos)
-  const claveObra = `${areaCodigo.toUpperCase()}-${año.toString().slice(-2)}-${String(contador.contador).padStart(3, "0")}`;
-
-  // Crear la obra
-  await prisma.obra.create({
-    data: {
-      clave: claveObra,
-      areaCodigo,
-      estado: 1,
-    },
-  });
-
-  return claveObra;
 }
 
-// Brigadistas
-export async function getAllBrigadistas() {
-  return await prisma.brigadista.findMany({
-    where: { activo: true },
-    orderBy: { nombre: "asc" },
-  });
-}
-
-export async function getBrigadistasDisponibles(fecha?: string, hora?: string) {
-  const fechaConsulta = fecha ? new Date(fecha) : new Date();
-
-  // Obtener todos los brigadistas activos
-  const todosBrigadistas = await prisma.brigadista.findMany({
-    where: { activo: true },
-    orderBy: { nombre: "asc" },
-  });
-
-  if (!fecha || !hora) {
-    // Si no se especifica fecha/hora, devolver todos los activos
-    return todosBrigadistas;
-  }
-
-  // Obtener programaciones en la fecha y hora especificada
-  const programacionesOcupadas = await prisma.programacion.findMany({
-    where: {
-      fechaProgramada: fechaConsulta,
-      horaProgramada: hora,
-      estado: {
-        in: ["programada", "en_proceso"],
-      },
-    },
-    select: {
-      brigadistaId: true,
-      brigadistaApoyoId: true,
-    },
-  });
-
-  // Extraer IDs de brigadistas ocupados
-  const brigadistasOcupados = new Set([
-    ...programacionesOcupadas.map((p) => p.brigadistaId),
-    ...programacionesOcupadas.map((p) => p.brigadistaApoyoId).filter(Boolean),
+// Dashboard
+async function getDashboardStats() {
+  const [clientesCount, presupuestosCount, obrasCount] = await Promise.all([
+    prisma.cliente.count(),
+    prisma.presupuesto.count(),
+    prisma.obra.count(),
   ]);
 
-  // Filtrar brigadistas disponibles
-  return todosBrigadistas.filter(
-    (brigadista) => !brigadistasOcupados.has(brigadista.id),
-  );
+  return {
+    totalClientes: clientesCount,
+    totalPresupuestos: presupuestosCount,
+    totalObras: obrasCount,
+  };
 }
 
-export async function getBrigadistaById(id: number) {
-  return await prisma.brigadista.findUnique({
-    where: { id },
-  });
-}
-
-// Vehículos
-export async function getAllVehiculos() {
-  return await prisma.vehiculo.findMany({
-    where: { activo: true },
-    orderBy: { descripcion: "asc" },
-  });
-}
-
-export async function getVehiculosDisponibles(fecha?: string, hora?: string) {
-  const fechaConsulta = fecha ? new Date(fecha) : new Date();
-
-  // Obtener todos los vehículos activos
-  const todosVehiculos = await prisma.vehiculo.findMany({
-    where: { activo: true },
-    orderBy: { descripcion: "asc" },
-  });
-
-  if (!fecha || !hora) {
-    // Si no se especifica fecha/hora, devolver todos los activos
-    return todosVehiculos;
-  }
-
-  // Obtener programaciones en la fecha y hora especificada
-  const programacionesOcupadas = await prisma.programacion.findMany({
-    where: {
-      fechaProgramada: fechaConsulta,
-      horaProgramada: hora,
-      estado: {
-        in: ["programada", "en_proceso"],
-      },
-    },
-    select: {
-      vehiculoId: true,
-    },
-  });
-
-  // Extraer IDs de vehículos ocupados
-  const vehiculosOcupados = new Set(
-    programacionesOcupadas.map((p) => p.vehiculoId),
-  );
-
-  // Filtrar vehículos disponibles
-  return todosVehiculos.filter(
-    (vehiculo) => !vehiculosOcupados.has(vehiculo.id),
-  );
-}
-
-export async function getVehiculoById(id: number) {
-  return await prisma.vehiculo.findUnique({
-    where: { id },
-  });
-}
-
-// Programaciones
-export async function getAllProgramaciones(filters?: {
-  fechaDesde?: string;
-  fechaHasta?: string;
-  brigadistaId?: number;
-  estado?: string;
-  claveObra?: string;
-}) {
-  const where: any = {};
-
-  if (filters?.fechaDesde) {
-    where.fechaProgramada = {
-      gte: new Date(filters.fechaDesde),
-    };
-  }
-
-  if (filters?.fechaHasta) {
-    where.fechaProgramada = {
-      ...where.fechaProgramada,
-      lte: new Date(filters.fechaHasta),
-    };
-  }
-
-  if (filters?.brigadistaId) {
-    where.brigadistaId = filters.brigadistaId;
-  }
-
-  if (filters?.estado) {
-    where.estado = filters.estado;
-  }
-
-  if (filters?.claveObra) {
-    where.claveObra = filters.claveObra;
-  }
-
-  return await prisma.programacion.findMany({
-    where,
-    include: {
-      obra: {
-        include: {
-          area: true,
-        },
-      },
-      concepto: {
-        include: {
-          subarea: {
-            include: {
-              area: true,
-            },
-          },
-        },
-      },
-      brigadista: true,
-      brigadistaApoyo: true,
-      vehiculo: true,
-    },
-    orderBy: [{ fechaProgramada: "asc" }, { horaProgramada: "asc" }],
-  });
-}
-
-export async function getProgramacionById(id: number) {
-  return await prisma.programacion.findUnique({
-    where: { id },
-    include: {
-      obra: {
-        include: {
-          area: true,
-        },
-      },
-      concepto: {
-        include: {
-          subarea: {
-            include: {
-              area: true,
-            },
-          },
-        },
-      },
-      brigadista: true,
-      brigadistaApoyo: true,
-      vehiculo: true,
-    },
-  });
-}
-
-export async function createProgramacion(data: {
-  claveObra: string;
-  fechaProgramada: Date;
-  horaProgramada: string;
-  tipoProgramacion: any;
-  nombreResidente?: string;
-  telefonoResidente?: string;
-  conceptoCodigo: string;
-  cantidadMuestras: number;
-  tipoRecoleccion: any;
-  brigadistaId: number;
-  brigadistaApoyoId?: number;
-  vehiculoId: number;
-  claveEquipo?: string;
-  observaciones?: string;
-  instrucciones?: string;
-  condicionesEspeciales?: string;
-}) {
-  return await prisma.programacion.create({
-    data,
-    include: {
-      obra: {
-        include: {
-          area: true,
-        },
-      },
-      concepto: {
-        include: {
-          subarea: {
-            include: {
-              area: true,
-            },
-          },
-        },
-      },
-      brigadista: true,
-      brigadistaApoyo: true,
-      vehiculo: true,
-    },
-  });
-}
-
-export async function deleteProgramacion(id: number) {
-  await prisma.programacion.delete({ where: { id } });
-}
-
-export async function getProgramacionesByBrigadista(
-  brigadistaId: number,
-  filters?: { fechaDesde?: string; fechaHasta?: string; estado?: string },
-) {
-  const where: any = { brigadistaId };
-
-  if (filters?.fechaDesde && filters?.fechaHasta) {
-    where.fechaProgramada = {
-      gte: new Date(filters.fechaDesde),
-      lte: new Date(filters.fechaHasta),
-    };
-  } else if (filters?.fechaDesde) {
-    where.fechaProgramada = {
-      gte: new Date(filters.fechaDesde),
-    };
-  } else if (filters?.fechaHasta) {
-    where.fechaProgramada = {
-      lte: new Date(filters.fechaHasta),
-    };
-  }
-
-  if (filters?.estado) {
-    where.estado = filters.estado;
-  }
-
-  return await prisma.programacion.findMany({
-    where,
-    include: {
-      obra: {
-        include: {
-          area: true,
-        },
-      },
-      concepto: {
-        include: {
-          subarea: {
-            include: {
-              area: true,
-            },
-          },
-        },
-      },
-      brigadista: true,
-      brigadistaApoyo: true,
-      vehiculo: true,
-    },
-    orderBy: [{ fechaProgramada: "asc" }, { horaProgramada: "asc" }],
-  });
-}
-
-// Acciones de programación
-export async function iniciarProgramacion(
-  id: number,
-  data: {
-    muestrasObtenidas?: number;
-    fechaInicio?: Date;
-  },
-) {
-  return await prisma.programacion.update({
-    where: { id },
-    data: {
-      estado: "en_proceso",
-      fechaInicio: data.fechaInicio || new Date(),
-      muestrasObtenidas: data.muestrasObtenidas,
-    },
-    include: {
-      obra: {
-        include: {
-          area: true,
-        },
-      },
-      concepto: {
-        include: {
-          subarea: {
-            include: {
-              area: true,
-            },
-          },
-        },
-      },
-      brigadista: true,
-      brigadistaApoyo: true,
-      vehiculo: true,
-    },
-  });
-}
-
-export async function completarProgramacion(
-  id: number,
-  data: {
-    muestrasObtenidas: number;
-    fechaCompletado?: Date;
-    observaciones?: string;
-  },
-) {
-  return await prisma.programacion.update({
-    where: { id },
-    data: {
-      estado: "completada",
-      fechaCompletado: data.fechaCompletado || new Date(),
-      muestrasObtenidas: data.muestrasObtenidas,
-      observaciones: data.observaciones,
-    },
-    include: {
-      obra: {
-        include: {
-          area: true,
-        },
-      },
-      concepto: {
-        include: {
-          subarea: {
-            include: {
-              area: true,
-            },
-          },
-        },
-      },
-      brigadista: true,
-      brigadistaApoyo: true,
-      vehiculo: true,
-    },
-  });
-}
-
-export async function cancelarProgramacion(
-  id: number,
-  data: {
-    motivoCancelacion: string;
-  },
-) {
-  return await prisma.programacion.update({
-    where: { id },
-    data: {
-      estado: "cancelada",
-      motivoCancelacion: data.motivoCancelacion,
-    },
-    include: {
-      obra: {
-        include: {
-          area: true,
-        },
-      },
-      concepto: {
-        include: {
-          subarea: {
-            include: {
-              area: true,
-            },
-          },
-        },
-      },
-      brigadista: true,
-      brigadistaApoyo: true,
-      vehiculo: true,
-    },
-  });
-}
-
-export async function reprogramarProgramacion(
-  id: number,
-  data: {
-    fechaProgramada: Date;
-    horaProgramada: string;
-    brigadistaId?: number;
-    vehiculoId?: number;
-    motivoCancelacion?: string;
-  },
-) {
-  return await prisma.programacion.update({
-    where: { id },
-    data: {
-      estado: "reprogramada",
-      fechaProgramada: data.fechaProgramada,
-      horaProgramada: data.horaProgramada,
-      brigadistaId: data.brigadistaId,
-      vehiculoId: data.vehiculoId,
-      motivoCancelacion: data.motivoCancelacion,
-    },
-    include: {
-      obra: {
-        include: {
-          area: true,
-        },
-      },
-      concepto: {
-        include: {
-          subarea: {
-            include: {
-              area: true,
-            },
-          },
-        },
-      },
-      brigadista: true,
-      brigadistaApoyo: true,
-      vehiculo: true,
-    },
-  });
-}
-
-// Dashboard estadísticas
-export async function getDashboardStats() {
-  // Calcular inicio y fin de la semana actual
-  const hoy = new Date();
-  const inicioSemana = new Date(hoy);
-  inicioSemana.setDate(hoy.getDate() - hoy.getDay() + 1); // Lunes
-  inicioSemana.setHours(0, 0, 0, 0);
-  const finSemana = new Date(inicioSemana);
-  finSemana.setDate(inicioSemana.getDate() + 6); // Domingo
-  finSemana.setHours(23, 59, 59, 999);
-
-  // Obtener estadísticas de la semana
+async function getQuickStats() {
   const [
-    programacionesTotales,
-    programacionesCompletadas,
-    programacionesPendientes,
-    programacionesCanceladas
+    totalClientes,
+    totalPresupuestos,
+    presupuestosAprobados,
+    totalObras,
   ] = await Promise.all([
-    prisma.programacion.count({
-      where: {
-        fechaProgramada: { gte: inicioSemana, lte: finSemana },
-      },
-    }),
-    prisma.programacion.count({
-      where: {
-        estado: "completada",
-        fechaProgramada: { gte: inicioSemana, lte: finSemana },
-      },
-    }),
-    prisma.programacion.count({
-      where: {
-        estado: "programada",
-        fechaProgramada: { gte: inicioSemana, lte: finSemana },
-      },
-    }),
-    prisma.programacion.count({
-      where: {
-        estado: "cancelada",
-        fechaProgramada: { gte: inicioSemana, lte: finSemana },
-      },
-    })
+    prisma.cliente.count(),
+    prisma.presupuesto.count(),
+    prisma.presupuesto.count({ where: { estado: "aprobado" } }),
+    prisma.obra.count(),
   ]);
 
-  // Contar brigadistas únicos
-  const brigadistasUnicos = await prisma.programacion.findMany({
-    where: {
-      fechaProgramada: { gte: inicioSemana, lte: finSemana },
-    },
-    select: { brigadistaId: true },
-    distinct: ['brigadistaId'],
-  });
-  const brigadistasActivos = brigadistasUnicos.length;
-
-  // Contar vehículos únicos
-  const vehiculosUnicos = await prisma.programacion.findMany({
-    where: {
-      fechaProgramada: { gte: inicioSemana, lte: finSemana },
-    },
-    select: { vehiculoId: true },
-    distinct: ['vehiculoId'],
-  });
-  const vehiculosEnUso = vehiculosUnicos.length;
-
-  // Calcular rendimiento semanal
-  const rendimientoSemanal = programacionesTotales > 0
-    ? (programacionesCompletadas / programacionesTotales) * 100
-    : 0;
-
   return {
-    programacionesTotales,
-    programacionesCompletadas,
-    programacionesPendientes,
-    programacionesCanceladas,
-    rendimientoSemanal,
-    brigadistasActivos,
-    vehiculosEnUso,
+    totalClientes,
+    totalPresupuestos,
+    presupuestosAprobados,
+    totalObras,
   };
 }
 
-export async function getDashboardGrafica(fechaInicio?: string) {
-  // Obtener datos de la semana especificada o la última semana
-  let fechaConsulta = new Date();
-  if (fechaInicio) {
-    fechaConsulta = new Date(fechaInicio);
-  }
-
-  const fechaFin = new Date(fechaConsulta);
-  fechaFin.setDate(fechaConsulta.getDate() + 6); // 7 días
-
-  const programaciones = await prisma.programacion.findMany({
-    where: {
-      fechaProgramada: {
-        gte: fechaConsulta,
-        lte: fechaFin,
-      },
-    },
-    select: {
-      fechaProgramada: true,
-      estado: true,
-    },
-  });
-
-  // Agrupar por día de la semana
-  const diasSemana = [
-    "Domingo",
-    "Lunes",
-    "Martes",
-    "Miércoles",
-    "Jueves",
-    "Viernes",
-    "Sábado",
-  ];
-  const datos = Array.from({ length: 7 }, (_, i) => {
-    const fecha = new Date(fechaConsulta);
-    fecha.setDate(fechaConsulta.getDate() + i);
-    const diaSemana = diasSemana[fecha.getDay()];
-
-    const programacionesDia = programaciones.filter((p) => {
-      const fechaProg = new Date(p.fechaProgramada);
-      return fechaProg.toDateString() === fecha.toDateString();
-    });
-
-    return {
-      dia: diaSemana,
-      actividades: programacionesDia.length,
-      completadas: programacionesDia.filter((p) => p.estado === "completada")
-        .length,
-    };
-  });
-
-  return datos;
-}
-
-export async function getQuickStats() {
-  const hoy = new Date();
-  const inicioSemana = new Date(hoy);
-  inicioSemana.setDate(hoy.getDate() - hoy.getDay() + 1); // Lunes de esta semana
-
-  const finSemana = new Date(inicioSemana);
-  finSemana.setDate(inicioSemana.getDate() + 6); // Domingo de esta semana
-
-  const inicioMes = new Date(hoy.getFullYear(), hoy.getMonth(), 1);
-
-  const [programacionesActivasSemana, actividadesEnProceso, completadasMes] =
-    await Promise.all([
-      // Programaciones activas esta semana (programadas + en proceso)
-      prisma.programacion.count({
-        where: {
-          fechaProgramada: {
-            gte: inicioSemana,
-            lte: finSemana,
-          },
-          estado: {
-            in: ["programada", "en_proceso"],
-          },
-        },
-      }),
-      // Actividades actualmente en proceso
-      prisma.programacion.count({
-        where: {
-          estado: "en_proceso",
-        },
-      }),
-      // Completadas este mes
-      prisma.programacion.count({
-        where: {
-          estado: "completada",
-          fechaCompletado: {
-            gte: inicioMes,
-          },
-        },
-      }),
-    ]);
-
-  return {
-    programacionesActivas: programacionesActivasSemana,
-    enProceso: actividadesEnProceso,
-    completadasMes: completadasMes,
-  };
-}
-
-export const storage = {
+// Export as default object
+const storage = {
+  // Clientes Full
+  getAllClientesFull,
   // Areas
   getAllAreas,
+  getAreaById,
   createArea,
   updateArea,
   deleteArea,
-
-  // Subareas
-  getAllSubareas,
-  getSubareasByArea,
-  createSubarea,
-  updateSubarea,
-  deleteSubarea,
-
-  // Conceptos
-  getAllConceptos,
-  getConceptosBySubarea,
-  createConcepto,
-  updateConcepto,
-  deleteConcepto,
 
   // Clientes
   getAllClientes,
@@ -1376,18 +637,18 @@ export const storage = {
   updateCliente,
   deleteCliente,
 
-  // Contactos
+  // Telefonos
   createTelefono,
-  updateTelefono,
   deleteTelefono,
+
+  // Correos
   createCorreo,
-  updateCorreo,
   deleteCorreo,
 
   // Obras
   getAllObras,
-  getObraById,
   getObrasByArea,
+  getObraById,
   createObra,
   updateObra,
   deleteObra,
@@ -1411,26 +672,10 @@ export const storage = {
   // Utilidades
   recalcularTotalesPresupuesto,
   generateClaveObra,
-  // Brigadistas
-  getAllBrigadistas,
-  getBrigadistasDisponibles,
-  getBrigadistaById,
-
-  // Vehículos
-  getAllVehiculos,
-  getVehiculosDisponibles,
-  getVehiculoById, // Programaciones
-  getAllProgramaciones,
-  getProgramacionById,
-  createProgramacion,
-  // updateProgramacion, // No existe, se elimina del export
-  deleteProgramacion,
-  getProgramacionesByBrigadista,
-  iniciarProgramacion,
-  completarProgramacion,
-  cancelarProgramacion,
-  reprogramarProgramacion, // Dashboard
+  
+  // Dashboard
   getDashboardStats,
-  getDashboardGrafica,
   getQuickStats,
 };
+
+export default storage;

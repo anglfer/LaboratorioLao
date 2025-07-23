@@ -21,6 +21,18 @@ export const insertClienteSchema = z.object({
   nombre: z.string().min(2, "El nombre del cliente es requerido"),
   direccion: z.string().optional(),
   activo: z.boolean().default(true),
+  telefonos: z.array(z.object({
+    telefono: z.string().regex(
+      phoneRegex,
+      "El teléfono debe tener 10 dígitos (ej: 4771234567 o +524771234567)",
+    ),
+  })).optional().default([]),
+  correos: z.array(z.object({
+    correo: z.string().regex(
+      emailRegex,
+      "Debe ser un correo electrónico válido",
+    ),
+  })).optional().default([]),
 });
 
 export const insertTelefonoSchema = z.object({
