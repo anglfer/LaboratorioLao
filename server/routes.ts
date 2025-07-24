@@ -18,7 +18,6 @@ import {
   insertPresupuestoDetalleSchema,
   SYSTEM_CONSTANTS,
 } from "@shared/schema";
-import puppeteer from "puppeteer";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -37,227 +36,99 @@ function generatePresupuestoHTML(
     day: "numeric",
   });
 
-  // Obtener el estado del presupuesto con color apropiado
-  const estadoColors = {
-    borrador: { bg: "#fef3c7", text: "#92400e", border: "#f59e0b" },
-    enviado: { bg: "#dbeafe", text: "#1e40af", border: "#3b82f6" },
-    aprobado: { bg: "#dcfce7", text: "#166534", border: "#22c55e" },
-    rechazado: { bg: "#fee2e2", text: "#dc2626", border: "#ef4444" },
-    finalizado: { bg: "#f3f4f6", text: "#374151", border: "#6b7280" },
-  };
-
+  // Estados simples para PDF minimalista
   const estadoActual = presupuesto.estado || "borrador";
-  const colorEstado = estadoColors[estadoActual as keyof typeof estadoColors] || estadoColors.borrador;
 
   return `
     <!DOCTYPE html>
     <html lang="es">
     <head>
         <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>Presupuesto ${presupuesto.id}</title>
         <style>
-            body {
-                font-family: Arial, sans-serif;
-                margin: 0;
-                padding: 20px;
-                font-size: 12px;
-                line-height: 1.4;
-                color: #333;
-            }
-            .header {
-                text-align: center;
-                margin-bottom: 30px;
-                border-bottom: 2px solid #333;
-                padding-bottom: 20px;
-            }
-            .company-name {
-                font-size: 24px;
-                font-weight: bold;
-                color: #2563eb;
-                margin-bottom: 5px;
-            }
-            .document-title {
-                font-size: 18px;
-                font-weight: bold;
-                margin: 10px 0;
-            }
-            .status-badge {
-                display: inline-block;
-                padding: 4px 12px;
-                border-radius: 15px;
-                font-size: 10px;
-                font-weight: bold;
-                text-transform: uppercase;
-                background-color: ${colorEstado.bg};
-                color: ${colorEstado.text};
-                border: 1px solid ${colorEstado.border};
-                margin: 10px 0;
-            }
-            .info-section {
-                margin-bottom: 20px;
-            }
-            .info-grid {
-                display: grid;
-                grid-template-columns: 1fr 1fr;
-                gap: 20px;
-                margin-bottom: 20px;
-            }
-            .info-block h3 {
-                font-size: 14px;
-                font-weight: bold;
-                margin-bottom: 8px;
-                color: #2563eb;
-                border-bottom: 1px solid #e5e7eb;
-                padding-bottom: 4px;
-            }
-            .info-block p {
-                margin: 4px 0;
-                font-size: 11px;
-            }
-            .items-table {
-                width: 100%;
-                border-collapse: collapse;
-                margin: 20px 0;
-                font-size: 10px;
-            }
-            .items-table th {
-                background-color: #f8fafc;
-                border: 1px solid #e5e7eb;
-                padding: 8px;
-                text-align: left;
-                font-weight: bold;
-                font-size: 10px;
-            }
-            .items-table td {
-                border: 1px solid #e5e7eb;
-                padding: 8px;
-                vertical-align: top;
-            }
-            .items-table tr:nth-child(even) {
-                background-color: #f9fafb;
-            }
-            .totals-section {
-                margin-top: 20px;
-                text-align: right;
-            }
-            .totals-table {
-                display: inline-block;
-                border: 1px solid #e5e7eb;
-            }
-            .totals-table tr td {
-                padding: 8px 15px;
-                border-bottom: 1px solid #e5e7eb;
-            }
-            .totals-table tr:last-child td {
-                border-bottom: none;
-                font-weight: bold;
-                background-color: #f8fafc;
-            }
-            .footer {
-                margin-top: 40px;
-                padding-top: 20px;
-                border-top: 1px solid #e5e7eb;
-                font-size: 10px;
-                color: #6b7280;
-                text-align: center;
-            }
+            body { font-family: Arial, sans-serif; margin: 20px; font-size: 11px; line-height: 1.3; }
+            .header { text-align: center; margin-bottom: 20px; border-bottom: 1px solid #ccc; padding-bottom: 15px; }
+            .company { font-size: 18px; font-weight: bold; margin-bottom: 5px; }
+            .title { font-size: 14px; font-weight: bold; }
+            .info { display: flex; justify-content: space-between; margin: 15px 0; }
+            .info-box { width: 48%; }
+            .info-box h4 { font-size: 12px; margin: 0 0 8px 0; font-weight: bold; }
+            .info-box p { margin: 2px 0; font-size: 10px; }
+            table { width: 100%; border-collapse: collapse; margin: 15px 0; font-size: 9px; }
+            th, td { border: 1px solid #ddd; padding: 6px; text-align: left; }
+            th { background-color: #f5f5f5; font-weight: bold; }
             .text-right { text-align: right; }
             .text-center { text-align: center; }
-            .font-bold { font-weight: bold; }
+            .totals { width: 250px; margin-left: auto; margin-top: 15px; }
+            .footer { margin-top: 30px; font-size: 9px; text-align: center; color: #666; }
         </style>
     </head>
     <body>
         <div class="header">
-            <div class="company-name">Laboratorio Lao</div>
-            <div class="document-title">PRESUPUESTO</div>
-            <div class="status-badge">${estadoActual}</div>
+            <div class="company">LABORATORIO LAO</div>
+            <div class="title">PRESUPUESTO #${presupuesto.id}</div>
+            <div style="font-size: 10px; margin-top: 5px;">Estado: ${estadoActual.toUpperCase()}</div>
         </div>
 
-        <div class="info-grid">
-            <div class="info-block">
-                <h3>Información del Presupuesto</h3>
-                <p><strong>Número:</strong> ${presupuesto.id}</p>
+        <div class="info">
+            <div class="info-box">
+                <h4>DATOS DEL PRESUPUESTO</h4>
                 <p><strong>Fecha:</strong> ${new Date(presupuesto.fechaSolicitud || new Date()).toLocaleDateString('es-MX')}</p>
-                <p><strong>Clave de Obra:</strong> ${presupuesto.claveObra || 'Por asignar'}</p>
-                <p><strong>Estado:</strong> ${estadoActual}</p>
+                <p><strong>Clave:</strong> ${presupuesto.claveObra || 'Por asignar'}</p>
+                ${presupuesto.descripcionObra ? `<p><strong>Obra:</strong> ${presupuesto.descripcionObra}</p>` : ''}
             </div>
             
-            <div class="info-block">
-                <h3>Información del Cliente</h3>
-                <p><strong>Cliente:</strong> ${presupuesto.cliente?.nombre || 'Cliente no especificado'}</p>
+            <div class="info-box">
+                <h4>DATOS DEL CLIENTE</h4>
+                <p><strong>Cliente:</strong> ${presupuesto.cliente?.nombre || 'No especificado'}</p>
                 <p><strong>Contratista:</strong> ${presupuesto.nombreContratista || 'No especificado'}</p>
-                <p><strong>Contacto:</strong> ${presupuesto.contactoResponsable || 'No especificado'}</p>
-                <p><strong>Dirección:</strong> ${presupuesto.direccion || 'No especificada'}</p>
+                ${presupuesto.contactoResponsable ? `<p><strong>Contacto:</strong> ${presupuesto.contactoResponsable}</p>` : ''}
+                ${presupuesto.direccion ? `<p><strong>Dirección:</strong> ${presupuesto.direccion}</p>` : ''}
+                ${presupuesto.cliente?.telefonos?.length > 0 ? `<p><strong>Teléfono:</strong> ${presupuesto.cliente.telefonos[0].telefono}</p>` : ''}
+                ${presupuesto.cliente?.correos?.length > 0 ? `<p><strong>Email:</strong> ${presupuesto.cliente.correos[0].correo}</p>` : ''}
             </div>
         </div>
 
-        ${presupuesto.descripcionObra ? `
-        <div class="info-section">
-            <h3>Descripción de la Obra</h3>
-            <p>${presupuesto.descripcionObra}</p>
-        </div>
-        ` : ''}
-
-        ${presupuesto.alcance ? `
-        <div class="info-section">
-            <h3>Alcance del Trabajo</h3>
-            <p>${presupuesto.alcance}</p>
-        </div>
-        ` : ''}
-
-        <table class="items-table">
+        <table>
             <thead>
                 <tr>
-                    <th style="width: 15%">Código</th>
-                    <th style="width: 40%">Descripción</th>
-                    <th style="width: 10%">Unidad</th>
+                    <th style="width: 12%">Código</th>
+                    <th style="width: 50%">Descripción</th>
+                    <th style="width: 8%">Unidad</th>
                     <th style="width: 10%" class="text-center">Cantidad</th>
-                    <th style="width: 12%" class="text-right">Precio Unit.</th>
-                    <th style="width: 13%" class="text-right">Subtotal</th>
+                    <th style="width: 10%" class="text-right">P. Unit.</th>
+                    <th style="width: 10%" class="text-right">Total</th>
                 </tr>
             </thead>
             <tbody>
                 ${detalles.map(detalle => `
                     <tr>
-                        <td>${detalle.concepto?.codigo || detalle.conceptoCodigo}</td>
-                        <td>${detalle.concepto?.descripcion || 'Descripción no disponible'}</td>
+                        <td>${detalle.concepto?.codigo || detalle.conceptoCodigo || '-'}</td>
+                        <td>${detalle.concepto?.descripcion || 'Sin descripción'}</td>
                         <td class="text-center">${detalle.concepto?.unidad || '-'}</td>
-                        <td class="text-center">${Number(detalle.cantidad).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                        <td class="text-right">$${Number(detalle.precioUnitario).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                        <td class="text-right">$${(Number(detalle.cantidad) * Number(detalle.precioUnitario)).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                        <td class="text-center">${Number(detalle.cantidad || 0).toFixed(2)}</td>
+                        <td class="text-right">$${Number(detalle.precioUnitario || 0).toFixed(2)}</td>
+                        <td class="text-right">$${(Number(detalle.cantidad || 0) * Number(detalle.precioUnitario || 0)).toFixed(2)}</td>
                     </tr>
                 `).join('')}
             </tbody>
         </table>
 
-        <div class="totals-section">
-            <table class="totals-table">
-                <tr>
-                    <td><strong>Subtotal:</strong></td>
-                    <td class="text-right">$${Number(subtotal).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                </tr>
-                <tr>
-                    <td><strong>IVA (${((presupuesto.iva || 0.16) * 100).toFixed(0)}%):</strong></td>
-                    <td class="text-right">$${Number(iva).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                </tr>
-                <tr>
-                    <td><strong>TOTAL:</strong></td>
-                    <td class="text-right">$${Number(total).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                </tr>
-            </table>
-        </div>
+        <table class="totals">
+            <tr><td><strong>Subtotal:</strong></td><td class="text-right">$${Number(subtotal).toFixed(2)}</td></tr>
+            <tr><td><strong>IVA (${((presupuesto.iva || 0.16) * 100).toFixed(0)}%):</strong></td><td class="text-right">$${Number(iva).toFixed(2)}</td></tr>
+            <tr style="background-color: #f0f0f0;"><td><strong>TOTAL:</strong></td><td class="text-right"><strong>$${Number(total).toFixed(2)}</strong></td></tr>
+        </table>
 
         ${presupuesto.manejaAnticipo && presupuesto.porcentajeAnticipo ? `
-        <div class="info-section">
-            <h3>Condiciones de Pago</h3>
-            <p><strong>Anticipo requerido:</strong> ${presupuesto.porcentajeAnticipo}% del total = $${(Number(total) * Number(presupuesto.porcentajeAnticipo) / 100).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+        <div style="margin-top: 15px; padding: 10px; background-color: #f9f9f9; border-left: 3px solid #007acc;">
+            <strong>Anticipo requerido:</strong> ${presupuesto.porcentajeAnticipo}% = $${(Number(total) * Number(presupuesto.porcentajeAnticipo) / 100).toFixed(2)}
         </div>
         ` : ''}
 
         <div class="footer">
-            <p>Documento generado el ${fechaGeneracion}</p>
-            <p>Este presupuesto tiene una vigencia de 30 días a partir de la fecha de emisión</p>
+            <p>Documento generado el ${fechaGeneracion} | Vigencia: 30 días</p>
+            <p>Laboratorio Lao - Av. la Presa 519-511, Ibarrilla, Gto. - Tel: 477-210-2263</p>
         </div>
     </body>
     </html>
@@ -848,75 +719,7 @@ export function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // PDF generation route
-  app.get("/api/presupuestos/:id/pdf", async (req, res) => {
-    let browser;
-    try {
-      const id = parseInt(req.params.id);
-      
-      // Obtener presupuesto con detalles
-      const presupuesto = await storage.getPresupuestoById(id);
-      if (!presupuesto) {
-        return res.status(404).json({ message: "Presupuesto not found" });
-      }
 
-      const detalles = await storage.getPresupuestoDetalles(id);
-
-      // Generar HTML
-      const html = generatePresupuestoHTML(presupuesto, detalles, true);
-      
-      // Validar HTML
-      if (!validateHTML(html)) {
-        return res.status(400).json({ 
-          message: "Invalid HTML content detected" 
-        });
-      }
-
-      // Configurar Puppeteer
-      browser = await puppeteer.launch({
-        headless: true,
-        args: ['--no-sandbox', '--disable-setuid-sandbox']
-      });
-
-      const page = await browser.newPage();
-      
-      // Configurar el contenido HTML
-      await page.setContent(html, { 
-        waitUntil: 'networkidle0',
-        timeout: 30000 
-      });
-
-      // Generar PDF
-      const pdf = await page.pdf({
-        format: 'A4',
-        printBackground: true,
-        margin: {
-          top: '20mm',
-          right: '15mm',
-          bottom: '20mm',
-          left: '15mm'
-        }
-      });
-
-      // Configurar headers de respuesta
-      res.setHeader('Content-Type', 'application/pdf');
-      res.setHeader('Content-Disposition', `attachment; filename="presupuesto-${id}.pdf"`);
-      res.setHeader('Content-Length', pdf.length.toString());
-      
-      res.send(pdf);
-
-    } catch (error: any) {
-      console.error("[PDF] Error generating PDF:", error);
-      res.status(500).json({ 
-        message: "Error generating PDF", 
-        error: error.message 
-      });
-    } finally {
-      if (browser) {
-        await browser.close();
-      }
-    }
-  });
 
   // Rutas de autenticación básicas
   app.post("/api/auth/login", async (req, res) => {

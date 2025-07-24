@@ -27,6 +27,9 @@ import {
 } from "../../../shared/components/ui/dialog";
 import { Input } from "../../../shared/components/ui/input";
 import { Label } from "../../../shared/components/ui/label";
+// Importaciones para jsPDF
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 import {
   Select,
   SelectContent,
@@ -144,7 +147,15 @@ export default function BudgetsNew() {
           .includes(searchTerm.toLowerCase()) ||
         budget.nombreContratista
           ?.toLowerCase()
-          .includes(searchTerm.toLowerCase());
+          .includes(searchTerm.toLowerCase()) ||
+        // Buscar por teléfonos del cliente
+        budget.cliente?.telefonos?.some((telefono: any) =>
+          telefono.telefono?.toLowerCase().includes(searchTerm.toLowerCase())
+        ) ||
+        // Buscar por correos del cliente
+        budget.cliente?.correos?.some((correo: any) =>
+          correo.correo?.toLowerCase().includes(searchTerm.toLowerCase())
+        );
 
       const matchesStatus =
         statusFilter === "all" || budget.estado === statusFilter;
@@ -420,36 +431,791 @@ export default function BudgetsNew() {
 
   const handleExportPDF = async (id: number) => {
     try {
-      // Obtener información del presupuesto
+      console.log(`[PDF] Iniciando exportación para presupuesto ${id}`);
+
+      // Obtener información del presupuesto con detalles
       const presRes = await fetch(`/api/presupuestos/${id}`);
+      if (!presRes.ok) {
+        throw new Error(`Error al obtener presupuesto: ${presRes.status}`);
+      }
       const presupuesto = await presRes.json();
 
       if (!presupuesto) {
         throw new Error("Presupuesto no encontrado");
       }
 
-      // Generar PDF
-      const response = await fetch(`/api/presupuestos/${id}/pdf`);
-      if (!response.ok) {
-        throw new Error("Error al generar el PDF");
+      console.log(`[PDF] Presupuesto obtenido:`, presupuesto.claveObra);
+
+      // Generar PDF profesional y vinculante
+      const pdf = new jsPDF();
+      const pageWidth = pdf.internal.pageSize.width;
+      const pageHeight = pdf.internal.pageSize.height;
+      const margin = 15;
+
+      // Colores corporativos LAO
+      const laoGreen = [139, 195, 74];
+      const darkGray = [64, 64, 64];
+      const lightGray = [128, 128, 128];
+      const accentBlue = [41, 128, 185];
+
+      // Helper function para convertir número a letras (implementación básica)
+      const numeroALetras = (num: number): string => {
+        // Implementación básica - se puede expandir
+        const unidades = [
+          "",
+          "UNO",
+          "DOS",
+          "TRES",
+          "CUATRO",
+          "CINCO",
+          "SEIS",
+          "SIETE",
+          "OCHO",
+          "NUEVE",
+        ];
+        const decenas = [
+          "",
+          "",
+          "VEINTE",
+          "TREINTA",
+          "CUARENTA",
+          "CINCUENTA",
+          "SESENTA",
+          "SETENTA",
+          "OCHENTA",
+          "NOVENTA",
+        ];
+        const centenas = [
+          "",
+          "CIENTO",
+          "DOSCIENTOS",
+          "TRESCIENTOS",
+          "CUATROCIENTOS",
+          "QUINIENTOS",
+          "SEISCIENTOS",
+          "SETECIENTOS",
+          "OCHOCIENTOS",
+          "NOVECIENTOS",
+        ];
+
+        if (num === 0) return "CERO PESOS 00/100 M.N.";
+        if (num >= 1000000)
+          return `${Math.floor(num / 1000000)} MILLÓN${
+            Math.floor(num / 1000000) > 1 ? "ES" : ""
+          } ${numeroALetras(num % 1000000)}`.trim();
+        if (num >= 1000)
+          return `${numeroALetras(Math.floor(num / 1000))} MIL ${numeroALetras(
+            num % 1000
+          )}`.trim();
+        if (num >= 100)
+          return `${centenas[Math.floor(num / 100)]} ${numeroALetras(
+            num % 100
+          )}`.trim();
+        if (num >= 20)
+          return `${decenas[Math.floor(num / 10)]} ${
+            unidades[num % 10]
+          }`.trim();
+        if (num >= 10)
+          return [
+            "DIEZ",
+            "ONCE",
+            "DOCE",
+            "TRECE",
+            "CATORCE",
+            "QUINCE",
+            "DIECISÉIS",
+            "DIECISIETE",
+            "DIECIOCHO",
+            "DIECINUEVE",
+          ][num - 10];
+        return unidades[num];
+      };
+
+      let yPos = margin;
+
+      // =============================================
+      // 5.8.2 ENCABEZADO CORPORATIVO
+      // =============================================
+
+      // Logo y header corporativo
+      pdf.setFillColor(laoGreen[0], laoGreen[1], laoGreen[2]);
+      pdf.rect(margin, yPos, 50, 18, "F");
+      pdf.setTextColor(255, 255, 255);
+      pdf.setFont("helvetica", "bold");
+      pdf.setFontSize(18);
+      pdf.text("LAO", margin + 5, yPos + 12);
+
+      // Información de contacto corporativo
+      pdf.setTextColor(darkGray[0], darkGray[1], darkGray[2]);
+      pdf.setFontSize(7);
+      pdf.setFont("helvetica", "normal");
+      const contactInfo = [
+        "LABORATORIO Y CONSULTORIA LOA S.A. de C.V.",
+        "RFC: LOA940429-QR8 (PENDIENTE VERIFICAR)",
+        "AVE. DE LA PRESA 511 B, IBARRILLA, GTO. C.P. 37080",
+        "TEL: 01 477 2102263 / 01 477 3112205",
+        "EMAIL: recepcion@loalaboratorio.com",
+        "WEB: www.loalaboratorio.com",
+      ];
+
+      let contactY = yPos + 2;
+      contactInfo.forEach((info, index) => {
+        pdf.setFont("helvetica", index === 0 ? "bold" : "normal");
+        pdf.setFontSize(index === 0 ? 8 : 7);
+        pdf.text(info, pageWidth - margin, contactY, { align: "right" });
+        contactY += index === 0 ? 5 : 3;
+      });
+
+      yPos += 25;
+
+      // Título principal del documento
+      pdf.setTextColor(0, 0, 0);
+      pdf.setFont("helvetica", "bold");
+      pdf.setFontSize(18);
+      pdf.text("PROPUESTA DE SERVICIOS DE LABORATORIO", pageWidth / 2, yPos, {
+        align: "center",
+      });
+
+      yPos += 8;
+      pdf.setFontSize(14);
+      pdf.setTextColor(accentBlue[0], accentBlue[1], accentBlue[2]);
+      pdf.text("DOCUMENTO VINCULANTE", pageWidth / 2, yPos, {
+        align: "center",
+      });
+
+      yPos += 15;
+
+      // Clave de obra prominente
+      pdf.setFillColor(240, 240, 240);
+      pdf.rect(margin, yPos, pageWidth - 2 * margin, 12, "F");
+      pdf.setTextColor(0, 0, 0);
+      pdf.setFont("helvetica", "bold");
+      pdf.setFontSize(12);
+      pdf.text(
+        `CLAVE DE OBRA: ${presupuesto.claveObra || "SIN ASIGNAR"}`,
+        margin + 5,
+        yPos + 8
+      );
+
+      // Fecha de generación
+      const fechaGeneracion = new Date().toLocaleDateString("es-MX", {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+      });
+      pdf.text(`FECHA: ${fechaGeneracion}`, pageWidth - margin - 5, yPos + 8, {
+        align: "right",
+      });
+
+      yPos += 20;
+
+      // =============================================
+      // 5.8.3 INFORMACIÓN DEL CLIENTE Y PROYECTO
+      // =============================================
+
+      // Datos del Cliente
+      pdf.setFillColor(laoGreen[0], laoGreen[1], laoGreen[2]);
+      pdf.setTextColor(255, 255, 255);
+      pdf.setFont("helvetica", "bold");
+      pdf.setFontSize(10);
+      pdf.rect(margin, yPos, pageWidth - 2 * margin, 8, "F");
+      pdf.text("INFORMACIÓN DEL CLIENTE", margin + 3, yPos + 5);
+
+      yPos += 12;
+
+      pdf.setTextColor(0, 0, 0);
+      pdf.setFont("helvetica", "normal");
+      pdf.setFontSize(9);
+
+      const clienteData = [
+        {
+          label: "DIRIGIDO A:",
+          value: presupuesto.cliente?.nombre || "Sin especificar",
+        },
+        {
+          label: "ATENCIÓN:",
+          value: presupuesto.contactoResponsable || "Sin especificar",
+        },
+        {
+          label: "RESPONSABLE DE OBRA:",
+          value: presupuesto.nombreContratista || "Sin especificar",
+        },
+      ];
+
+      clienteData.forEach((item) => {
+        pdf.setFont("helvetica", "bold");
+        pdf.text(item.label, margin, yPos);
+        pdf.setFont("helvetica", "normal");
+        pdf.text(item.value, margin + 40, yPos);
+        yPos += 6;
+      });
+
+      // Dirección del cliente
+      if (presupuesto.cliente?.direccion) {
+        pdf.setFont("helvetica", "bold");
+        pdf.text("DIRECCIÓN:", margin, yPos);
+        pdf.setFont("helvetica", "normal");
+        pdf.text(presupuesto.cliente.direccion, margin + 40, yPos);
+        yPos += 6;
       }
 
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `Laboratorio-${new Date().getFullYear()}-${
-        presupuesto.claveObra
-      }-A.pdf`;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      window.URL.revokeObjectURL(url);
-    } catch (error) {
-      console.error("Error al exportar PDF:", error);
-      alert(
-        "Ocurrió un error al exportar el PDF. Inténtalo de nuevo más tarde."
+      // Teléfonos
+      if (presupuesto.cliente?.telefonos?.length > 0) {
+        pdf.setFont("helvetica", "bold");
+        pdf.text("TELÉFONOS:", margin, yPos);
+        pdf.setFont("helvetica", "normal");
+        const telefonos = presupuesto.cliente.telefonos
+          .map((t: any) => t.telefono)
+          .join(", ");
+        pdf.text(telefonos, margin + 40, yPos);
+        yPos += 6;
+      }
+
+      // Correos
+      if (presupuesto.cliente?.correos?.length > 0) {
+        pdf.setFont("helvetica", "bold");
+        pdf.text("CORREOS:", margin, yPos);
+        pdf.setFont("helvetica", "normal");
+        const correos = presupuesto.cliente.correos
+          .map((c: any) => c.correo)
+          .join(", ");
+        pdf.text(correos, margin + 40, yPos);
+        yPos += 6;
+      }
+
+      yPos += 5;
+
+      // Información del Proyecto
+      pdf.setFillColor(accentBlue[0], accentBlue[1], accentBlue[2]);
+      pdf.setTextColor(255, 255, 255);
+      pdf.setFont("helvetica", "bold");
+      pdf.setFontSize(10);
+      pdf.rect(margin, yPos, pageWidth - 2 * margin, 8, "F");
+      pdf.text("INFORMACIÓN DEL PROYECTO", margin + 3, yPos + 5);
+
+      yPos += 12;
+
+      pdf.setTextColor(0, 0, 0);
+      pdf.setFont("helvetica", "normal");
+      pdf.setFontSize(9);
+
+      const proyectoData = [
+        {
+          label: "DESCRIPCIÓN:",
+          value: presupuesto.descripcionObra || "Sin especificar",
+        },
+        { label: "UBICACIÓN:", value: presupuesto.ubicacion || "Por definir" },
+        {
+          label: "FECHA SOLICITUD:",
+          value: presupuesto.fechaSolicitud
+            ? new Date(presupuesto.fechaSolicitud).toLocaleDateString("es-MX")
+            : "Sin especificar",
+        },
+        {
+          label: "FECHA INICIO PROPUESTA:",
+          value: presupuesto.fechaInicio
+            ? new Date(presupuesto.fechaInicio).toLocaleDateString("es-MX")
+            : "Por acordar",
+        },
+      ];
+
+      proyectoData.forEach((item) => {
+        pdf.setFont("helvetica", "bold");
+        pdf.text(item.label, margin, yPos);
+        pdf.setFont("helvetica", "normal");
+
+        if (item.label === "DESCRIPCIÓN:" && item.value.length > 60) {
+          const lines = pdf.splitTextToSize(
+            item.value,
+            pageWidth - margin - 50
+          );
+          pdf.text(lines, margin + 50, yPos);
+          yPos += lines.length * 4;
+        } else {
+          pdf.text(item.value, margin + 50, yPos);
+          yPos += 6;
+        }
+      });
+
+      yPos += 10;
+
+      // =============================================
+      // 5.8.4 DESGLOSE DE SERVICIOS Y CONCEPTOS
+      // =============================================
+
+      // Verificar si necesitamos nueva página
+      if (yPos > pageHeight - 100) {
+        pdf.addPage();
+        yPos = margin;
+      }
+
+      pdf.setFillColor(darkGray[0], darkGray[1], darkGray[2]);
+      pdf.setTextColor(255, 255, 255);
+      pdf.setFont("helvetica", "bold");
+      pdf.setFontSize(12);
+      pdf.rect(margin, yPos, pageWidth - 2 * margin, 10, "F");
+      pdf.text("DESGLOSE DETALLADO DE SERVICIOS", margin + 3, yPos + 7);
+
+      yPos += 15;
+
+      // Tabla de conceptos
+      if (presupuesto.detalles && presupuesto.detalles.length > 0) {
+        // Headers de tabla
+        const tableHeaders = [
+          "No.",
+          "DESCRIPCIÓN DEL SERVICIO",
+          "UNIDAD",
+          "CANTIDAD",
+          "PRECIO UNIT.",
+          "IMPORTE",
+        ];
+        const colWidths = [12, 85, 18, 20, 25, 25];
+        let currentX = margin;
+
+        // Dibujar headers
+        pdf.setFillColor(220, 220, 220);
+        pdf.setTextColor(0, 0, 0);
+        pdf.setFont("helvetica", "bold");
+        pdf.setFontSize(8);
+
+        tableHeaders.forEach((header, index) => {
+          pdf.rect(currentX, yPos, colWidths[index], 8, "FD");
+          pdf.text(header, currentX + 2, yPos + 5);
+          currentX += colWidths[index];
+        });
+
+        yPos += 8;
+
+        // Datos de la tabla
+        pdf.setFont("helvetica", "normal");
+        pdf.setFontSize(7);
+
+        presupuesto.detalles.forEach((detalle: any, index: number) => {
+          currentX = margin;
+          const rowHeight = 12; // Altura aumentada para mejor legibilidad
+
+          // Verificar si necesitamos nueva página
+          if (yPos + rowHeight > pageHeight - 50) {
+            pdf.addPage();
+            yPos = margin;
+          }
+
+          // Alternar color de fondo para mejor legibilidad
+          if (index % 2 === 0) {
+            pdf.setFillColor(248, 248, 248);
+            pdf.rect(margin, yPos, pageWidth - 2 * margin, rowHeight, "F");
+          }
+
+          // Número
+          pdf.rect(currentX, yPos, colWidths[0], rowHeight, "D");
+          pdf.text(
+            (index + 1).toString(),
+            currentX + colWidths[0] / 2,
+            yPos + 6,
+            { align: "center" }
+          );
+          currentX += colWidths[0];
+
+          // Descripción
+          pdf.rect(currentX, yPos, colWidths[1], rowHeight, "D");
+          const descripcion =
+            detalle.concepto?.descripcion || "Sin descripción";
+          const descripcionLines = pdf.splitTextToSize(
+            descripcion,
+            colWidths[1] - 4
+          );
+          pdf.text(descripcionLines[0] || "", currentX + 2, yPos + 6);
+          if (descripcionLines.length > 1) {
+            pdf.setFontSize(6);
+            pdf.text(descripcionLines[1] || "", currentX + 2, yPos + 9);
+            pdf.setFontSize(7);
+          }
+          currentX += colWidths[1];
+
+          // Unidad
+          pdf.rect(currentX, yPos, colWidths[2], rowHeight, "D");
+          pdf.text(
+            detalle.concepto?.unidad || "-",
+            currentX + colWidths[2] / 2,
+            yPos + 6,
+            { align: "center" }
+          );
+          currentX += colWidths[2];
+
+          // Cantidad
+          pdf.rect(currentX, yPos, colWidths[3], rowHeight, "D");
+          pdf.text(
+            Number(detalle.cantidad || 0).toFixed(2),
+            currentX + colWidths[3] - 2,
+            yPos + 6,
+            { align: "right" }
+          );
+          currentX += colWidths[3];
+
+          // Precio unitario
+          pdf.rect(currentX, yPos, colWidths[4], rowHeight, "D");
+          pdf.text(
+            `$${Number(detalle.precioUnitario || 0).toLocaleString("es-MX", {
+              minimumFractionDigits: 2,
+            })}`,
+            currentX + colWidths[4] - 2,
+            yPos + 6,
+            { align: "right" }
+          );
+          currentX += colWidths[4];
+
+          // Importe
+          pdf.rect(currentX, yPos, colWidths[5], rowHeight, "D");
+          const importe =
+            Number(detalle.cantidad || 0) * Number(detalle.precioUnitario || 0);
+          pdf.text(
+            `$${importe.toLocaleString("es-MX", { minimumFractionDigits: 2 })}`,
+            currentX + colWidths[5] - 2,
+            yPos + 6,
+            { align: "right" }
+          );
+
+          yPos += rowHeight;
+        });
+      }
+
+      yPos += 10;
+
+      // Totales
+      const subtotal = Number(presupuesto.subtotal || 0);
+      const iva = Number(presupuesto.ivaMonto || 0);
+      const total = Number(presupuesto.total || 0);
+
+      // Cuadro de totales
+      const totalesX = pageWidth - 80;
+      pdf.setFillColor(240, 240, 240);
+      pdf.rect(totalesX - 5, yPos, 65, 25, "F");
+
+      pdf.setFont("helvetica", "bold");
+      pdf.setFontSize(10);
+
+      // Subtotal
+      pdf.text("SUBTOTAL:", totalesX, yPos + 6);
+      pdf.text(
+        `$${subtotal.toLocaleString("es-MX", { minimumFractionDigits: 2 })}`,
+        pageWidth - margin,
+        yPos + 6,
+        { align: "right" }
       );
+
+      // IVA
+      pdf.text("IVA (16%):", totalesX, yPos + 12);
+      pdf.text(
+        `$${iva.toLocaleString("es-MX", { minimumFractionDigits: 2 })}`,
+        pageWidth - margin,
+        yPos + 12,
+        { align: "right" }
+      );
+
+      // Total
+      pdf.setFillColor(laoGreen[0], laoGreen[1], laoGreen[2]);
+      pdf.setTextColor(255, 255, 255);
+      pdf.rect(totalesX - 5, yPos + 16, 65, 8, "F");
+      pdf.text("TOTAL:", totalesX, yPos + 22);
+      pdf.text(
+        `$${total.toLocaleString("es-MX", { minimumFractionDigits: 2 })}`,
+        pageWidth - margin,
+        yPos + 22,
+        { align: "right" }
+      );
+
+      yPos += 30;
+
+      // Cantidad en letras
+      pdf.setTextColor(0, 0, 0);
+      pdf.setFont("helvetica", "bold");
+      pdf.setFontSize(9);
+
+      const totalEnLetras = numeroALetras(Math.floor(total));
+      const centavos = Math.round((total - Math.floor(total)) * 100);
+
+      pdf.text("IMPORTE CON LETRA:", margin, yPos);
+      yPos += 5;
+      pdf.setFont("helvetica", "normal");
+      pdf.setFontSize(8);
+      const cantidadLetras = `${totalEnLetras} PESOS ${centavos
+        .toString()
+        .padStart(2, "0")}/100 M.N.`;
+      const letrasLines = pdf.splitTextToSize(
+        cantidadLetras,
+        pageWidth - 2 * margin
+      );
+      pdf.text(letrasLines, margin, yPos);
+
+      yPos += letrasLines.length * 4 + 10;
+
+      // =============================================
+      // 5.8.5 RESUMEN EJECUTIVO POR SUBÁREAS
+      // =============================================
+
+      // Verificar si necesitamos nueva página
+      if (yPos > pageHeight - 80) {
+        pdf.addPage();
+        yPos = margin;
+      }
+
+      pdf.setFillColor(laoGreen[0], laoGreen[1], laoGreen[2]);
+      pdf.setTextColor(255, 255, 255);
+      pdf.setFont("helvetica", "bold");
+      pdf.setFontSize(12);
+      pdf.rect(margin, yPos, pageWidth - 2 * margin, 10, "F");
+      pdf.text("RESUMEN DE SERVICIOS POR ÁREA", margin + 3, yPos + 7);
+
+      yPos += 15;
+
+      // Ejemplo de áreas y subáreas (esto se puede extender según los datos reales)
+      const areasServicios = [
+        {
+          area: "CONTROL DE CALIDAD (CC)",
+          subareas: [
+            "Agregados",
+            "Concreto",
+            "Asfalto",
+            "Acero",
+            "Mampostería",
+          ],
+          incluidas: ["Agregados", "Concreto"], // Las que están en el presupuesto
+        },
+        {
+          area: "MECÁNICA DE SUELOS (MS)",
+          subareas: [
+            "Clasificación",
+            "Compactación",
+            "Resistencia",
+            "Permeabilidad",
+          ],
+          incluidas: ["Clasificación"],
+        },
+      ];
+
+      pdf.setTextColor(0, 0, 0);
+      pdf.setFont("helvetica", "normal");
+      pdf.setFontSize(9);
+
+      areasServicios.forEach((area) => {
+        pdf.setFont("helvetica", "bold");
+        pdf.text(`• ${area.area}`, margin + 5, yPos);
+        yPos += 6;
+
+        area.subareas.forEach((subarea) => {
+          const incluida = area.incluidas.includes(subarea);
+          pdf.setFont("helvetica", incluida ? "bold" : "normal");
+          pdf.setTextColor(
+            incluida ? laoGreen[0] : lightGray[0],
+            incluida ? laoGreen[1] : lightGray[1],
+            incluida ? laoGreen[2] : lightGray[2]
+          );
+          pdf.text(
+            `    ✓ ${subarea}${incluida ? " (INCLUIDO)" : ""}`,
+            margin + 10,
+            yPos
+          );
+          yPos += 4;
+        });
+        yPos += 3;
+      });
+
+      yPos += 10;
+
+      // =============================================
+      // 5.8.6 TÉRMINOS COMERCIALES Y LEGALES
+      // =============================================
+
+      // Verificar si necesitamos nueva página
+      if (yPos > pageHeight - 120) {
+        pdf.addPage();
+        yPos = margin;
+      }
+
+      pdf.setFillColor(accentBlue[0], accentBlue[1], accentBlue[2]);
+      pdf.setTextColor(255, 255, 255);
+      pdf.setFont("helvetica", "bold");
+      pdf.setFontSize(12);
+      pdf.rect(margin, yPos, pageWidth - 2 * margin, 10, "F");
+      pdf.text("TÉRMINOS Y CONDICIONES COMERCIALES", margin + 3, yPos + 7);
+
+      yPos += 15;
+
+      pdf.setTextColor(0, 0, 0);
+      pdf.setFont("helvetica", "bold");
+      pdf.setFontSize(10);
+      pdf.text("CONDICIONES DE PAGO:", margin, yPos);
+
+      yPos += 6;
+      pdf.setFont("helvetica", "normal");
+      pdf.setFontSize(9);
+
+      const condicionesPago = [
+        "• Forma de pago: Transferencia bancaria o efectivo",
+        "• 50% de anticipo al firmar el contrato",
+        "• 50% restante contra entrega de resultados",
+        "• Los precios incluyen IVA",
+        "• Vigencia de la propuesta: 30 días naturales",
+      ];
+
+      condicionesPago.forEach((condicion) => {
+        pdf.text(condicion, margin + 5, yPos);
+        yPos += 5;
+      });
+
+      yPos += 8;
+
+      pdf.setFont("helvetica", "bold");
+      pdf.setFontSize(10);
+      pdf.text("TÉRMINOS GENERALES:", margin, yPos);
+
+      yPos += 6;
+      pdf.setFont("helvetica", "normal");
+      pdf.setFontSize(9);
+
+      const terminosGenerales = [
+        "• Los servicios se realizarán conforme a normas NMX y ASTM aplicables",
+        "• Tiempo de entrega: 5-10 días hábiles según el tipo de ensayo",
+        "• Las muestras deberán ser proporcionadas por el cliente",
+        "• Los resultados se entregarán en formato digital y físico",
+        "• Garantía: Respaldamos la calidad técnica de nuestros servicios",
+        "• Política de cancelación: 48 horas de anticipación sin penalización",
+      ];
+
+      terminosGenerales.forEach((termino) => {
+        const terminoLines = pdf.splitTextToSize(
+          termino,
+          pageWidth - 2 * margin - 10
+        );
+        pdf.text(terminoLines, margin + 5, yPos);
+        yPos += terminoLines.length * 4 + 1;
+      });
+
+      yPos += 10;
+
+      // =============================================
+      // 5.8.7 CLÁUSULA LEGAL DE ACEPTACIÓN
+      // =============================================
+
+      pdf.setFillColor(255, 249, 196); // Fondo amarillo claro para destacar
+      pdf.rect(margin, yPos, pageWidth - 2 * margin, 25, "F");
+
+      pdf.setFont("helvetica", "bold");
+      pdf.setFontSize(10);
+      pdf.setTextColor(0, 0, 0);
+      pdf.text("CLÁUSULA LEGAL DE ACEPTACIÓN:", margin + 3, yPos + 5);
+
+      yPos += 8;
+      pdf.setFont("helvetica", "normal");
+      pdf.setFontSize(8);
+
+      const clausulaLegal =
+        "La firma de este documento por parte del cliente implica la aceptación total de los términos y condiciones aquí establecidos, así como la autorización para la ejecución de los servicios descritos, constituyendo este presupuesto un acuerdo vinculante entre las partes.";
+
+      const clausulaLines = pdf.splitTextToSize(
+        clausulaLegal,
+        pageWidth - 2 * margin - 6
+      );
+      pdf.text(clausulaLines, margin + 3, yPos);
+
+      yPos += 30;
+
+      // =============================================
+      // 5.8.8 SECCIÓN DE FIRMAS
+      // =============================================
+
+      // Verificar si necesitamos nueva página para las firmas
+      if (yPos > pageHeight - 60) {
+        pdf.addPage();
+        yPos = margin;
+      }
+
+      pdf.setFillColor(darkGray[0], darkGray[1], darkGray[2]);
+      pdf.setTextColor(255, 255, 255);
+      pdf.setFont("helvetica", "bold");
+      pdf.setFontSize(12);
+      pdf.rect(margin, yPos, pageWidth - 2 * margin, 10, "F");
+      pdf.text("SECCIÓN DE FIRMAS Y ACEPTACIÓN", margin + 3, yPos + 7);
+
+      yPos += 20;
+
+      // Área de firmas
+      const firmaWidth = (pageWidth - 3 * margin) / 2;
+
+      // Firma del Laboratorio (izquierda)
+      pdf.setTextColor(0, 0, 0);
+      pdf.setFont("helvetica", "bold");
+      pdf.setFontSize(10);
+      pdf.text("LABORATORIO Y CONSULTORIA LOA S.A. de C.V.", margin, yPos);
+
+      yPos += 15;
+      pdf.setDrawColor(0, 0, 0);
+      pdf.line(margin, yPos, margin + firmaWidth - 10, yPos); // Línea para firma
+
+      yPos += 6;
+      pdf.setFont("helvetica", "normal");
+      pdf.setFontSize(9);
+      pdf.text("NOMBRE: _________________________", margin, yPos);
+
+      yPos += 6;
+      pdf.text("CARGO: __________________________", margin, yPos);
+
+      yPos += 6;
+      pdf.text("FECHA: __________________________", margin, yPos);
+
+      // Firma del Cliente (derecha)
+      const clienteX = margin + firmaWidth + 10;
+      yPos -= 27; // Volver arriba para alinear con firma del laboratorio
+
+      pdf.setFont("helvetica", "bold");
+      pdf.setFontSize(10);
+      pdf.text("ACEPTACIÓN DEL CLIENTE", clienteX, yPos);
+
+      yPos += 15;
+      pdf.line(clienteX, yPos, clienteX + firmaWidth - 10, yPos); // Línea para firma
+
+      yPos += 6;
+      pdf.setFont("helvetica", "normal");
+      pdf.setFontSize(9);
+      pdf.text("NOMBRE COMPLETO: ________________", clienteX, yPos);
+
+      yPos += 6;
+      pdf.text("CARGO/PUESTO: ___________________", clienteX, yPos);
+
+      yPos += 6;
+      pdf.text("FECHA DE ACEPTACIÓN: ____________", clienteX, yPos);
+
+      yPos += 15;
+
+      // Footer del documento
+      pdf.setTextColor(lightGray[0], lightGray[1], lightGray[2]);
+      pdf.setFont("helvetica", "normal");
+      pdf.setFontSize(7);
+      pdf.text(
+        `Documento generado el ${fechaGeneracion} | Este documento tiene validez legal una vez firmado por ambas partes`,
+        pageWidth / 2,
+        pageHeight - 10,
+        { align: "center" }
+      );
+
+      // Descargar PDF
+      const filename = `${presupuesto.claveObra || presupuesto.id}.pdf`;
+      pdf.save(filename);
+
+      console.log(`[PDF] Exportación completada exitosamente`);
+      toast({
+        title: "PDF Generado",
+        description: "Propuesta profesional generada correctamente",
+      });
+    } catch (error: any) {
+      console.error("Error al exportar PDF:", error);
+      toast({
+        title: "Error al generar PDF",
+        description:
+          error.message ||
+          "No se pudo generar el archivo PDF. Intente nuevamente.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -704,7 +1470,7 @@ export default function BudgetsNew() {
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
               <Input
-                placeholder="Buscar por clave, cliente, descripción..."
+                placeholder="Buscar por clave, cliente, descripción, teléfono, correo..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="pl-10"
@@ -971,6 +1737,30 @@ export default function BudgetsNew() {
                               >
                                 {budget.cliente?.nombre || "Sin cliente"}
                               </p>
+                              {/* Mostrar teléfonos del cliente */}
+                              {budget.cliente?.telefonos?.length > 0 && (
+                                <p
+                                  className="text-xs"
+                                  style={{ color: BRAND_COLORS.textSecondary }}
+                                >
+                                  📞 {budget.cliente.telefonos[0].telefono}
+                                  {budget.cliente.telefonos.length > 1 &&
+                                    ` (+${
+                                      budget.cliente.telefonos.length - 1
+                                    })`}
+                                </p>
+                              )}
+                              {/* Mostrar correos del cliente */}
+                              {budget.cliente?.correos?.length > 0 && (
+                                <p
+                                  className="text-xs"
+                                  style={{ color: BRAND_COLORS.textSecondary }}
+                                >
+                                  📧 {budget.cliente.correos[0].correo}
+                                  {budget.cliente.correos.length > 1 &&
+                                    ` (+${budget.cliente.correos.length - 1})`}
+                                </p>
+                              )}
                               <p
                                 className="text-sm"
                                 style={{ color: BRAND_COLORS.textSecondary }}
