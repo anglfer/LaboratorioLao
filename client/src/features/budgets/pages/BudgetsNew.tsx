@@ -567,7 +567,6 @@ export default function BudgetsNew() {
       });
 
       yPos += 25;
-
       // Título principal del documento
       pdf.setTextColor(0, 0, 0);
       pdf.setFont("helvetica", "bold");

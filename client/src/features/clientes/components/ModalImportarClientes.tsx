@@ -31,9 +31,9 @@ export const ModalImportarClientes: React.FC<ModalImportarClientesProps> = ({
     }
   };
 
-  const ejemploTexto = `Juan Pérez	Av. Principal 123	555-0101; 555-0102	juan@email.com; juan.perez@empresa.com
-María García	Calle Secundaria 456	555-0201	maria@email.com
-Carlos López	Boulevard Norte 789	555-0301; 555-0302; 555-0303	carlos@email.com`;
+  const ejemploTexto = `GRUPO SADASI	PRADO NORTE #125 COL.LOMAS DE CHAPULTEPEC 1 SECCION , MIGUEL HIDALGO CIUDAD DE MEXICO. BLVD CAÑAVERAL S/N POR EL PUENTE DEL MILENIO A ESPALDAS DEL HOSPITAL DE ALTA ESPECIALIDAD.	4426901130	fbarcenas@sadasi.com , mmcollazog@sadasi.com, arodriguez@sadasi.com
+CORPORACIÓN LANTANA	AV.CALZADA TEPEYAC #501 ENTRE SAN JUAN BELEÑO Y LA MOREÑA COLONIA TEPEYAC, LEÓN,GTO.	4777643604	ado@corporacionlantana.com.mx
+RUBA DESARROLLOS	BLVD.JOSE MARIA MORELOS #807 LOCAL 27 COLONIA LOS MURALES,LEON,GTO. PEDRO ROSALES DE LEON #201 JARDINES DEL SEMINARIO CHIHUAHUA.	4773909085	karen.prado@ruba.com.mx, bulmaro.nava@ruba.com.mx, enrique.castro@ruba.com.mx`;
 
   return (
     <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] overflow-auto">
@@ -66,9 +66,9 @@ Carlos López	Boulevard Norte 789	555-0301; 555-0302; 555-0303	carlos@email.com`
             disabled={cargando}
           />
           <p className="text-sm text-gray-600 mt-2">
-            Copie las filas desde Excel y péguelas aquí. El sistema detectará
-            automáticamente los datos y creará los clientes con sus teléfonos y
-            correos.
+            Copie las filas desde Excel o pegue datos empresariales aquí. El
+            sistema detectará automáticamente los datos y creará los clientes
+            con sus teléfonos y correos múltiples.
           </p>
         </div>
 
@@ -90,14 +90,17 @@ Carlos López	Boulevard Norte 789	555-0301; 555-0302; 555-0303	carlos@email.com`
             {ejemploTexto}
           </pre>
           <p className="text-sm text-blue-600 mt-2">
-            • <strong>Nombre:</strong> Primera columna (obligatorio)
-            <br />• <strong>Dirección:</strong> Segunda columna (opcional)
-            <br />• <strong>Teléfonos:</strong> Tercera columna, separados por
-            punto y coma (;)
+            • <strong>Nombre/Empresa:</strong> Primera columna (obligatorio)
+            <br />• <strong>Dirección:</strong> Segunda columna (puede incluir
+            múltiples líneas)
+            <br />• <strong>Teléfonos:</strong> Tercera columna (puede estar
+            vacía)
             <br />• <strong>Correos:</strong> Cuarta columna, separados por
-            punto y coma (;)
+            comas (,)
             <br />• <strong>Separar columnas con tabulaciones</strong> (copiar
             desde Excel)
+            <br />• <strong>Soporte para empresas:</strong> Maneja datos
+            empresariales complejos
           </p>
         </div>
 

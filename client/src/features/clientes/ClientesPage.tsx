@@ -362,33 +362,43 @@ const procesarTextoPegado = (texto: string): Partial<Cliente>[] => {
       const [nombre, direccion = "", telefonosStr = "", correosStr = ""] =
         columnas;
 
-      // Procesar teléfonos múltiples
+      // Limpiar direccion de comillas y espacios extra
+      const direccionLimpia = direccion
+        .replace(/^["']|["']$/g, "") // Quitar comillas del inicio y final
+        .replace(/\s+/g, " ") // Normalizar espacios múltiples
+        .trim();
+
+      // Procesar teléfonos múltiples (soporta tanto ; como ,)
       const telefonos: Telefono[] = telefonosStr
         ? telefonosStr
-            .split(";")
+            .split(/[;,]/) // Dividir por ; o ,
             .map((tel, idx) => ({
               id: Date.now() + index * 1000 + idx,
               clienteId: 0,
-              telefono: tel.trim(),
+              telefono: tel.trim().replace(/\D/g, ""), // Solo números
             }))
-            .filter((t) => t.telefono)
+            .filter((t) => t.telefono && t.telefono.length >= 10) // Mínimo 10 dígitos
         : [];
 
-      // Procesar correos múltiples
+      // Procesar correos múltiples (soporta tanto ; como ,)
       const correos: Correo[] = correosStr
         ? correosStr
-            .split(";")
+            .split(/[;,]/) // Dividir por ; o ,
             .map((email, idx) => ({
               id: Date.now() + index * 1000 + idx + 500,
               clienteId: 0,
-              correo: email.trim(),
+              correo: email.trim().toLowerCase(),
             }))
-            .filter((c) => c.correo)
+            .filter((c) => {
+              // Validar formato básico de email
+              const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+              return c.correo && emailRegex.test(c.correo);
+            })
         : [];
 
       return {
         nombre: nombre.trim(),
-        direccion: direccion.trim() || undefined,
+        direccion: direccionLimpia || undefined,
         telefonos,
         correos,
       };

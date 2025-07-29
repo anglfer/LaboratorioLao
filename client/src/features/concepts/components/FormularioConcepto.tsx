@@ -258,7 +258,7 @@ export const FormularioConcepto: React.FC<FormularioConceptoProps> = ({
         {/* Unidad */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
-            Unidad * (según NOM-800 mexicana)
+            Unidad * (según NOM-008 mexicana)
           </label>
           <div className="relative">
             <input
@@ -285,7 +285,7 @@ export const FormularioConcepto: React.FC<FormularioConceptoProps> = ({
             <p className="text-sm text-red-600 mt-1">{errores.unidad}</p>
           )}
           <p className="text-xs text-gray-500 mt-1">
-            Unidades en minúscula según NOM-800 (excepto L para litro)
+            Unidades en minúscula según NOM-008 (excepto L para litro)
           </p>
           <div className="flex flex-wrap gap-1 mt-2">
             {UNIDADES_COMUNES.slice(0, 10).map((unidad) => (

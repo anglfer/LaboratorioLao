@@ -1,5 +1,5 @@
-import React from 'react';
-import { SistemaJerarquico } from '../components';
+import React from "react";
+import { SistemaJerarquico } from "../components";
 
 export const ConceptosJerarquicosPage: React.FC = () => {
   return (
