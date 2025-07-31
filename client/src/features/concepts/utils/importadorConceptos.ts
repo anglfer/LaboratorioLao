@@ -75,7 +75,7 @@ export class ImportadorConceptos {
         console.log('📄 Concepto detectado:', concepto);
         
         // Verificar si necesitamos crear áreas padre faltantes
-        this.crearAreaspadresFaltantes(concepto.codigo, estructura, pilaAreas, areasCreadas);
+        this.crearAreaspadresFaltantes(concepto.codigo, estructura, pilaAreas, areasCreadas, lineasLimpias);
         
         this.agregarConceptoAArea(concepto, pilaAreas);
       } else {

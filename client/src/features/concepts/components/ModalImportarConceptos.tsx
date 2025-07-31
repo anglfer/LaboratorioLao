@@ -35,7 +35,14 @@ export const ModalImportarConceptos: React.FC<ModalImportarConceptosProps> = ({
 2.1	TERRACERÍAS
 2.1.1	TRABAJOS DE CAMPO
 2.1.1.1 (+)	"VISITA PARA DETERMINACIÓN..."	visita	3%	$1,231.53
-2.1.1.2 (+)	ENSAYE ADICIONAL...	prueba	59%	$183.77`;
+2.1.1.2 (+)	ENSAYE ADICIONAL...	prueba	59%	$183.77
+
+Ejemplo con sub-áreas automáticas:
+3	GEOTECNIA
+3.1.1.1 (+)	PRUEBA DE COMPACTACIÓN	ensaye	100%	$850.00
+
+El sistema creará automáticamente:
+- 3.1 con nombre "SUBCATEGORÍA 3.1"`;
 
   return (
     <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] overflow-auto">
@@ -96,6 +103,9 @@ export const ModalImportarConceptos: React.FC<ModalImportarConceptosProps> = ({
             solo agrega nuevos elementos
             <br />• <strong>Sin duplicados:</strong> Los códigos ya existentes
             se conservan intactos
+            <br />• <strong>Nombres automáticos:</strong> Si falta una sub-área
+            padre (ej: 2.1), el sistema buscará su nombre en el texto, o creará
+            "SUBCATEGORÍA 2.1"
             <br />• <strong>Separar columnas con tabulaciones</strong>
             <br />
             • Áreas: solo código y nombre

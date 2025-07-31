@@ -1541,7 +1541,7 @@ export default function AdvancedBudgetForm({
                         htmlFor="direccion"
                         className="text-sm font-medium text-gray-700"
                       >
-                        Dirección de la Obra
+                        Ubicación de la obra
                       </Label>
                       <Input
                         id="direccion"
@@ -2706,7 +2706,6 @@ export default function AdvancedBudgetForm({
                         </span>
                       </div>
                     </div>
-
                     <div className="space-y-6">
                       {/* Manejo de Anticipo */}
                       <div className="space-y-4">
@@ -2729,7 +2728,6 @@ export default function AdvancedBudgetForm({
                           </svg>
                           <span>Anticipo</span>
                         </Label>
-
                         <div className="flex items-center space-x-3">
                           <input
                             type="checkbox"
@@ -2746,7 +2744,6 @@ export default function AdvancedBudgetForm({
                             ¿Se requiere anticipo?
                           </Label>
                         </div>
-
                         {watch("manejaAnticipo") && (
                           <div className="ml-7 space-y-3">
                             <Label
@@ -2805,11 +2802,9 @@ export default function AdvancedBudgetForm({
                         )}
                       </div>
                     </div>
-
                     <Separator
                       style={{ backgroundColor: "#E7F2E0", height: "2px" }}
                     />
-
                     {/* Resumen de totales */}
                     <div
                       className="p-6 rounded-xl border-2"
@@ -2880,7 +2875,6 @@ export default function AdvancedBudgetForm({
                 </Card>
               </>
             )}
-
             {/* Botones de navegación entre pasos */}
             {!isEditMode && (
               <div className="flex justify-between items-center p-6">
