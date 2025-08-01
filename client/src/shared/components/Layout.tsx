@@ -17,7 +17,7 @@ import {
   User,
 } from "lucide-react";
 import { useState } from "react";
-import { cn } from "../../features/budgets/lib/utils";
+import { cn } from "../lib/utils";
 import { useAuth } from "../../features/dashboard/hooks/useAuth";
 
 interface LayoutProps {

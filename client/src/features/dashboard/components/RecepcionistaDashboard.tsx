@@ -189,6 +189,7 @@ export function RecepcionistaDashboard() {
                       className="flex items-center justify-between py-2 border-b"
                     >
                       <div>
+                        |
                         <p className="font-medium">
                           {presupuesto.clienteNombre} - {presupuesto.obraClave}
                         </p>

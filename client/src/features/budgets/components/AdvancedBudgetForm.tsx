@@ -702,6 +702,10 @@ export default function AdvancedBudgetForm({
       setCopiarDeCliente(false);
     }
   }, [initialData, reset]);
+
+  // COMENTADO: Este efecto limpiaba los conceptos seleccionados cuando cambias de área
+  // Ahora los conceptos se mantienen al navegar entre áreas
+  /*
   // Efecto para limpiar conceptos cuando cambia la navegación jerárquica
   useEffect(() => {
     setConceptosSeleccionados([]);
@@ -709,6 +713,7 @@ export default function AdvancedBudgetForm({
     setValue("conceptos", []);
     setBusquedaConcepto(""); // Limpiar búsqueda al cambiar navegación
   }, [areaActualConceptos, setValue]);
+  */
 
   // Calcular totales
   const subtotal = watchedConceptos.reduce((sum, concepto) => {
@@ -779,7 +784,7 @@ export default function AdvancedBudgetForm({
     // Determinar qué conceptos mostrar según el modo
     switch (modoVisualizacion) {
       case "navegacion":
-        // Mostrar solo conceptos del área actual si hay una seleccionada
+        // Mostrar conceptos del área actual si hay una seleccionada
         conceptosBase = conceptosAreaActual || [];
         break;
       case "busqueda":
@@ -789,13 +794,26 @@ export default function AdvancedBudgetForm({
         break;
     }
 
+    // Obtener conceptos ya seleccionados que no están en conceptosBase
+    const conceptosSeleccionadosData = conceptosSeleccionados
+      .map((codigo) => todosLosConceptos?.find((c) => c.codigo === codigo))
+      .filter(Boolean) as ConceptoJerarquico[];
+
+    // Combinar conceptos base con conceptos seleccionados (evitar duplicados)
+    const conceptosCombinados = [...conceptosBase];
+    conceptosSeleccionadosData.forEach((concepto) => {
+      if (!conceptosCombinados.find((c) => c.codigo === concepto.codigo)) {
+        conceptosCombinados.push(concepto);
+      }
+    });
+
     // Aplicar filtro de búsqueda si existe
     if (!busquedaConcepto.trim()) {
-      return conceptosBase;
+      return conceptosCombinados;
     }
 
     const terminoBusqueda = busquedaConcepto.toLowerCase();
-    return conceptosBase.filter(
+    return conceptosCombinados.filter(
       (concepto) =>
         concepto.descripcion.toLowerCase().includes(terminoBusqueda) ||
         concepto.codigo.toLowerCase().includes(terminoBusqueda) ||
@@ -806,6 +824,7 @@ export default function AdvancedBudgetForm({
     conceptosAreaActual,
     todosLosConceptos,
     busquedaConcepto,
+    conceptosSeleccionados,
   ]);
 
   // Función para filtrar clientes por búsqueda (ID, nombre, correo, teléfono)
@@ -1704,6 +1723,7 @@ export default function AdvancedBudgetForm({
                           onClick={() => {
                             setNavegacionJerarquica([]);
                             setAreaActualConceptos(null);
+                            setBusquedaConcepto(""); // Solo limpiar búsqueda, mantener conceptos seleccionados
                           }}
                           className="text-gray-600 hover:text-gray-800"
                         >
@@ -1866,15 +1886,30 @@ export default function AdvancedBudgetForm({
 
                           {/* Información adicional */}
                           {areaActualConceptos && (
-                            <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-lg">
-                              <div className="text-green-700 text-sm">
-                                📋 <strong>Conceptos cargados de:</strong>{" "}
-                                {
-                                  areasJerarquicas?.find(
-                                    (a) => a.id === areaActualConceptos
-                                  )?.nombre
-                                }
+                            <div className="space-y-2">
+                              <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
+                                <div className="text-green-700 text-sm">
+                                  📋 <strong>Conceptos cargados de:</strong>{" "}
+                                  {
+                                    areasJerarquicas?.find(
+                                      (a) => a.id === areaActualConceptos
+                                    )?.nombre
+                                  }
+                                </div>
                               </div>
+
+                              {/* Información sobre conceptos de otras áreas */}
+                              {conceptosSeleccionados.length > 0 && (
+                                <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                                  <div className="text-blue-700 text-sm">
+                                    💡 <strong>Tip:</strong> Los conceptos
+                                    marcados con "📍 Otra área" fueron
+                                    seleccionados de especialidades diferentes y
+                                    se mantienen visibles aunque cambies de
+                                    área.
+                                  </div>
+                                </div>
+                              )}
                             </div>
                           )}
                         </div>
@@ -1900,6 +1935,46 @@ export default function AdvancedBudgetForm({
                         >
                           {conceptosSeleccionados.length} seleccionados
                         </div>
+                        {(() => {
+                          const conceptosDeOtrasAreas =
+                            conceptosSeleccionados.filter(
+                              (codigo) =>
+                                !conceptosAreaActual?.some(
+                                  (c) => c.codigo === codigo
+                                )
+                            ).length;
+
+                          return (
+                            conceptosDeOtrasAreas > 0 && (
+                              <div
+                                className="px-2 py-1 rounded-full text-xs font-medium text-white"
+                                style={{ backgroundColor: "#3498DB" }}
+                                title="Conceptos seleccionados de otras áreas"
+                              >
+                                📍 {conceptosDeOtrasAreas} de otras áreas
+                              </div>
+                            )
+                          );
+                        })()}
+
+                        {/* Botón para limpiar conceptos seleccionados */}
+                        {conceptosSeleccionados.length > 0 && (
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              setConceptosSeleccionados([]);
+                              setValue("conceptosSeleccionados", []);
+                              setValue("conceptos", []);
+                            }}
+                            className="h-7 px-2 text-xs border border-red-300 hover:bg-red-50 text-red-600"
+                            title="Limpiar todos los conceptos seleccionados"
+                          >
+                            🗑️ Limpiar
+                          </Button>
+                        )}
+
                         <span className="text-sm" style={{ color: "#6C757D" }}>
                           de {conceptosFiltrados.length} mostrados
                           {busquedaConcepto &&
@@ -2037,112 +2112,135 @@ export default function AdvancedBudgetForm({
                             borderColor: "#E7F2E0",
                           }}
                         >
-                          {conceptosFiltrados.map((concepto) => (
-                            <div
-                              key={concepto.codigo}
-                              className="flex items-start space-x-4 p-4 rounded-xl border transition-all hover:shadow-md"
-                              style={{
-                                backgroundColor:
-                                  conceptosSeleccionados.includes(
+                          {conceptosFiltrados.map((concepto) => {
+                            // Verificar si el concepto pertenece al área actual
+                            const perteneceAreaActual =
+                              conceptosAreaActual?.some(
+                                (c) => c.codigo === concepto.codigo
+                              ) ?? false;
+                            const esSeleccionadoDeOtraArea =
+                              conceptosSeleccionados.includes(
+                                concepto.codigo
+                              ) && !perteneceAreaActual;
+
+                            return (
+                              <div
+                                key={concepto.codigo}
+                                className="flex items-start space-x-4 p-4 rounded-xl border transition-all hover:shadow-md"
+                                style={{
+                                  backgroundColor:
+                                    conceptosSeleccionados.includes(
+                                      concepto.codigo
+                                    )
+                                      ? "#E7F2E0"
+                                      : "#F8F9FA",
+                                  borderColor: conceptosSeleccionados.includes(
                                     concepto.codigo
                                   )
-                                    ? "#E7F2E0"
-                                    : "#F8F9FA",
-                                borderColor: conceptosSeleccionados.includes(
-                                  concepto.codigo
-                                )
-                                  ? "#68A53B"
-                                  : "#E5E7EB",
-                              }}
-                            >
-                              <div className="flex items-center justify-center mt-1">
-                                <input
-                                  type="checkbox"
-                                  id={`concepto-${concepto.codigo}`}
-                                  checked={conceptosSeleccionados.includes(
-                                    concepto.codigo
-                                  )}
-                                  onChange={() =>
-                                    handleConceptoToggle(concepto.codigo)
-                                  }
-                                  className="sr-only"
-                                />
-                                <div
-                                  className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-all cursor-pointer`}
-                                  style={{
-                                    borderColor:
-                                      conceptosSeleccionados.includes(
-                                        concepto.codigo
-                                      )
-                                        ? "#68A53B"
-                                        : "#6C757D",
-                                    backgroundColor:
-                                      conceptosSeleccionados.includes(
-                                        concepto.codigo
-                                      )
-                                        ? "#68A53B"
-                                        : "#FFFFFF",
-                                  }}
-                                  onClick={() =>
-                                    handleConceptoToggle(concepto.codigo)
-                                  }
-                                >
-                                  {conceptosSeleccionados.includes(
-                                    concepto.codigo
-                                  ) && (
-                                    <svg
-                                      className="w-3 h-3 text-white"
-                                      fill="currentColor"
-                                      viewBox="0 0 20 20"
-                                    >
-                                      <path
-                                        fillRule="evenodd"
-                                        d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                                        clipRule="evenodd"
-                                      />
-                                    </svg>
-                                  )}
-                                </div>
-                              </div>
-                              <label
-                                htmlFor={`concepto-${concepto.codigo}`}
-                                className="flex-1 cursor-pointer"
+                                    ? "#68A53B"
+                                    : "#E5E7EB",
+                                }}
                               >
-                                <div
-                                  className="font-semibold text-base mb-1"
-                                  style={{ color: "#2C3E50" }}
-                                >
-                                  {concepto.descripcion}
-                                </div>
-                                <div className="flex items-center space-x-4 text-sm">
-                                  <span
-                                    className="px-2 py-1 rounded-md text-white"
-                                    style={{ backgroundColor: "#F39C12" }}
-                                  >
-                                    {concepto.unidad}
-                                  </span>
-                                  <span
-                                    className="font-semibold"
-                                    style={{ color: "#68A53B" }}
-                                  >
-                                    $
-                                    {(
-                                      Number(concepto.precioUnitario) || 0
-                                    ).toFixed(2)}
-                                  </span>
-                                  <span
-                                    className="text-xs px-2 py-1 rounded-md"
+                                <div className="flex items-center justify-center mt-1">
+                                  <input
+                                    type="checkbox"
+                                    id={`concepto-${concepto.codigo}`}
+                                    checked={conceptosSeleccionados.includes(
+                                      concepto.codigo
+                                    )}
+                                    onChange={() =>
+                                      handleConceptoToggle(concepto.codigo)
+                                    }
+                                    className="sr-only"
+                                  />
+                                  <div
+                                    className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-all cursor-pointer`}
                                     style={{
-                                      backgroundColor: "#E7F2E0",
-                                      color: "#4F7D2C",
+                                      borderColor:
+                                        conceptosSeleccionados.includes(
+                                          concepto.codigo
+                                        )
+                                          ? "#68A53B"
+                                          : "#6C757D",
+                                      backgroundColor:
+                                        conceptosSeleccionados.includes(
+                                          concepto.codigo
+                                        )
+                                          ? "#68A53B"
+                                          : "#FFFFFF",
                                     }}
+                                    onClick={() =>
+                                      handleConceptoToggle(concepto.codigo)
+                                    }
                                   >
-                                    {concepto.codigo}
-                                  </span>
+                                    {conceptosSeleccionados.includes(
+                                      concepto.codigo
+                                    ) && (
+                                      <svg
+                                        className="w-3 h-3 text-white"
+                                        fill="currentColor"
+                                        viewBox="0 0 20 20"
+                                      >
+                                        <path
+                                          fillRule="evenodd"
+                                          d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                                          clipRule="evenodd"
+                                        />
+                                      </svg>
+                                    )}
+                                  </div>
                                 </div>
-                              </label>
-                            </div>
-                          ))}
+                                <label
+                                  htmlFor={`concepto-${concepto.codigo}`}
+                                  className="flex-1 cursor-pointer"
+                                >
+                                  <div className="flex items-center justify-between mb-1">
+                                    <div
+                                      className="font-semibold text-base"
+                                      style={{ color: "#2C3E50" }}
+                                    >
+                                      {concepto.descripcion}
+                                    </div>
+                                    {esSeleccionadoDeOtraArea && (
+                                      <span
+                                        className="text-xs px-2 py-1 rounded-full text-white font-medium"
+                                        style={{ backgroundColor: "#3498DB" }}
+                                        title="Concepto seleccionado de otra área"
+                                      >
+                                        📍 Otra área
+                                      </span>
+                                    )}
+                                  </div>
+                                  <div className="flex items-center space-x-4 text-sm">
+                                    <span
+                                      className="px-2 py-1 rounded-md text-white"
+                                      style={{ backgroundColor: "#F39C12" }}
+                                    >
+                                      {concepto.unidad}
+                                    </span>
+                                    <span
+                                      className="font-semibold"
+                                      style={{ color: "#68A53B" }}
+                                    >
+                                      $
+                                      {(
+                                        Number(concepto.precioUnitario) || 0
+                                      ).toFixed(2)}
+                                    </span>
+                                    <span
+                                      className="text-xs px-2 py-1 rounded-md"
+                                      style={{
+                                        backgroundColor: "#E7F2E0",
+                                        color: "#4F7D2C",
+                                      }}
+                                    >
+                                      {concepto.codigo}
+                                    </span>
+                                  </div>
+                                </label>
+                              </div>
+                            );
+                          })}
                         </div>
                       ) : (
                         <div

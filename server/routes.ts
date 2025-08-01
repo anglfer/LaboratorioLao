@@ -8,6 +8,8 @@ import { fileURLToPath } from "url";
 import { prisma } from "./prisma";
 import rutasAreas from './routes-areas.js';
 import rutasConceptos from './routes-conceptos.js';
+import { PDFService } from './pdf-service';
+import { generatePresupuestoHTML } from './pdf-template';
 import {
   insertClienteSchema,
   insertTelefonoSchema,
@@ -21,139 +23,6 @@ import {
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-
-function generatePresupuestoHTML(
-  presupuesto: any,
-  detalles: any[],
-  forPDF = false,
-) {
-  const subtotal = presupuesto.subtotal || 0;
-  const iva = presupuesto.ivaMonto || 0;
-  const total = presupuesto.total || 0;
-  const fechaGeneracion = new Date().toLocaleDateString("es-MX", {
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-  });
-
-  // Estados simples para PDF minimalista
-  const estadoActual = presupuesto.estado || "borrador";
-
-  return `
-    <!DOCTYPE html>
-    <html lang="es">
-    <head>
-        <meta charset="UTF-8">
-        <title>Presupuesto ${presupuesto.id}</title>
-        <style>
-            body { font-family: Arial, sans-serif; margin: 20px; font-size: 11px; line-height: 1.3; }
-            .header { text-align: center; margin-bottom: 20px; border-bottom: 1px solid #ccc; padding-bottom: 15px; }
-            .company { font-size: 18px; font-weight: bold; margin-bottom: 5px; }
-            .title { font-size: 14px; font-weight: bold; }
-            .info { display: flex; justify-content: space-between; margin: 15px 0; }
-            .info-box { width: 48%; }
-            .info-box h4 { font-size: 12px; margin: 0 0 8px 0; font-weight: bold; }
-            .info-box p { margin: 2px 0; font-size: 10px; }
-            table { width: 100%; border-collapse: collapse; margin: 15px 0; font-size: 9px; }
-            th, td { border: 1px solid #ddd; padding: 6px; text-align: left; }
-            th { background-color: #f5f5f5; font-weight: bold; }
-            .text-right { text-align: right; }
-            .text-center { text-align: center; }
-            .totals { width: 250px; margin-left: auto; margin-top: 15px; }
-            .footer { margin-top: 30px; font-size: 9px; text-align: center; color: #666; }
-        </style>
-    </head>
-    <body>
-        <div class="header">
-            <div class="company">LABORATORIO LAO</div>
-            <div class="title">PRESUPUESTO #${presupuesto.id}</div>
-            <div style="font-size: 10px; margin-top: 5px;">Estado: ${estadoActual.toUpperCase()}</div>
-        </div>
-
-        <div class="info">
-            <div class="info-box">
-                <h4>DATOS DEL PRESUPUESTO</h4>
-                <p><strong>Fecha:</strong> ${new Date(presupuesto.fechaSolicitud || new Date()).toLocaleDateString('es-MX')}</p>
-                <p><strong>Clave:</strong> ${presupuesto.claveObra || 'Por asignar'}</p>
-                ${presupuesto.descripcionObra ? `<p><strong>Obra:</strong> ${presupuesto.descripcionObra}</p>` : ''}
-            </div>
-            
-            <div class="info-box">
-                <h4>DATOS DEL CLIENTE</h4>
-                <p><strong>Cliente:</strong> ${presupuesto.cliente?.nombre || 'No especificado'}</p>
-                <p><strong>Contratista:</strong> ${presupuesto.nombreContratista || 'No especificado'}</p>
-                ${presupuesto.contactoResponsable ? `<p><strong>Contacto:</strong> ${presupuesto.contactoResponsable}</p>` : ''}
-                ${presupuesto.direccion ? `<p><strong>Dirección:</strong> ${presupuesto.direccion}</p>` : ''}
-                ${presupuesto.cliente?.telefonos?.length > 0 ? `<p><strong>Teléfono:</strong> ${presupuesto.cliente.telefonos[0].telefono}</p>` : ''}
-                ${presupuesto.cliente?.correos?.length > 0 ? `<p><strong>Email:</strong> ${presupuesto.cliente.correos[0].correo}</p>` : ''}
-            </div>
-        </div>
-
-        <table>
-            <thead>
-                <tr>
-                    <th style="width: 12%">Código</th>
-                    <th style="width: 50%">Descripción</th>
-                    <th style="width: 8%">Unidad</th>
-                    <th style="width: 10%" class="text-center">Cantidad</th>
-                    <th style="width: 10%" class="text-right">P. Unit.</th>
-                    <th style="width: 10%" class="text-right">Total</th>
-                </tr>
-            </thead>
-            <tbody>
-                ${detalles.map(detalle => `
-                    <tr>
-                        <td>${detalle.concepto?.codigo || detalle.conceptoCodigo || '-'}</td>
-                        <td>${detalle.concepto?.descripcion || 'Sin descripción'}</td>
-                        <td class="text-center">${detalle.concepto?.unidad || '-'}</td>
-                        <td class="text-center">${Number(detalle.cantidad || 0).toFixed(2)}</td>
-                        <td class="text-right">$${Number(detalle.precioUnitario || 0).toFixed(2)}</td>
-                        <td class="text-right">$${(Number(detalle.cantidad || 0) * Number(detalle.precioUnitario || 0)).toFixed(2)}</td>
-                    </tr>
-                `).join('')}
-            </tbody>
-        </table>
-
-        <table class="totals">
-            <tr><td><strong>Subtotal:</strong></td><td class="text-right">$${Number(subtotal).toFixed(2)}</td></tr>
-            <tr><td><strong>IVA (${((presupuesto.iva || 0.16) * 100).toFixed(0)}%):</strong></td><td class="text-right">$${Number(iva).toFixed(2)}</td></tr>
-            <tr style="background-color: #f0f0f0;"><td><strong>TOTAL:</strong></td><td class="text-right"><strong>$${Number(total).toFixed(2)}</strong></td></tr>
-        </table>
-
-        ${presupuesto.manejaAnticipo && presupuesto.porcentajeAnticipo ? `
-        <div style="margin-top: 15px; padding: 10px; background-color: #f9f9f9; border-left: 3px solid #007acc;">
-            <strong>Anticipo requerido:</strong> ${presupuesto.porcentajeAnticipo}% = $${(Number(total) * Number(presupuesto.porcentajeAnticipo) / 100).toFixed(2)}
-        </div>
-        ` : ''}
-
-        <div class="footer">
-            <p>Documento generado el ${fechaGeneracion} | Vigencia: 30 días</p>
-            <p>Laboratorio Lao - Av. la Presa 519-511, Ibarrilla, Gto. - Tel: 477-210-2263</p>
-        </div>
-    </body>
-    </html>
-  `;
-}
-
-// HTML validation function to prevent PDF corruption
-function validateHTML(html: string): boolean {
-  try {
-    // Basic validation - check for malformed HTML that could break PDF generation
-    const suspiciousPatterns = [
-      /<script[^>]*>/i,
-      /<iframe[^>]*>/i,
-      /javascript:/i,
-      /data:text\/html/i,
-      /<object[^>]*>/i,
-      /<embed[^>]*>/i,
-    ];
-
-    return !suspiciousPatterns.some(pattern => pattern.test(html));
-  } catch (error) {
-    console.error("HTML validation error:", error);
-    return false;
-  }
-}
 
 export function registerRoutes(app: Express): Promise<Server> {
   const server = createServer(app);
@@ -431,6 +300,86 @@ export function registerRoutes(app: Express): Promise<Server> {
       res.json(presupuesto);
     } catch (error: any) {
       res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Endpoint para previsualizar HTML del presupuesto (útil para debugging)
+  app.get("/api/presupuestos/:id/preview", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      console.log(`[GET /api/presupuestos/${id}/preview] Generating HTML preview...`);
+      
+      // Obtener presupuesto con todos los datos relacionados
+      const presupuesto = await storage.getPresupuestoById(id);
+      if (!presupuesto) {
+        return res.status(404).json({ message: "Presupuesto no encontrado" });
+      }
+
+      // Obtener detalles del presupuesto
+      const detalles = await storage.getPresupuestoDetalles(id);
+      
+      // Generar HTML profesional
+      const html = generatePresupuestoHTML(presupuesto, detalles);
+      
+      console.log(`[GET /api/presupuestos/${id}/preview] HTML preview generated successfully`);
+      
+      // Enviar HTML directamente para previsualización
+      res.setHeader('Content-Type', 'text/html; charset=utf-8');
+      res.send(html);
+      
+    } catch (error: any) {
+      console.error("[GET /api/presupuestos/:id/preview] Error:", error);
+      res.status(500).json({ 
+        message: error.message,
+        details: error.stack?.split('\n').slice(0, 3).join('\n')
+      });
+    }
+  });
+
+  // Endpoint para generar PDF profesional con servicio separado
+  app.get("/api/presupuestos/:id/pdf", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      console.log(`[GET /api/presupuestos/${id}/pdf] Generating PDF...`);
+      
+      // Obtener presupuesto con todos los datos relacionados
+      const presupuesto = await storage.getPresupuestoById(id);
+      if (!presupuesto) {
+        return res.status(404).json({ message: "Presupuesto no encontrado" });
+      }
+
+      // Obtener detalles del presupuesto
+      const detalles = await storage.getPresupuestoDetalles(id);
+      
+      // Generar HTML profesional
+      const html = generatePresupuestoHTML(presupuesto, detalles);
+      
+      // Validar HTML antes de generar PDF
+      if (!PDFService.validateHTML(html)) {
+        throw new Error("HTML generado no es válido para conversión a PDF");
+      }
+      
+      // Generar PDF con el servicio separado
+      const pdf = await PDFService.generatePDF(html);
+      
+      // Configurar headers para descarga
+      const filename = `Presupuesto_${presupuesto.claveObra || presupuesto.id}_${new Date().toISOString().split('T')[0]}.pdf`;
+      
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+      res.setHeader('Content-Length', pdf.length);
+      
+      console.log(`[GET /api/presupuestos/${id}/pdf] PDF generated successfully: ${filename}`);
+      
+      // Enviar PDF
+      res.send(pdf);
+      
+    } catch (error: any) {
+      console.error("[GET /api/presupuestos/:id/pdf] Error:", error);
+      res.status(500).json({ 
+        message: error.message,
+        details: error.stack?.split('\n').slice(0, 3).join('\n') // Primeras 3 líneas del stack para debugging
+      });
     }
   });
 

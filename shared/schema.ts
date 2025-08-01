@@ -134,3 +134,4 @@ export const SYSTEM_CONSTANTS = {
     "Anexo I. Métodos de prueba, Frecuencia de muestreo, Criterios de aceptación y Rechazo, Políticas de Laboratorio, Imparcialidad y Confidencialidad.",
   ],
 };
+

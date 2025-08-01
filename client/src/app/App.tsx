@@ -7,6 +7,7 @@ import { Outlet } from "react-router-dom";
 import { AdminDashboard } from "../features/dashboard/components/AdminDashboard";
 import { RecepcionistaDashboard } from "../features/dashboard/components/RecepcionistaDashboard";
 import { BudgetsNew } from "../features/budgets";
+import BudgetPDFPreview from "../features/budgets/pages/BudgetPDFPreview";
 import { SistemaJerarquicoPage } from "../features/concepts";
 import ClientesPage from "../features/clientes/ClientesPage";
 import NotFound from "./not-found";
@@ -24,6 +25,7 @@ function AuthenticatedRouter() {
         {/* Rutas directas de presupuestos */}
         <Route path="/presupuestos" element={<BudgetsNew />} />
         <Route path="/presupuestos/nuevo" element={<BudgetsNew />} />
+        <Route path="/budgets/:id/preview" element={<BudgetPDFPreview />} />
         {/* Rutas administrativas */}
         <Route
           path="/admin/sistema-jerarquico"

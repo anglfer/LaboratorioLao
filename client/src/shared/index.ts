@@ -1,6 +1,9 @@
 // Shared component exports
 export { default as Layout } from "./components/Layout";
 
+// Utils exports
+export { cn } from "./lib/utils";
+
 // Re-export UI components
 export * from "./components/ui/button";
 export * from "./components/ui/card";

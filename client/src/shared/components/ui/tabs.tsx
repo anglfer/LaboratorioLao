@@ -1,5 +1,5 @@
 import * as React from "react";
-import { cn } from "../../../features/budgets/lib/utils";
+import { cn } from "../../lib/utils";
 
 interface TabsProps {
   value?: string;
