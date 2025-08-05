@@ -1,5 +1,131 @@
 import React from "react";
 
+// Función para convertir números a letras
+const numeroALetras = (numero: number): string => {
+  const unidades = [
+    "",
+    "uno",
+    "dos",
+    "tres",
+    "cuatro",
+    "cinco",
+    "seis",
+    "siete",
+    "ocho",
+    "nueve",
+    "diez",
+    "once",
+    "doce",
+    "trece",
+    "catorce",
+    "quince",
+    "dieciséis",
+    "diecisiete",
+    "dieciocho",
+    "diecinueve",
+  ];
+
+  const decenas = [
+    "",
+    "",
+    "veinte",
+    "treinta",
+    "cuarenta",
+    "cincuenta",
+    "sesenta",
+    "setenta",
+    "ochenta",
+    "noventa",
+  ];
+
+  const centenas = [
+    "",
+    "ciento",
+    "doscientos",
+    "trescientos",
+    "cuatrocientos",
+    "quinientos",
+    "seiscientos",
+    "setecientos",
+    "ochocientos",
+    "novecientos",
+  ];
+
+  if (numero === 0) return "cero";
+
+  const convertirGrupo = (num: number): string => {
+    let resultado = "";
+
+    if (num >= 100) {
+      if (num === 100) {
+        resultado += "cien";
+      } else {
+        resultado += centenas[Math.floor(num / 100)];
+      }
+      num %= 100;
+      if (num > 0) resultado += " ";
+    }
+
+    if (num >= 20) {
+      resultado += decenas[Math.floor(num / 10)];
+      num %= 10;
+      if (num > 0) resultado += " y " + unidades[num];
+    } else if (num > 0) {
+      resultado += unidades[num];
+    }
+
+    return resultado;
+  };
+
+  const entero = Math.floor(numero);
+  const centavos = Math.round((numero - entero) * 100);
+
+  let resultado = "";
+  let enteroRestante = entero;
+
+  if (enteroRestante >= 1000000) {
+    const millones = Math.floor(enteroRestante / 1000000);
+    if (millones === 1) {
+      resultado += "un millón";
+    } else {
+      resultado += convertirGrupo(millones) + " millones";
+    }
+    enteroRestante %= 1000000;
+    if (enteroRestante > 0) resultado += " ";
+  }
+
+  if (enteroRestante >= 1000) {
+    const miles = Math.floor(enteroRestante / 1000);
+    if (miles === 1) {
+      resultado += "mil";
+    } else {
+      resultado += convertirGrupo(miles) + " mil";
+    }
+    enteroRestante %= 1000;
+    if (enteroRestante > 0) resultado += " ";
+  }
+
+  if (enteroRestante > 0) {
+    if (enteroRestante === 1 && resultado !== "") {
+      resultado += "uno";
+    } else {
+      resultado += convertirGrupo(enteroRestante);
+    }
+  }
+
+  if (resultado === "") resultado = "cero";
+
+  // Agregar la moneda
+  resultado += " pesos";
+
+  // Agregar centavos si los hay
+  if (centavos > 0) {
+    resultado += " con " + convertirGrupo(centavos) + " centavos";
+  }
+
+  return resultado + " mexicanos";
+};
+
 interface PresupuestoData {
   id: number;
   claveObra?: string;
@@ -689,6 +815,49 @@ const PresupuestoPDF: React.FC<PresupuestoPDFProps> = ({
         </table>
       </div>
 
+      {/* Total en letras */}
+      <div
+        style={{
+          margin: "20px 0",
+          display: "flex",
+          justifyContent: "flex-end",
+        }}
+      >
+        <div
+          style={{
+            width: "400px",
+            padding: "15px 20px",
+            background: "#f8f9fa",
+            border: "2px solid #2E7D32",
+            borderRadius: "8px",
+            textAlign: "center",
+          }}
+        >
+          <div
+            style={{
+              fontSize: "11px",
+              fontWeight: "bold",
+              color: "#2E7D32",
+              marginBottom: "5px",
+              textTransform: "uppercase",
+            }}
+          >
+            Total en Letras:
+          </div>
+          <div
+            style={{
+              fontSize: "12px",
+              color: "#333",
+              fontWeight: "bold",
+              textTransform: "uppercase",
+              fontStyle: "italic",
+            }}
+          >
+            {numeroALetras(total)}
+          </div>
+        </div>
+      </div>
+
       {/* Anticipo */}
       {presupuesto.manejaAnticipo && presupuesto.porcentajeAnticipo && (
         <div
@@ -710,6 +879,149 @@ const PresupuestoPDF: React.FC<PresupuestoPDFProps> = ({
           })}
         </div>
       )}
+
+      {/* Notas importantes */}
+      <div
+        style={{
+          margin: "30px 0",
+          padding: "20px",
+          background: "#fafafa",
+          border: "1px solid #ddd",
+          borderRadius: "8px",
+        }}
+      >
+        <div
+          style={{
+            fontSize: "14px",
+            fontWeight: "bold",
+            color: "#2E7D32",
+            marginBottom: "15px",
+            textTransform: "uppercase",
+            textAlign: "center",
+          }}
+        >
+          NOTAS
+        </div>
+        <div style={{ fontSize: "10px", lineHeight: 1.5, color: "#333" }}>
+          <p style={{ margin: "0 0 8px 0" }}>
+            <strong>*</strong> Las cantidades en presupuesto pueden sufrir
+            variación en función de las pruebas elaboradas, por lo que el
+            presente presupuesto es una referencia de los costos.
+          </p>
+          <p style={{ margin: "0 0 8px 0" }}>
+            <strong>*</strong> En la realización de <em>visitas nocturnas</em>{" "}
+            para muestreo de concreto se deberá considerar un costo por visita
+            de <strong>$1,517.83</strong> más IVA, en horario de 20:00 a 06:00
+            hrs, con permanencia de <em>1.5 hr máximo</em> (CC.060).
+          </p>
+          <p style={{ margin: "0 0 8px 0" }}>
+            <strong>*</strong> Se deberá considerar un costo de{" "}
+            <strong>$677.44</strong> más IVA por <em>hora extraordinaria</em> de
+            personal de laboratorio en trabajos de campo en{" "}
+            <em>horario nocturno</em>, considerando un horario de 21:00 a 06:00
+            (CC.059).
+          </p>
+
+          <p style={{ margin: "0 0 8px 0" }}>
+            <strong>*</strong> El horario de servicio es de 08:00 a 17:00 hr de
+            lunes a viernes, sábados de 08:00 a 14:00 hr, trabajos fuera del
+            horario se tomará como <em>tiempo extraordinario</em> con un costo
+            de <strong>$406.47</strong> más IVA por hora (CC.055).
+          </p>
+          <p style={{ margin: "0 0 8px 0" }}>
+            <strong>*</strong> <em>Visita en falso</em> para muestreo en obra
+            considerando traslados y permanencia de 1.5 hr máximo en horario
+            diurno de 8:00 a 17:00 hr se deberá considerar un costo de{" "}
+            <strong>$640.63</strong> más IVA (CC.012).
+          </p>
+          <p style={{ margin: "0 0 8px 0" }}>
+            <strong>*</strong> Una vez finalizados los trabajos y entregados los
+            informes correspondientes se dará un período de 30 días para
+            mantener los materiales en laboratorio, posteriormente se
+            desecharán.
+          </p>
+          <p style={{ margin: "0 0 8px 0" }}>
+            <strong>*</strong> Los accesos al lugar de la obra, la ubicación de
+            las exploraciones y los permisos necesarios para su realización{" "}
+            <em>correrán por cuenta del contratante</em>.
+          </p>
+          <p style={{ margin: "0 0 8px 0" }}>
+            <strong>*</strong> Para iniciar los trabajos se requiere:{" "}
+            <em>
+              la aceptación del presupuesto se realizará firmando el mismo
+            </em>
+            , preferentemente por el representante legal. La entrega de
+            información final con los resultados se realizará una vez liquidado
+            el monto de los trabajos ejecutados.
+          </p>
+          <p style={{ margin: "0 0 8px 0" }}>
+            <strong>*</strong> En caso de requerir cualquier tipo de
+            modificación en el alcance de este presupuesto después de su firma,
+            se realizará un nuevo presupuesto.
+          </p>
+        </div>
+      </div>
+
+      {/* Forma de pago */}
+      <div
+        style={{
+          margin: "30px 0",
+          padding: "20px",
+          background: "#E3F2FD",
+          border: "1px solid #1976D2",
+          borderRadius: "8px",
+        }}
+      >
+        <div
+          style={{
+            fontSize: "14px",
+            fontWeight: "bold",
+            color: "#1976D2",
+            marginBottom: "15px",
+            textTransform: "uppercase",
+            textAlign: "center",
+          }}
+        >
+          FORMA DE PAGO
+        </div>
+        <div style={{ fontSize: "11px", lineHeight: 1.6, color: "#333" }}>
+          <p style={{ margin: "0 0 10px 0", fontWeight: "bold" }}>
+            Cuenta Bancaria a nombre de: Laboratorio y Consultoría Loa, S.A. de
+            C.V.
+          </p>
+          <p style={{ margin: "0 0 8px 0" }}>
+            <strong>Banorte</strong> No de Cuenta: <strong>00537908428</strong>.
+            Clabe Interbancaria: <strong>072225005379084280</strong>
+          </p>
+          <p style={{ margin: "0 0 12px 0" }}>
+            <strong>Santander</strong> No de Cuenta:{" "}
+            <strong>92000608547</strong>. Clabe Interbancaria:{" "}
+            <strong>014225920006085475</strong>
+          </p>
+          <p style={{ margin: "0", fontSize: "10px", fontStyle: "italic" }}>
+            Le recordamos que ninguno de nuestros laboratoristas está autorizado
+            para recibir o solicitar el pago de las actividades realizadas, en
+            dado caso de ser solicitado favor de comunicarse a los teléfonos del
+            laboratorio.
+          </p>
+        </div>
+      </div>
+
+      {/* Mensaje de agradecimiento */}
+      <div
+        style={{
+          margin: "30px 0",
+          padding: "15px",
+          textAlign: "center",
+          fontSize: "12px",
+          color: "#555",
+          fontStyle: "italic",
+        }}
+      >
+        Agradeciendo de antemano la atención al presente y en espera de su
+        aceptación, me es grato reiterarme a sus órdenes para cualquier
+        aclaración al respecto.
+      </div>
 
       {/* Sección de firma */}
       <div
@@ -752,9 +1064,33 @@ const PresupuestoPDF: React.FC<PresupuestoPDFProps> = ({
             marginTop: "25px",
           }}
         >
-          <div style={{ textAlign: "center" }}>
+          <div
+            style={{
+              textAlign: "center",
+            }}
+          >
             <div style={{ fontWeight: "bold", marginBottom: "15px" }}>
               LABORATORIO Y CONSULTORÍA LOA
+            </div>
+            <div
+              style={{
+                marginBottom: "15px",
+                textAlign: "center",
+                lineHeight: "1.4",
+              }}
+            >
+              <div style={{ fontWeight: "bold", fontSize: "11px" }}>
+                A T E N T A M E N T E
+              </div>
+              <div style={{ fontSize: "10px", margin: "5px 0" }}>
+                Laboratorio y Consultoria Loa S.A. de C.V.
+              </div>
+              <div style={{ fontSize: "10px", margin: "5px 0" }}>
+                Ing. José Luis Reséndiz Merlos
+              </div>
+              <div style={{ fontSize: "10px", fontWeight: "bold" }}>
+                Director General
+              </div>
             </div>
             <div
               style={{
@@ -770,13 +1106,17 @@ const PresupuestoPDF: React.FC<PresupuestoPDFProps> = ({
                 fontSize: "10px",
               }}
             >
-              Nombre y Firma del Representante
+              Firma del Director General
             </div>
             <div style={{ marginTop: "8px", fontSize: "9px" }}>
               Fecha: _______________
             </div>
           </div>
-          <div style={{ textAlign: "center" }}>
+          <div
+            style={{
+              textAlign: "center",
+            }}
+          >
             <div style={{ fontWeight: "bold", marginBottom: "15px" }}>
               CLIENTE
             </div>

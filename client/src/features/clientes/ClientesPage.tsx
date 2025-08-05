@@ -369,24 +369,20 @@ const procesarTextoPegado = (texto: string): Partial<Cliente>[] => {
         .trim();
 
       // Procesar teléfonos múltiples (soporta tanto ; como ,)
-      const telefonos: Telefono[] = telefonosStr
+      const telefonos = telefonosStr
         ? telefonosStr
             .split(/[;,]/) // Dividir por ; o ,
-            .map((tel, idx) => ({
-              id: Date.now() + index * 1000 + idx,
-              clienteId: 0,
+            .map((tel) => ({
               telefono: tel.trim().replace(/\D/g, ""), // Solo números
             }))
             .filter((t) => t.telefono && t.telefono.length >= 10) // Mínimo 10 dígitos
         : [];
 
       // Procesar correos múltiples (soporta tanto ; como ,)
-      const correos: Correo[] = correosStr
+      const correos = correosStr
         ? correosStr
             .split(/[;,]/) // Dividir por ; o ,
-            .map((email, idx) => ({
-              id: Date.now() + index * 1000 + idx + 500,
-              clienteId: 0,
+            .map((email) => ({
               correo: email.trim().toLowerCase(),
             }))
             .filter((c) => {

@@ -36,40 +36,73 @@ export interface ConceptoDetalle {
 // Función para convertir números a letras
 function numeroALetras(numero: number): string {
   const unidades = [
-    '', 'uno', 'dos', 'tres', 'cuatro', 'cinco', 'seis', 'siete', 'ocho', 'nueve',
-    'diez', 'once', 'doce', 'trece', 'catorce', 'quince', 'dieciséis', 'diecisiete',
-    'dieciocho', 'diecinueve'
+    "",
+    "uno",
+    "dos",
+    "tres",
+    "cuatro",
+    "cinco",
+    "seis",
+    "siete",
+    "ocho",
+    "nueve",
+    "diez",
+    "once",
+    "doce",
+    "trece",
+    "catorce",
+    "quince",
+    "dieciséis",
+    "diecisiete",
+    "dieciocho",
+    "diecinueve",
   ];
 
   const decenas = [
-    '', '', 'veinte', 'treinta', 'cuarenta', 'cincuenta', 'sesenta', 'setenta',
-    'ochenta', 'noventa'
+    "",
+    "",
+    "veinte",
+    "treinta",
+    "cuarenta",
+    "cincuenta",
+    "sesenta",
+    "setenta",
+    "ochenta",
+    "noventa",
   ];
 
   const centenas = [
-    '', 'ciento', 'doscientos', 'trescientos', 'cuatrocientos', 'quinientos',
-    'seiscientos', 'setecientos', 'ochocientos', 'novecientos'
+    "",
+    "ciento",
+    "doscientos",
+    "trescientos",
+    "cuatrocientos",
+    "quinientos",
+    "seiscientos",
+    "setecientos",
+    "ochocientos",
+    "novecientos",
   ];
 
-  if (numero === 0) return 'cero';
+  if (numero === 0) return "cero";
 
   const convertirGrupo = (num: number): string => {
-    let resultado = '';
+    let resultado = "";
 
     if (num >= 100) {
       if (num === 100) {
-        resultado += 'cien';
+        resultado += "cien";
       } else {
         resultado += centenas[Math.floor(num / 100)];
       }
       num %= 100;
-      if (num > 0) resultado += ' ';
+      if (num > 0) resultado += " ";
     }
 
     if (num >= 20) {
       resultado += decenas[Math.floor(num / 10)];
       num %= 10;
-      if (num > 0) resultado += ' y ' + unidades[num];
+      if (num > 0) resultado += " y " + unidades[num];
     } else if (num > 0) {
       resultado += unidades[num];
     }
@@ -80,50 +113,50 @@ function numeroALetras(numero: number): string {
   const entero = Math.floor(numero);
   const centavos = Math.round((numero - entero) * 100);
 
-  let resultado = '';
+  let resultado = "";
   let enteroRestante = entero;
 
   if (enteroRestante >= 1000000) {
     const millones = Math.floor(enteroRestante / 1000000);
     if (millones === 1) {
-      resultado += 'un millón';
+      resultado += "un millón";
     } else {
-      resultado += convertirGrupo(millones) + ' millones';
+      resultado += convertirGrupo(millones) + " millones";
     }
     enteroRestante %= 1000000;
-    if (enteroRestante > 0) resultado += ' ';
+    if (enteroRestante > 0) resultado += " ";
   }
 
   if (enteroRestante >= 1000) {
     const miles = Math.floor(enteroRestante / 1000);
     if (miles === 1) {
-      resultado += 'mil';
+      resultado += "mil";
     } else {
-      resultado += convertirGrupo(miles) + ' mil';
+      resultado += convertirGrupo(miles) + " mil";
     }
     enteroRestante %= 1000;
-    if (enteroRestante > 0) resultado += ' ';
+    if (enteroRestante > 0) resultado += " ";
   }
 
   if (enteroRestante > 0) {
-    if (enteroRestante === 1 && resultado !== '') {
-      resultado += 'uno';
+    if (enteroRestante === 1 && resultado !== "") {
+      resultado += "uno";
     } else {
       resultado += convertirGrupo(enteroRestante);
     }
   }
 
-  if (resultado === '') resultado = 'cero';
+  if (resultado === "") resultado = "cero";
 
   // Agregar la moneda
-  resultado += ' pesos';
+  resultado += " pesos";
 
   // Agregar centavos si los hay
   if (centavos > 0) {
-    resultado += ' con ' + convertirGrupo(centavos) + ' centavos';
+    resultado += " con " + convertirGrupo(centavos) + " centavos";
   }
 
-  return resultado + ' mexicanos';
+  return resultado + " mexicanos";
 }
 
 export function generatePresupuestoHTML(
@@ -572,7 +605,9 @@ export function generatePresupuestoHTML(
         <div class="header">
             <div class="company-name">LABORATORIO Y CONSULTORÍA LOA S.A. DE C.V.</div>
             <div class="document-title">PROPUESTA DE SERVICIOS DE LABORATORIO</div>
-            <div class="obra-code">CLAVE DE OBRA: ${presupuesto.claveObra || 'SIN ASIGNAR'}</div>
+            <div class="obra-code">CLAVE DE OBRA: ${
+              presupuesto.claveObra || "SIN ASIGNAR"
+            }</div>
         </div>
         
         <div class="info-section">
@@ -580,59 +615,91 @@ export function generatePresupuestoHTML(
                 <div class="info-title">Datos del Cliente</div>
                 <div class="info-item">
                     <span class="info-label">Cliente:</span>
-                    <span class="info-value">${presupuesto.cliente?.nombre || 'No especificado'}</span>
+                    <span class="info-value">${
+                      presupuesto.cliente?.nombre || "No especificado"
+                    }</span>
                 </div>
                 <div class="info-item">
                     <span class="info-label">Contratista:</span>
-                    <span class="info-value">${presupuesto.nombreContratista || 'No especificado'}</span>
+                    <span class="info-value">${
+                      presupuesto.nombreContratista || "No especificado"
+                    }</span>
                 </div>
-                ${presupuesto.contactoResponsable ? `
+                ${
+                  presupuesto.contactoResponsable
+                    ? `
                 <div class="info-item">
                     <span class="info-label">Contacto:</span>
                     <span class="info-value">${presupuesto.contactoResponsable}</span>
                 </div>
-                ` : ''}
-                ${presupuesto.direccion ? `
+                `
+                    : ""
+                }
+                ${
+                  presupuesto.direccion
+                    ? `
                 <div class="info-item">
                     <span class="info-label">Dirección:</span>
                     <span class="info-value">${presupuesto.direccion}</span>
                 </div>
-                ` : ''}
-                ${presupuesto.cliente?.telefonos?.length ? `
+                `
+                    : ""
+                }
+                ${
+                  presupuesto.cliente?.telefonos?.length
+                    ? `
                 <div class="info-item">
                     <span class="info-label">Teléfono:</span>
                     <span class="info-value">${presupuesto.cliente.telefonos[0].telefono}</span>
                 </div>
-                ` : ''}
-                ${presupuesto.cliente?.correos?.length ? `
+                `
+                    : ""
+                }
+                ${
+                  presupuesto.cliente?.correos?.length
+                    ? `
                 <div class="info-item">
                     <span class="info-label">Email:</span>
                     <span class="info-value">${presupuesto.cliente.correos[0].correo}</span>
                 </div>
-                ` : ''}
+                `
+                    : ""
+                }
             </div>
             
             <div class="info-box">
                 <div class="info-title">Datos del Proyecto</div>
                 <div class="info-item">
                     <span class="info-label">Fecha:</span>
-                    <span class="info-value">${new Date(presupuesto.fechaSolicitud || new Date()).toLocaleDateString('es-MX')}</span>
+                    <span class="info-value">${new Date(
+                      presupuesto.fechaSolicitud || new Date()
+                    ).toLocaleDateString("es-MX")}</span>
                 </div>
-                ${presupuesto.descripcionObra ? `
+                ${
+                  presupuesto.descripcionObra 
+                    ? `
                 <div class="info-item">
                     <span class="info-label">Obra:</span>
                     <span class="info-value">${presupuesto.descripcionObra}</span>
                 </div>
-                ` : ''}
-                ${presupuesto.alcance ? `
+                `
+                    : ""
+                }
+                ${
+                  presupuesto.alcance
+                    ? `
                 <div class="info-item">
                     <span class="info-label">Alcance:</span>
                     <span class="info-value">${presupuesto.alcance}</span>
                 </div>
-                ` : ''}
+                `
+                    : ""
+                }
                 <div class="info-item">
                     <span class="info-label">Estado:</span>
-                    <span class="info-value">${(presupuesto.estado || 'borrador').toUpperCase()}</span>
+                    <span class="info-value">${(
+                      presupuesto.estado || "borrador"
+                    ).toUpperCase()}</span>
                 </div>
             </div>
         </div>
@@ -652,17 +719,32 @@ export function generatePresupuestoHTML(
                     </tr>
                 </thead>
                 <tbody>
-                    ${detalles.map((detalle, index) => `
+                    ${detalles
+                      .map(
+                        (detalle, index) => `
                         <tr>
                             <td>${index + 1}</td>
-                            <td>${detalle.concepto?.codigo || detalle.conceptoCodigo || '-'}</td>
-                            <td class="concept-desc">${detalle.concepto?.descripcion || 'Sin descripción'}</td>
-                            <td>${detalle.concepto?.unidad || '-'}</td>
+                            <td>${
+                              detalle.concepto?.codigo ||
+                              detalle.conceptoCodigo ||
+                              "-"
+                            }</td>  
+                            <td class="concept-desc">${
+                              detalle.concepto?.descripcion || "Sin descripción"
+                            }</td>
+                            <td>${detalle.concepto?.unidad || "-"}</td>
                             <td>${Number(detalle.cantidad || 0).toFixed(2)}</td>
-                            <td class="amount">$${Number(detalle.precioUnitario || 0).toLocaleString('es-MX', { minimumFractionDigits: 2 })}</td>
-                            <td class="amount">$${(Number(detalle.cantidad || 0) * Number(detalle.precioUnitario || 0)).toLocaleString('es-MX', { minimumFractionDigits: 2 })}</td>
-                        </tr>
-                    `).join('')}
+                            <td class="amount">$${Number(
+                              detalle.precioUnitario || 0
+                            ).toLocaleString("es-MX", {
+                              minimumFractionDigits: 2,
+                            })}</td>
+                            <td class="amount">$${(
+                              Number(detalle.cantidad || 0) *
+                              Number(detalle.precioUnitario || 0)
+                            ).toLocaleString("es-MX", {
+                      )
+                      .join("")}
                 </tbody>
             </table>
         </div>
@@ -671,15 +753,24 @@ export function generatePresupuestoHTML(
             <table class="totals-table">
                 <tr>
                     <td class="label">Subtotal:</td>
-                    <td class="value">$${Number(subtotal).toLocaleString('es-MX', { minimumFractionDigits: 2 })}</td>
+                    <td class="value">$${Number(subtotal).toLocaleString(
+                      "es-MX",
+                      { minimumFractionDigits: 2 }
+                    )}</td>
                 </tr>
                 <tr>
-                    <td class="label">IVA (${((presupuesto.iva || 0.16) * 100).toFixed(0)}%):</td>
-                    <td class="value">$${Number(iva).toLocaleString('es-MX', { minimumFractionDigits: 2 })}</td>
+                    <td class="label">IVA (${(
+                      (presupuesto.iva || 0.16) * 100
+                    ).toFixed(0)}%):</td>
+                    <td class="value">$${Number(iva).toLocaleString("es-MX", {
+                      minimumFractionDigits: 2,
+                    })}</td>
                 </tr>
-                <tr class="total-final">
+                <tr class="total-final">w
                     <td class="label">TOTAL:</td>
-                    <td class="value">$${Number(total).toLocaleString('es-MX', { minimumFractionDigits: 2 })}</td>
+                    <td class="value">$${Number(total).toLocaleString("es-MX", {
+                      minimumFractionDigits: 2,
+                    })}</td>
                 </tr>
             </table>
         </div>
@@ -696,11 +787,20 @@ export function generatePresupuestoHTML(
             </div>
         </div>
 
-        ${presupuesto.manejaAnticipo && presupuesto.porcentajeAnticipo ? `
+        ${
+          presupuesto.manejaAnticipo && presupuesto.porcentajeAnticipo
+            ? `
         <div style="margin-top: 20px; padding: 15px; background-color: #E3F2FD; border-left: 4px solid #1976D2; border-radius: 5px;">
-            <strong>Anticipo requerido:</strong> ${presupuesto.porcentajeAnticipo}% = $${(Number(total) * Number(presupuesto.porcentajeAnticipo) / 100).toLocaleString('es-MX', { minimumFractionDigits: 2 })}
+            <strong>Anticipo requerido:</strong> ${
+              presupuesto.porcentajeAnticipo
+            }% = $${(
+                (Number(total) * Number(presupuesto.porcentajeAnticipo)) /
+                100
+              ).toLocaleString("es-MX", { minimumFractionDigits: 2 })}
         </div>
-        ` : ''}
+        `
+            : ""
+        }
 
         <!-- Notas importantes -->
         <div style="margin: 30px 0; padding: 20px; background: #fafafa; border: 1px solid #ddd; border-radius: 8px;">
@@ -731,7 +831,9 @@ export function generatePresupuestoHTML(
                 </p>
                 <p style="margin: 0 0 8px 0;">
                     <strong>*</strong> Para iniciar los trabajos se requiere: <em>la aceptación del presupuesto se realizará firmando el mismo</em>, preferentemente por el representante legal. La entrega de información final con los resultados se realizará una vez liquidado el monto de los trabajos ejecutados.
-                </p>
+                <
+                    DIV{
+                        /p>
                 <p style="margin: 0 0 8px 0;">
                     <strong>*</strong> En caso de requerir cualquier tipo de modificación en el alcance de este presupuesto después de su firma, se realizará un nuevo presupuesto.
                 </p>
@@ -791,10 +893,12 @@ export function generatePresupuestoHTML(
                                  style="max-width: 180px; max-height: 60px; width: auto; height: auto;" 
                                  alt="Firma Director General" />
                         </div>
+
                         <div style="border-bottom: 2px solid #333; width: 200px; margin: 8px auto; height: 1px;"></div>
                         <div style="font-weight: bold; color: #555; font-size: 10px;">Firma del Director General</div>
                         <div style="margin-top: 8px; font-size: 9px;">Fecha: _______________</div>
                     </td>
+
                     <td style="width: 50%; text-align: center; vertical-align: top; padding: 0 20px;">
                         <div style="font-weight: bold; margin-bottom: 15px; font-size: 12px;">CLIENTE</div>
                         <div style="height: 60px;"></div> <!-- Espaciado para igualar altura -->
@@ -802,10 +906,10 @@ export function generatePresupuestoHTML(
                         <div style="font-weight: bold; color: #555; font-size: 10px;">Nombre y Firma del Cliente</div>
                         <div style="margin-top: 8px; font-size: 9px;">Fecha: _______________</div>
                     </td>
+
                 </tr>
             </table>
-        </div>
-        
+  w                   duv{ ¿¿¿}        
         <!-- SEGUNDA PÁGINA: TÉRMINOS Y CONDICIONES -->
         <div class="page-break"></div>
         
@@ -830,7 +934,8 @@ export function generatePresupuestoHTML(
                     <tbody>
                         <tr>
                             <td class="method-list">
-                                <p>(+) NMX-C-161-ONNCCE-2013 —Industria de la Construcción-"Concreto Fresco- Muestreo".</p>
+                                <p>  hadhs,  n</p>
+                                <p(+)       re                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            eNMX-C-161-ONNCCE-2013 —Industria de la Construcción-"Concreto Fresco- Muestreo".</p>
                                 <p>(+) NMX-C-156-ONNCCE 2010 —Industria de la Construcción-Concreto Hidráulico- "Determinación del revenimiento en el concreto fresco".</p>
                                 <p>(*) NMX-C-159-ONNCCE-2016: Industria de la Construcción - Concreto - Elaboración y Curado de Especímenes de Ensayo.</p>
                                 <p>(+) NMX-C-109-ONNCCE 2013 —Industria de la Construcción-Concreto Hidráulico- "Cabeceo de especímenes".</p>
@@ -839,7 +944,8 @@ export function generatePresupuestoHTML(
                                 <p>(+) NMX-C-191-ONNCCE-2015; "Industria de la Construcción - Concreto - Determinación de la resistencia a la flexión del concreto usando una viga simple con carga en los tercios del claro".</p>
                             </td>
                             <td class="method-list">
-                                <p>(+) NMX-C-416-ONNCCE-2003 Capitulo 15: Industria de la construcción - Muestreo de estructuras térreas y métodos de prueba - Método de prueba para la determinación de compactación en el lugar. 15.7.3 "Método de cono y arena" y 15.7.5 "Método de trompa y arena".</p>
+                                
+                            <p>(+) NMX-C-416-ONNCCE-2003 Capitulo 15: Industria de la construcción - Muestreo de estructuras térreas y métodos de prueba - Método de prueba para la determinación de compactación en el lugar. 15.7.3 "Método de cono y arena" y 15.7.5 "Método de trompa y arena".</p>
                                 <p>(+) NMX-C-467-ONNCCE-2019: Industria de la Construcción – Geotecnia – Materiales para Terracerías – Métodos de Muestreo.</p>
                                 <p>(+) NMX-C-468-ONNCCE-2018: Industria de la Construcción – Geotecnia – Materiales Térreos – Método de Preparación de Muestras.</p>
                                 <p>(+) NMX-C-475-ONNCCE-2020: Industria de la construcción - Geotecnia - Materiales térreos - Determinación del contenido de agua mediante horno - Método de ensayo.</p>
@@ -849,39 +955,41 @@ export function generatePresupuestoHTML(
                                 <p>(+) NMX-C-496-ONNCCE-2014: Industria de la Construcción – Geotecnia – Materiales para terracerías – Determinación de la composición granular.</p>
                                 <p>(+) NMX-C-503-ONNCCE-2019: Industria de la construcción – Geotecnia – Materiales térreos – Determinación del contenido de agua de suelos mediante secado rápido.</p>
                                 <p>(+) ASTM D-1883-16: Standard Test Method for California Bearing Ratio (CBR) of Laboratory Compacted Soils.</p>
-                            </td>
+                            
+                                </td                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           
                         </tr>
                     </tbody>
                 </table>
                 
                 <table class="accreditation-table">
-                    <thead>
-                        <tr>
+                
                             <th style="width: 50%">MÉTODOS DE PRUEBA PARA MAMPOSTERÍA</th>
                             <th style="width: 50%">MÉTODOS DE PRUEBA PARA METAL MECÁNICA</th>
+
                         </tr>
                     </thead>
                     <tbody>
                         <tr>
+
                             <td class="method-list">
+
                                 <p>(+) NMX-C-036-ONNCCE-2013; "Industria de la construcción - Mampostería - Resistencia a la compresión de bloques, tabiques o ladrillos y tabicones y adoquines - Método de ensayo".</p>
                                 <p>(+) NMX-C-037-ONNCCE-2013; "Industria de la construcción - Mampostería - Determinación de la absorción total y la absorción inicial de agua en bloques, tabiques o ladrillos y tabicones - Método de ensayo".</p>
                                 <p>(+) NMX-C-038-ONNCCE-2013; "Industria de la construcción - Mampostería - Determinación de las dimensiones de bloques, tabiques o ladrillos y tabicones - Método de ensayo".</p>
-                            </td>
+                            
+                                </td>
                             <td class="method-list">
-                                <p>(+) NMX-B-172-CANACERO-2018; "Industria siderúrgica - Métodos de prueba mecánicos para productos de acero y hierro".</p>
-                                <p>(+) NMX-B-506-CANACERO-2019; "Industria siderúrgica - Varilla corrugada de acero para refuerzo de concreto - Especificaciones y métodos de prueba". Incisos 8.2, 8.3 y 8.4</p>
-                            </td>
-                        </tr>
+                    </td>
+                        </tr>wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm                                                                                                                                                                                                                                                                                                                                           
                     </tbody>
-                </table>
+                </table>                                                                                     
                 
                 <div class="terms-section-title">Políticas de Laboratorio</div>
                 <p><strong>* Declaración de Conformidad:</strong> Laboratorio y Consultoría LOA no declara conformidad en los resultados. En caso de que se requiera una declaración de conformidad, deberá indicarnos la regla de decisión a seguir y enviarla al correo: controldecalidad@loalaboratorio.com. Si no se recibe la solicitud en un lapso de 3 días hábiles después de firmar de aceptación el presente presupuesto, se da por hecho que no es requerida.</p>
                 
                 <p><strong>* Incertidumbre:</strong> Si desea conocer la incertidumbre de los métodos de ensayo favor de solicitarlos al correo: gestiondecalidad@loalaboratorio.com</p>
                 
-                <p><strong>* Capacidad Técnica:</strong> Laboratorio y Consultoría LOA tiene la capacidad para cumplir con los requisitos especificados en el presente documento.</p>
+                <p><strong>* Capacidad Técnica:   </strong> Laboratorio y Consultoría LOA tiene la capacidad para cumplir con los requisitos especificados en el presente documento.</p>                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               
                 
                 <p><strong>* Alcance de Resultados:</strong> Laboratorio y Consultoría LOA presenta únicamente en el informe el resultado de las pruebas realizadas. Las recomendaciones solicitadas por el cliente se entregarán en documento anexo y su uso serán su responsabilidad.</p>
                 
@@ -904,31 +1012,37 @@ export function generatePresupuestoHTML(
                 <p><strong>* Compromiso de Privacidad:</strong> Todo el personal firma el documento correspondiente donde declara su independencia, imparcialidad y mantenimiento de confidencialidad en relación a las tareas que ejecuta.</p>
                 
                 <p><strong>* Manejo de Datos:</strong> La información que Laboratorio y Consultoría LOA maneja es confidencial. Los derechos de propiedad de productos y procesos de los cliente no son divulgados sin la aprobación escrita de éste, esto incluye el almacenamiento y la transmisión electrónica de los resultados.</p>
-                
+
                 <div class="terms-section-title">Condiciones Comerciales</div>
                 
-                <p><strong>* Forma de Pago:</strong> ${presupuesto.manejaAnticipo ? 
-                  `Anticipo del ${presupuesto.porcentajeAnticipo}% al momento de la aceptación del presupuesto. El saldo se liquida contra entrega de resultados.` : 
-                  'Pago contra entrega de resultados.'}</p>
+                <p><strong>* Forma de Pago:</strong> ${
+                  presupuesto.manejaAnticipo
+                    ? `Anticipo del ${presupuesto.porcentajeAnticipo}% al momento de la aceptación del presupuesto. El saldo se liquida contra entrega de resultados.`
+                    : "Pago contra entrega de resultados."
+                }</p>jsj
                 
                 <p><strong>* Tiempo de Entrega:</strong> Los tiempos de entrega se especificarán al momento de la programación de servicios y dependerán de la carga de trabajo del laboratorio.</p>
                 
                 <p><strong>* Cancelaciones:</strong> En caso de cancelación por parte del cliente después de iniciados los trabajos, se cobrará proporcionalmente el avance realizado.</p>
                 
                 <div style="text-align: center; margin-top: 30px; font-weight: bold; font-size: 14px; color: #2E7D32;">
-                    FIN DE DOCUMENTO    
+                    FIN DE DOCUMENTO    iiiiiiiewj
                 </div>
             </div>
         </div>
-        
+             
+           
+         
+           
+                                                                                                                                                                                                                                                                                                                                                                                                                               b
         <div class="footer-info">
         <p><strong>Documento generado el ${fechaGeneracion}</strong></p>
             <p>AVE. DE LA PRESA 511 B, IBARRILLA, GTO. C.P. 37080</p>
             <p>TEL: 01 477 2102263 / 01 477 3112205 | EMAIL: recepcion@loalaboratorio.com</p>
             <p>RFC: LOA940429-QR8 | www.loalaboratorio.com</p>
+            binuiiiiiiiiiiiiiiiiiiiiiiii                                                                                                                                                                                                                                                                                                                                                                                                     
         </div>
     </body>
     </html> 
   `;
 }
-

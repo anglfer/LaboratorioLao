@@ -176,7 +176,7 @@ export function registerRoutes(app: Express): Promise<Server> {
       if (!result.success) {
         console.log("[API] Error de validación teléfono:", result.error.errors);
         return res
-          .status(400)
+          .status(400)                                                                  
           .json({ message: "Validation error", errors: result.error.errors });
       }
       const telefono = await storage.createTelefono(result.data);
@@ -217,7 +217,6 @@ export function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: error.message });
     }
   });
-
   // Obras routes
   app.get("/api/obras", async (req, res) => {
     try {
