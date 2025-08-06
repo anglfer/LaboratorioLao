@@ -19,6 +19,7 @@ interface AreaImportacion {
 }
 
 export class ImportadorConceptos {
+  private static lineasTextoOriginal: string[] = [];
   
   /**
    * Procesa texto pegado y lo convierte en estructura jerárquica
@@ -36,6 +37,32 @@ export class ImportadorConceptos {
       // Si la línea empieza con un código (número.número), es una nueva línea
       const empiezaConCodigo = /^\d+(\.\d+)*(\s*\(\+\))?\s/.test(lineaLimpia);
       
+      // Si la línea es solo "INCLUYE:" o empieza con "INCLUYE:", es continuación
+      const esLineaIncluye = /^(INCLUYE:|Se incluye:|incluye:)/i.test(lineaLimpia);
+      
+      // Si la línea empieza con guión o asterisco, es una lista (continuación)
+      const esLineaLista = /^[-*•]\s/.test(lineaLimpia);
+      
+      // Si la línea no empieza con código y no es claramente una nueva sección, es continuación
+      const esLineaContinuacion = !empiezaConCodigo && (
+        esLineaIncluye ||
+        esLineaLista ||
+        lineaLimpia.startsWith('(') ||  // Métodos como "(Método no acreditado)"
+        lineaLimpia.includes('determinación') ||
+        lineaLimpia.includes('análisis') ||
+        lineaLimpia.includes('reporte') ||
+        lineaLimpia.includes('laboratorio') ||
+        lineaLimpia.includes('horario') ||
+        lineaLimpia.includes('Personal y equipo') ||
+        lineaLimpia.includes('Informe de resultados') ||
+        lineaLimpia.includes('granulométrico') ||
+        lineaLimpia.includes('volumétrica') ||
+        lineaLimpia.includes('Método acreditado') ||
+        lineaLimpia.includes('Método no acreditado') ||
+        /^[a-z]/.test(lineaLimpia) || // Empieza con minúscula (continuación)
+        lineaLimpia.length < 50 // Líneas más cortas probablemente son continuación
+      );
+      
       if (empiezaConCodigo && lineaActual) {
         // Guardar la línea anterior y empezar una nueva
         lineasLimpias.push(lineaActual);
@@ -43,9 +70,16 @@ export class ImportadorConceptos {
       } else if (empiezaConCodigo) {
         // Primera línea con código
         lineaActual = lineaLimpia;
-      } else {
+      } else if (lineaActual && esLineaContinuacion) {
         // Continuar la línea anterior (descripción multi-línea)
         lineaActual += ' ' + lineaLimpia;
+      } else if (lineaActual) {
+        // Línea independiente que podría ser un área
+        lineasLimpias.push(lineaActual);
+        lineaActual = lineaLimpia;
+      } else {
+        // Primera línea sin código
+        lineaActual = lineaLimpia;
       }
     }
     
@@ -53,6 +87,9 @@ export class ImportadorConceptos {
     if (lineaActual) {
       lineasLimpias.push(lineaActual);
     }
+    
+    // Guardar las líneas para búsqueda de nombres
+    this.lineasTextoOriginal = lineasLimpias;
     
     console.log('📋 Líneas reconstruidas:', lineasLimpias.length);
     console.log('🔍 Primeras 3 líneas:', lineasLimpias.slice(0, 3));
@@ -75,7 +112,7 @@ export class ImportadorConceptos {
         console.log('📄 Concepto detectado:', concepto);
         
         // Verificar si necesitamos crear áreas padre faltantes
-        this.crearAreaspadresFaltantes(concepto.codigo, estructura, pilaAreas, areasCreadas, lineasLimpias);
+        this.crearAreaspadresFaltantes(concepto.codigo, estructura, pilaAreas, areasCreadas);
         
         this.agregarConceptoAArea(concepto, pilaAreas);
       } else {
@@ -115,7 +152,7 @@ export class ImportadorConceptos {
         
         const areaPadre: AreaImportacion = {
           codigo: codigoPadre,
-          nombre: this.generarNombreAreaAutomatica(codigoPadre),
+          nombre: this.buscarNombreAreaEnTexto(codigoPadre) || this.generarNombreAreaAutomatica(codigoPadre),
           nivel: (codigoPadre.match(/\./g) || []).length + 1,
           conceptos: [],
           hijos: []
@@ -157,6 +194,33 @@ export class ImportadorConceptos {
   }
 
   /**
+   * Busca el nombre de un área en el texto original basándose en su código
+   */
+  private static buscarNombreAreaEnTexto(codigo: string): string | null {
+    // Buscar en las líneas una que empiece con el código y tenga un nombre
+    for (const linea of this.lineasTextoOriginal) {
+      const partes = linea.split('\t');
+      if (partes.length >= 2) {
+        const codigoLinea = partes[0]?.trim();
+        const nombreLinea = partes[1]?.trim();
+        
+        // Si el código coincide exactamente y tiene un nombre válido
+        if (codigoLinea === codigo && nombreLinea && 
+            !nombreLinea.includes('$') && 
+            !nombreLinea.includes('INCLUYE:') &&
+            nombreLinea.length < 100 &&
+            !/^["']/.test(nombreLinea)) {
+          console.log(`✅ Nombre encontrado para área ${codigo}: "${nombreLinea}"`);
+          return nombreLinea;
+        }
+      }
+    }
+    
+    console.log(`⚠️ No se encontró nombre explícito para área ${codigo}, usando nombre automático`);
+    return null;
+  }
+
+  /**
    * Genera un nombre automático para áreas creadas implícitamente
    */
   private static generarNombreAreaAutomatica(codigo: string): string {
@@ -179,6 +243,11 @@ export class ImportadorConceptos {
     const codigo = partes[0]?.trim();
     const nombre = partes[1]?.trim();
     
+    // Si empieza con "INCLUYE:" o "Se incluye:" definitivamente NO es área
+    if (codigo.startsWith('INCLUYE:') || nombre.startsWith('INCLUYE:') ||
+        codigo.startsWith('Se incluye:') || nombre.startsWith('Se incluye:') ||
+        codigo.startsWith('incluye:') || nombre.startsWith('incluye:')) return false;
+    
     // Verificar que el código sea numérico con puntos
     const codigoValido = /^\d+(\.\d+)*$/.test(codigo);
     
@@ -194,6 +263,8 @@ export class ImportadorConceptos {
                         nombre.length > 0 && 
                         !nombre.includes('$') &&
                         !nombre.includes('INCLUYE:') &&
+                        !nombre.includes('Se incluye:') &&
+                        !nombre.includes('incluye:') &&
                         nombre.length < 100 && // Áreas tienen nombres cortos
                         !/^["']/.test(nombre); // No empieza con comillas
     
@@ -212,6 +283,9 @@ export class ImportadorConceptos {
     
     const codigo = partes[0]?.trim();
     const descripcion = partes[1]?.trim();
+    
+    // Si la línea empieza solo con "INCLUYE:" sin código, NO es concepto
+    if (codigo.startsWith('INCLUYE:') || !codigo) return false;
     
     // Verificar que tenga un código válido 
     const codigoMatch = codigo?.match(/^(\d+(\.\d+)*)/);
@@ -235,9 +309,12 @@ export class ImportadorConceptos {
                            linea.includes('POZO') ||
                            linea.includes('CÁRCAMO') ||
                            linea.includes('ESTACIÓN') ||
-                           linea.includes('INCLUYE:') ||
+                           linea.includes('ESTUDIO') ||
+                           (linea.includes('INCLUYE:') && !!codigo.match(/^\d+(\.\d+)*/)) || // Solo si tiene código válido
+                           (linea.includes('Se incluye:') && !!codigo.match(/^\d+(\.\d+)*/)) || // Variante de "Se incluye"
+                           (linea.includes('incluye:') && !!codigo.match(/^\d+(\.\d+)*/)) || // Variante minúscula
                            /^["']/.test(descripcion); // Empieza con comillas
-    
+
     // 3. Tiene descripción detallada (más de 50 caracteres sugiere concepto detallado)
     const tieneDescripcionDetallada = descripcion && descripcion.length > 50;
     
@@ -249,10 +326,22 @@ export class ImportadorConceptos {
       descripcion.includes('EXCAVACIÓN') ||
       descripcion.includes('MUESTREO') ||
       descripcion.includes('PERFORACIÓN') ||
-      descripcion.includes('TRASLADO')
-    );
-    
-    // REGLA PRINCIPAL: 3+ niveles SIEMPRE es concepto
+      descripcion.includes('TRASLADO') ||
+      descripcion.includes('DESGASTE') ||
+      descripcion.includes('AGREGADO') ||
+      descripcion.includes('CONCRETO') ||
+      descripcion.includes('HIDRÁULICO') ||
+      descripcion.includes('GRANULOMÉTRICO') ||
+      descripcion.includes('VOLUMÉTRICA') ||
+      descripcion.includes('ATTERBERG') ||
+      descripcion.includes('DENSIDAD') ||
+      descripcion.includes('ABSORCIÓN') ||
+      descripcion.includes('COLORIMETRÍA') ||
+      descripcion.includes('Personal y equipo') ||
+      descripcion.includes('Informe de resultados') ||
+      descripcion.includes('Método acreditado') ||
+      descripcion.includes('Método no acreditado')
+    );    // REGLA PRINCIPAL: 3+ niveles SIEMPRE es concepto
     // REGLA SECUNDARIA: 2 niveles + indicadores/descripción detallada también es concepto
     const esConcepto = esNivelConcepto || 
                       (niveles >= 2 && (tieneIndicadores || tieneDescripcionDetallada || !!tienePalabrasTecnicas));
@@ -314,31 +403,35 @@ export class ImportadorConceptos {
         continue;
       }
       
-      // Detectar unidades específicas en columnas separadas (NOM-800 mexicana)
-      if (parte === 'm' || parte === 'cm' || parte === 'mm' ||
-          parte === 'm²' || parte === 'm2' || parte === 'm³' || parte === 'm3' || 
-          parte === 'kg' || parte === 'g' || parte === 'mg' ||
-          parte === 's' || parte === 'min' || parte === 'h' ||
-          parte === 'L' || parte === 'mL' || parte === 'km' ||
-          parte === 'pozo' || parte === 'muestra' || parte === 'cárcamo' || parte === 'estación' ||
-          parte === 'visita' || parte === 'prueba' || parte === 'ensaye' ||
-          parte === 'viaje' || parte === 'lote' || parte === 'mes' ||
-          parte === 'cálculo' || parte === 'diseño' || parte === 'análisis' ||
-          parte === 'informe' || parte === 'estudio' || parte === 'servicio' ||
-          parte === 'juego' || parte === 'permiso' || parte === 'espécimen' ||
-          parte === 'pza' || parte === 'jornal' || parte === 'spot' ||
-          parte === 'probeta' || parte === 'semana' || parte === 'día' ||
-          parte === 'topografía' || parte === 'hoja') {
+      // Detectar unidades específicas en columnas separadas (lista completa del laboratorio)
+      const unidadesValidas = [
+        'POZO', 'MUESTRA', 'PRUEBA', 'VISITA', 'ENSAYE', 'CÁRCAMO', 'ESTACIÓN', 'VIAJE', 'ESTUDIO',
+        'LOTE', 'MES', 'CÁLCULO', 'DISEÑO', 'ANÁLISIS', 'INFORME', 'SERVICIO', 'JUEGO', 'PERMISO',
+        'ESPÉCIMEN', 'PIEZA', 'JORNAL', 'SPOT', 'PROBETA', 'SEMANA', 'DÍA', 'TOPOGRAFÍA', 'HOJA',
+        'SERIE', 'ENSAYO', 'm', 'cm', 'mm', 'm²', 'm2', 'm³', 'm3', 'h', 'mL', 'EQ', 'AFORO', 
+        'CALCULO', 'PROY', 'RECOMEND', 'REPORTE', 'PZA', 'km',
+        // También versiones en minúsculas
+        'pozo', 'muestra', 'prueba', 'visita', 'ensaye', 'cárcamo', 'estación', 'viaje', 'estudio',
+        'lote', 'mes', 'cálculo', 'diseño', 'análisis', 'informe', 'servicio', 'juego', 'permiso',
+        'espécimen', 'pieza', 'jornal', 'spot', 'probeta', 'semana', 'día', 'topografía', 'hoja',
+        'serie', 'ensayo', 'pza', 'kg', 'g', 'mg', 's', 'min', 'L'
+      ];
+      
+      if (unidadesValidas.includes(parte)) {
         unidadDetectada = parte;
         continue;
       }
       
-      // Si es un tipo identificado, no incluir en descripción pero guardarlo (detectar en mayúscula, guardar en minúscula)
-      if (['VISITA', 'PRUEBA', 'ENSAYE', 'MUESTRA', 'ESTUDIO', 'POZO', 'CÁRCAMO', 'ESTACIÓN',
-           'VIAJE', 'LOTE', 'MES', 'CÁLCULO', 'DISEÑO', 'ANÁLISIS', 'INFORME', 'SERVICIO',
-           'JUEGO', 'PERMISO', 'ESPÉCIMEN', 'PIEZA', 'JORNAL', 'SPOT', 'PROBETA',
-           'SEMANA', 'DÍA', 'TOPOGRAFÍA', 'HOJA'].some(t => parte.includes(t))) {
-        if (!tipo) tipo = parte.trim().toLowerCase(); // Convertir a minúscula según NOM-800
+      // Si es un tipo identificado, no incluir en descripción pero guardarlo
+      const tiposValidos = [
+        'VISITA', 'PRUEBA', 'ENSAYE', 'MUESTRA', 'ESTUDIO', 'POZO', 'CÁRCAMO', 'ESTACIÓN',
+        'VIAJE', 'LOTE', 'MES', 'CÁLCULO', 'CALCULO', 'DISEÑO', 'ANÁLISIS', 'INFORME', 'SERVICIO',
+        'JUEGO', 'PERMISO', 'ESPÉCIMEN', 'PIEZA', 'JORNAL', 'SPOT', 'PROBETA',
+        'SEMANA', 'DÍA', 'TOPOGRAFÍA', 'HOJA', 'SERIE', 'ENSAYO', 'PROY', 'RECOMEND', 'REPORTE', 'PZA'
+      ];
+      
+      if (tiposValidos.some(t => parte.includes(t))) {
+        if (!tipo) tipo = parte.trim(); // Mantener en mayúscula como aparece en el texto
         continue;
       }
       
@@ -356,11 +449,16 @@ export class ImportadorConceptos {
       descripcion = partes[1].replace(/^"/, '').replace(/"$/, '').trim();
     }
 
-    // Buscar tipo (VISITA, PRUEBA, etc.)
-    for (const parte of partes) {
-      if (['VISITA', 'PRUEBA', 'ENSAYE', 'MUESTRA', 'ESTUDIO', 'POZO', 'CÁRCAMO', 'ESTACIÓN'].some(t => parte.includes(t))) {
-        tipo = parte.trim();
-        break;
+    // Buscar tipo (VISITA, PRUEBA, etc.) - búsqueda adicional si no se encontró antes
+    if (!tipo) {
+      for (const parte of partes) {
+        if (['VISITA', 'PRUEBA', 'ENSAYE', 'MUESTRA', 'ESTUDIO', 'POZO', 'CÁRCAMO', 'ESTACIÓN',
+             'VIAJE', 'LOTE', 'MES', 'CÁLCULO', 'DISEÑO', 'ANÁLISIS', 'INFORME', 'SERVICIO',
+             'JUEGO', 'PERMISO', 'ESPÉCIMEN', 'PIEZA', 'JORNAL', 'SPOT', 'PROBETA',
+             'SEMANA', 'DÍA', 'TOPOGRAFÍA', 'HOJA', 'SERIE', 'ENSAYO'].some(t => parte.includes(t))) {
+          tipo = parte.trim();
+          break;
+        }
       }
     }
 
@@ -396,64 +494,77 @@ export class ImportadorConceptos {
   }
 
   /**
-   * Determina la unidad basada en el tipo y descripción (según NOM-800 mexicana)
+   * Determina la unidad basada en el tipo y descripción (lista exacta del laboratorio)
    */
   private static determinarUnidad(tipo: string, descripcion: string): string {
-    // Tipos de servicio específicos (en minúscula según NOM-800)
-    if (tipo?.includes('visita') || tipo?.includes('VISITA')) return 'visita';
-    if (tipo?.includes('prueba') || tipo?.includes('PRUEBA')) return 'prueba';
-    if (tipo?.includes('muestra') || tipo?.includes('MUESTRA')) return 'muestra';
-    if (tipo?.includes('pozo') || tipo?.includes('POZO')) return 'pozo';
-    if (tipo?.includes('cárcamo') || tipo?.includes('CÁRCAMO')) return 'cárcamo';
-    if (tipo?.includes('estación') || tipo?.includes('ESTACIÓN')) return 'estación';
-    if (tipo?.includes('ensaye') || tipo?.includes('ENSAYE')) return 'ensaye';
-    if (tipo?.includes('viaje') || tipo?.includes('VIAJE')) return 'viaje';
-    if (tipo?.includes('lote') || tipo?.includes('LOTE')) return 'lote';
-    if (tipo?.includes('mes') || tipo?.includes('MES')) return 'mes';
-    if (tipo?.includes('cálculo') || tipo?.includes('CÁLCULO')) return 'cálculo';
-    if (tipo?.includes('diseño') || tipo?.includes('DISEÑO')) return 'diseño';
-    if (tipo?.includes('análisis') || tipo?.includes('ANÁLISIS')) return 'análisis';
-    if (tipo?.includes('informe') || tipo?.includes('INFORME')) return 'informe';
-    if (tipo?.includes('estudio') || tipo?.includes('ESTUDIO')) return 'estudio';
-    if (tipo?.includes('servicio') || tipo?.includes('SERVICIO')) return 'servicio';
-    if (tipo?.includes('juego') || tipo?.includes('JUEGO')) return 'juego';
-    if (tipo?.includes('permiso') || tipo?.includes('PERMISO')) return 'permiso';
-    if (tipo?.includes('espécimen') || tipo?.includes('ESPÉCIMEN')) return 'espécimen';
-    if (tipo?.includes('pieza') || tipo?.includes('PIEZA')) return 'pza';
-    if (tipo?.includes('jornal') || tipo?.includes('JORNAL')) return 'jornal';
-    if (tipo?.includes('spot') || tipo?.includes('SPOT')) return 'spot';
-    if (tipo?.includes('probeta') || tipo?.includes('PROBETA')) return 'probeta';
-    if (tipo?.includes('semana') || tipo?.includes('SEMANA')) return 'semana';
-    if (tipo?.includes('día') || tipo?.includes('DÍA')) return 'día';
-    if (tipo?.includes('topografía') || tipo?.includes('TOPOGRAFÍA')) return 'topografía';
-    if (tipo?.includes('hoja') || tipo?.includes('HOJA')) return 'hoja';
-    
-    // Unidades de longitud (minúsculas según norma SI)
-    if (descripcion?.toLowerCase().includes('kilómetro') || descripcion?.includes('km')) return 'km';
-    if (descripcion?.toLowerCase().includes('centímetro') || descripcion?.includes('cm')) return 'cm';
-    if (descripcion?.toLowerCase().includes('milímetro') || descripcion?.includes('mm')) return 'mm';
-    if (descripcion?.toLowerCase().includes('metro cúbico') || descripcion?.includes('m³') || descripcion?.includes('m3')) return 'm³';
-    if (descripcion?.toLowerCase().includes('metro cuadrado') || descripcion?.includes('m²') || descripcion?.includes('m2')) return 'm²';
-    if (descripcion?.toLowerCase().includes('metro') || descripcion?.includes(' m ')) return 'm';
-    
-    // Unidades de masa (minúsculas según norma SI)
-    if (descripcion?.toLowerCase().includes('kilogramo') || descripcion?.includes('kg')) return 'kg';
-    if (descripcion?.toLowerCase().includes('gramo') || descripcion?.includes(' g ')) return 'g';
-    if (descripcion?.toLowerCase().includes('miligramo') || descripcion?.includes('mg')) return 'mg';
-    
-    // Unidades de tiempo (minúsculas según norma SI)
-    if (descripcion?.toLowerCase().includes('segundo') || descripcion?.includes(' s ')) return 's';
-    if (descripcion?.toLowerCase().includes('minuto') || descripcion?.includes('min')) return 'min';
-    if (descripcion?.toLowerCase().includes('hora') || descripcion?.includes(' h ')) return 'h';
-    
-    // Unidades de volumen (L mayúscula según norma SI para litro)
-    if (descripcion?.toLowerCase().includes('litro') || descripcion?.includes(' L ')) return 'L';
-    if (descripcion?.toLowerCase().includes('mililitro') || descripcion?.includes('mL')) return 'mL';
-    
-    // Unidades genéricas
-    if (descripcion?.toLowerCase().includes('pieza')) return 'pza';
-    
-    return 'servicio';
+    // Lista exacta de unidades del laboratorio
+    const unidadesValidas = [
+      'POZO', 'MUESTRA', 'PRUEBA', 'VISITA', 'ENSAYE', 'CÁRCAMO', 'ESTACIÓN', 'VIAJE', 'ESTUDIO',
+      'LOTE', 'MES', 'CÁLCULO', 'DISEÑO', 'ANÁLISIS', 'INFORME', 'SERVICIO', 'JUEGO', 'PERMISO',
+      'ESPÉCIMEN', 'PIEZA', 'JORNAL', 'SPOT', 'PROBETA', 'SEMANA', 'DÍA', 'TOPOGRAFÍA', 'HOJA',
+      'SERIE', 'ENSAYO', 'm', 'cm', 'mm', 'm²', 'm2', 'm³', 'm3', 'h', 'mL', 'EQ', 'AFORO', 
+      'CALCULO', 'PROY', 'RECOMEND', 'REPORTE', 'PZA', 'km'
+    ];
+
+    // Si el tipo ya es una unidad válida, usarla directamente
+    if (tipo && unidadesValidas.includes(tipo.toUpperCase())) {
+      return tipo.toUpperCase();
+    }
+
+    // Mapeo específico para tipos conocidos
+    const mapeoTipos: { [key: string]: string } = {
+      'VISITA': 'VISITA',
+      'PRUEBA': 'PRUEBA', 
+      'MUESTRA': 'MUESTRA',
+      'POZO': 'POZO',
+      'CÁRCAMO': 'CÁRCAMO',
+      'ESTACIÓN': 'ESTACIÓN',
+      'ENSAYE': 'ENSAYE',
+      'VIAJE': 'VIAJE',
+      'LOTE': 'LOTE',
+      'MES': 'MES',
+      'CÁLCULO': 'CÁLCULO',
+      'CALCULO': 'CALCULO',
+      'DISEÑO': 'DISEÑO',
+      'ANÁLISIS': 'ANÁLISIS',
+      'INFORME': 'INFORME',
+      'ESTUDIO': 'ESTUDIO',
+      'SERVICIO': 'SERVICIO',
+      'JUEGO': 'JUEGO',
+      'PERMISO': 'PERMISO',
+      'ESPÉCIMEN': 'ESPÉCIMEN',
+      'PIEZA': 'PIEZA',
+      'JORNAL': 'JORNAL',
+      'SPOT': 'SPOT',
+      'PROBETA': 'PROBETA',
+      'SEMANA': 'SEMANA',
+      'DÍA': 'DÍA',
+      'TOPOGRAFÍA': 'TOPOGRAFÍA',
+      'HOJA': 'HOJA',
+      'SERIE': 'SERIE',
+      'ENSAYO': 'ENSAYO',
+      'PROY': 'PROY',
+      'RECOMEND': 'RECOMEND',
+      'REPORTE': 'REPORTE',
+      'PZA': 'PZA'
+    };
+
+    // Buscar en el mapeo
+    if (tipo && mapeoTipos[tipo.toUpperCase()]) {
+      return mapeoTipos[tipo.toUpperCase()];
+    }
+
+    // Unidades físicas básicas
+    if (descripcion?.includes('metro cúbico') || descripcion?.includes('m³') || descripcion?.includes('m3')) return 'm3';
+    if (descripcion?.includes('metro cuadrado') || descripcion?.includes('m²') || descripcion?.includes('m2')) return 'm2';
+    if (descripcion?.includes('centímetro') || descripcion?.includes('cm')) return 'cm';
+    if (descripcion?.includes('mililitro') || descripcion?.includes('mL')) return 'mL';
+    if (descripcion?.includes('kilómetro') || descripcion?.includes('km')) return 'km';
+    if (descripcion?.includes('metro') || descripcion?.includes(' m ')) return 'm';
+    if (descripcion?.includes('hora') || descripcion?.includes(' h ')) return 'h';
+
+    // Unidad por defecto
+    return 'SERVICIO';
   }
 
   /**

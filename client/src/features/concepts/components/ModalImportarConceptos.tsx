@@ -34,15 +34,16 @@ export const ModalImportarConceptos: React.FC<ModalImportarConceptosProps> = ({
   const ejemploTexto = `2	CONTROL DE CALIDAD
 2.1	TERRACERÍAS
 2.1.1	TRABAJOS DE CAMPO
-2.1.1.1 (+)	"VISITA PARA DETERMINACIÓN..."	visita	3%	$1,231.53
-2.1.1.2 (+)	ENSAYE ADICIONAL...	prueba	59%	$183.77
+2.1.1.1 (+)	"VISITA PARA DETERMINACIÓN DE MASA VOLUMÉTRICA SECA DEL LUGAR (CALAS) Y GRADO DE COMPACTACIÓN. INCLUYE: determinación del contenido de agua en laboratorio, análisis y reporte, con un máximo de 5 ensayes (calas) y traslados."	VISITA	$1,231.53
 
-Ejemplo con sub-áreas automáticas:
-3	GEOTECNIA
-3.1.1.1 (+)	PRUEBA DE COMPACTACIÓN	ensaye	100%	$850.00
+Variedad de tipos de conceptos:
+2.2.2.1	"DETERMINACIÓN DE LA RESISTENCIA MECÁNICA..."	PRUEBA	$104.01
+2.2.2.3	"ENSAYE A TENSIÓN POR FLEXIÓN DE ESPECÍMENES PRISMÁTICOS (VIGAS)..."	PIEZA	$173.84
+2.2.2.5	"DISEÑO DE PROPORCIONAMIENTO MEZCLAS DE CONCRETO HIDRÁULICO..."	DISEÑO	$6,933.33
+2.2.2.6	DETERMINACIÓN DE RESISTENCIA A LA COMPRESIÓN SIMPLE EN CUBOS...	SERIE	$317.04
+2.2.2.7 (+)	PROBETAS DE CONCRETO HIDRÁULICO EN LOSAS DE CIMENTACION...	ENSAYO	$317.04
 
-El sistema creará automáticamente:
-- 3.1 con nombre "SUBCATEGORÍA 3.1"`;
+El sistema detecta automáticamente los tipos: VISITA, PRUEBA, PIEZA, DISEÑO, SERIE, ENSAYO, etc.`;
 
   return (
     <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] overflow-auto">
@@ -77,7 +78,10 @@ El sistema creará automáticamente:
           <p className="text-sm text-gray-600 mt-2">
             Pegue el texto copiado desde Excel o Word. El sistema detectará
             automáticamente las áreas y conceptos, respetando los existentes y
-            agregando solo los nuevos.
+            agregando solo los nuevos. <strong>Sistema Mejorado:</strong> Ahora
+            maneja mejor conceptos con descripciones en múltiples líneas,
+            incluyendo listas que empiecen con "Se incluye:", "INCLUYE:", o
+            elementos con guiones.
           </p>
         </div>
 
@@ -87,6 +91,19 @@ El sistema creará automáticamente:
             <span>{error}</span>
           </div>
         )}
+
+        <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+          <div className="flex items-start gap-2">
+            <AlertCircle className="w-4 h-4 text-amber-600 mt-0.5" />
+            <div className="text-sm text-amber-800">
+              <strong>Manejo de Múltiples Líneas:</strong> El sistema puede
+              manejar conceptos que se extienden en varias líneas (como listas
+              con "Se incluye:", "INCLUYE:", etc.). Sin embargo, para mejor
+              compatibilidad, se recomienda mantener toda la información en una
+              sola línea cuando sea posible.
+            </div>
+          </div>
+        </div>
 
         <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
           <div className="flex items-start gap-2 mb-2">
@@ -103,9 +120,12 @@ El sistema creará automáticamente:
             solo agrega nuevos elementos
             <br />• <strong>Sin duplicados:</strong> Los códigos ya existentes
             se conservan intactos
-            <br />• <strong>Nombres automáticos:</strong> Si falta una sub-área
-            padre (ej: 2.1), el sistema buscará su nombre en el texto, o creará
-            "SUBCATEGORÍA 2.1"
+            <br />• <strong>Nombres inteligentes:</strong> Si encuentra un área
+            explícita (ej: "2.1.1 TRABAJOS DE CAMPO"), usará ese nombre. Si
+            falta, creará "SUBCATEGORÍA 2.1.1"
+            <br />• <strong>Múltiples líneas mejorado:</strong> El sistema ahora
+            reconoce automáticamente cuando líneas como "Se incluye:", listas
+            con guiones, o información técnica pertenecen al concepto anterior
             <br />• <strong>Separar columnas con tabulaciones</strong>
             <br />
             • Áreas: solo código y nombre
