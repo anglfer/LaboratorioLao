@@ -921,7 +921,7 @@ const PresupuestoPDF: React.FC<PresupuestoPDFProps> = ({
             <em>horario nocturno</em>, considerando un horario de 21:00 a 06:00
             (CC.059).
           </p>
-
+          Fallas técnicas. ¿Mande?
           <p style={{ margin: "0 0 8px 0" }}>
             <strong>*</strong> El horario de servicio es de 08:00 a 17:00 hr de
             lunes a viernes, sábados de 08:00 a 14:00 hr, trabajos fuera del
@@ -1108,9 +1108,6 @@ const PresupuestoPDF: React.FC<PresupuestoPDFProps> = ({
             >
               Firma del Director General
             </div>
-            <div style={{ marginTop: "8px", fontSize: "9px" }}>
-              Fecha: _______________
-            </div>
           </div>
           <div
             style={{
@@ -1136,9 +1133,6 @@ const PresupuestoPDF: React.FC<PresupuestoPDFProps> = ({
             >
               Nombre y Firma del Cliente
             </div>
-            <div style={{ marginTop: "8px", fontSize: "9px" }}>
-              Fecha: _______________
-            </div>
           </div>
         </div>
       </div>
@@ -1157,12 +1151,9 @@ const PresupuestoPDF: React.FC<PresupuestoPDFProps> = ({
         <p>
           <strong>Documento generado el {fechaGeneracion}</strong>
         </p>
-        <p>AVE. DE LA PRESA 511 B, IBARRILLA, GTO. C.P. 37080</p>
-        <p>
-          TEL: 01 477 2102263 / 01 477 3112205 | EMAIL:
-          recepcion@loalaboratorio.com
-        </p>
-        <p>RFC: LOA940429-QR8 | www.loalaboratorio.com</p>
+        <p>AVE. DE LA PRESA 511 B, IBARRILLA, GTO. C.P. 37027</p>
+        <p>TEL: 01 477 2102263 | EMAIL: recepcion@loalaboratorio.com</p>
+        <p>| www.loalaboratorio.com</p>
       </div>
     </div>
   );

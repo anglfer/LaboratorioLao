@@ -51,10 +51,7 @@ app.use((req, res, next) => {
   }
 
   const port = 3000;
-  server.listen(port, "localhost", () => {
+  server.listen(port, "0.0.0.0", () => {
     log(`Server running at http://localhost:${port}`);
   });
 })();
-
-
-  

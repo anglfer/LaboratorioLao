@@ -340,9 +340,11 @@ export function generatePresupuestoHTML(
             }
             
             .total-final {
-                background: #2E7D32 !important;
-                color: white !important;
+                /* Ajustado: quitar fondo verde para mejor legibilidad en impresión */
+                background: #FFFFFF !important;
                 font-size: 14px !important;
+                border-top: 2px solid #2E7D32;
+                /* No forzamos color para que .label y .value mantengan sus propios tonos */
             }
             
             /* Total en letras */
@@ -668,37 +670,34 @@ export function generatePresupuestoHTML(
         </div>
         
         <div class="totals-section">
+            <!-- Ajuste solicitado: mostrar sólo TOTAL (sin IVA) y la indicación de IVA 16% sin monto -->
             <table class="totals-table">
-                <tr>
-                    <td class="label">Subtotal:</td>
+                <tr class="total-final">
+                    <td class="label">TOTAL (SIN IVA):</td>
                     <td class="value">$${Number(subtotal).toLocaleString('es-MX', { minimumFractionDigits: 2 })}</td>
                 </tr>
                 <tr>
-                    <td class="label">IVA (${((presupuesto.iva || 0.16) * 100).toFixed(0)}%):</td>
-                    <td class="value">$${Number(iva).toLocaleString('es-MX', { minimumFractionDigits: 2 })}</td>
-                </tr>
-                <tr class="total-final">
-                    <td class="label">TOTAL:</td>
-                    <td class="value">$${Number(total).toLocaleString('es-MX', { minimumFractionDigits: 2 })}</td>
+                    <td class="label">IVA (16%):</td>
+                    <td class="value" style="font-weight:600; color:#555">NO INCLUIDO</td>
                 </tr>
             </table>
         </div>
         
-        <!-- Total en letras -->
+        <!-- Total en letras (mejor contraste) -->
         <div style="margin: 20px 0; display: flex; justify-content: flex-end;">
-            <div style="width: 400px; padding: 15px 20px; background: #f8f9fa; border: 2px solid #2E7D32; border-radius: 8px; text-align: center;">
-                <div style="font-size: 11px; font-weight: bold; color: #2E7D32; margin-bottom: 5px; text-transform: uppercase;">
-                    Total en Letras:
+            <div style="max-width: 520px; padding: 16px 22px; background: #FFFFFF; border: 2px solid #2E7D32; border-radius: 10px; text-align: left; box-shadow: 0 2px 6px rgba(0,0,0,0.08);">
+                <div style="font-size: 11px; font-weight: 700; color: #1B5E20; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px;">
+                    Total en Letras (sin IVA):
                 </div>
-                <div style="font-size: 12px; color: #333; font-weight: bold; text-transform: uppercase; font-style: italic;">
-                    ${numeroALetras(total)}
+                <div style="font-size: 12px; line-height: 1.45; color: #111; font-weight: 600; text-transform: uppercase; font-style: italic; word-break: break-word;">
+                    ${numeroALetras(subtotal)} M.N.
                 </div>
             </div>
         </div>
 
         ${presupuesto.manejaAnticipo && presupuesto.porcentajeAnticipo ? `
         <div style="margin-top: 20px; padding: 15px; background-color: #E3F2FD; border-left: 4px solid #1976D2; border-radius: 5px;">
-            <strong>Anticipo requerido:</strong> ${presupuesto.porcentajeAnticipo}% = $${(Number(total) * Number(presupuesto.porcentajeAnticipo) / 100).toLocaleString('es-MX', { minimumFractionDigits: 2 })}
+            <strong>Anticipo requerido (sobre total sin IVA):</strong> ${presupuesto.porcentajeAnticipo}% = $${(Number(subtotal) * Number(presupuesto.porcentajeAnticipo) / 100).toLocaleString('es-MX', { minimumFractionDigits: 2 })}
         </div>
         ` : ''}
 
@@ -924,8 +923,8 @@ export function generatePresupuestoHTML(
         <div class="footer-info">
         <p><strong>Documento generado el ${fechaGeneracion}</strong></p>
             <p>AVE. DE LA PRESA 511 B, IBARRILLA, GTO. C.P. 37080</p>
-            <p>TEL: 01 477 2102263 / 01 477 3112205 | EMAIL: recepcion@loalaboratorio.com</p>
-            <p>RFC: LOA940429-QR8 | www.loalaboratorio.com</p>
+            <p>TEL: 01 477 2102263 | EMAIL: recepcion@loalaboratorio.com</p>
+            <p>RFC:| www.loalaboratorio.com</p>
         </div>
     </body>
     </html> 

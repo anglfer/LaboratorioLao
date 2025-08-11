@@ -521,13 +521,14 @@ async function generateClaveObra(areaCodigo: string): Promise<string> {
       throw new Error(`Área con código ${areaCodigo} no encontrada`);
     }
 
-    // Obtener el año actual
-    const currentYear = new Date().getFullYear();
-    console.log(`[Storage] Año actual: ${currentYear}`);
+  // Obtener año actual en 2 dígitos (requerimiento nuevo: area-YY-XXX)
+  const fullYear = new Date().getFullYear();
+  const shortYear = (fullYear % 100).toString().padStart(2, "0");
+  console.log(`[Storage] Año actual (full/short): ${fullYear}/${shortYear}`);
 
-    // Buscar todas las obras existentes para esta área en este año
-    const prefix = `${areaCodigo}-${currentYear}-`;
-    console.log(`[Storage] Buscando obras con prefijo: ${prefix}`);
+  // Prefijo nuevo (antes: area-YYYY-####) ahora: area-YY-XXX
+  const prefix = `${areaCodigo}-${shortYear}-`;
+  console.log(`[Storage] Buscando obras con nuevo prefijo: ${prefix}`);
 
     const existingObras = await prisma.obra.findMany({
       where: {
@@ -561,9 +562,14 @@ async function generateClaveObra(areaCodigo: string): Promise<string> {
 
     console.log(`[Storage] Número máximo encontrado: ${maxNumber}`);
 
-    // Generar el siguiente número
+    // Generar el siguiente número con 3 dígitos (reinicia por año y área)
     const nextNumber = maxNumber + 1;
-    const claveObra = `${areaCodigo}-${currentYear}-${nextNumber.toString().padStart(4, "0")}`;
+    const claveObra = `${areaCodigo}-${shortYear}-${nextNumber
+      .toString()
+      .padStart(3, "0")}`;
+
+    // Nota: coexistirán claves antiguas (area-YYYY-####) y nuevas (area-YY-XXX).
+    // Si se requiere migración, crear script separado para convertir históricos.
 
     console.log(`[Storage] Nueva clave generada: ${claveObra}`);
 

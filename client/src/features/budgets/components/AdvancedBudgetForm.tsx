@@ -264,7 +264,7 @@ export default function AdvancedBudgetForm({
   } = useForm<BudgetFormData>({
     resolver: zodResolver(budgetSchema),
     defaultValues: {
-      conceptos: [{ conceptoCodigo: "", cantidad: 1, precioUnitario: 0 }],
+      conceptos: [],
       conceptosSeleccionados: [],
       clienteNuevo: {
         telefonos: [],
@@ -323,22 +323,32 @@ export default function AdvancedBudgetForm({
   });
 
   // Query para obtener TODOS los conceptos jerárquicos (para búsqueda y selección múltiple)
-  const { data: todosLosConceptos, error: conceptosError } = useQuery<
-    ConceptoJerarquico[]
-  >({
+  const {
+    data: todosLosConceptos,
+    error: conceptosError,
+    isLoading: conceptosLoading,
+    isFetching: conceptosFetching,
+  } = useQuery<ConceptoJerarquico[]>({
     queryKey: ["todos-conceptos-jerarquicos"],
     queryFn: async () => {
       try {
-        // Obtener TODOS los conceptos disponibles
-        return await conceptosJerarquicosService.obtenerLista();
-      } catch (error) {
+        const data = await conceptosJerarquicosService.obtenerLista();
+        if (!Array.isArray(data)) {
+          throw new Error("Respuesta inesperada al cargar conceptos");
+        }
+        return data;
+      } catch (error: any) {
         console.error(
           "[AdvancedBudgetForm] Error fetching all conceptos:",
           error
         );
-        return [];
+        // Re-lanzamos para que React Query marque el error y podamos mostrarlo
+        throw error instanceof Error
+          ? error
+          : new Error("No se pudieron cargar los conceptos jerárquicos");
       }
     },
+    retry: 1,
   });
 
   // Query para obtener conceptos del área actual (para mostrar solo los de esta área)
@@ -685,7 +695,7 @@ export default function AdvancedBudgetForm({
         "[AdvancedBudgetForm] No initialData - resetting form to defaults"
       );
       reset({
-        conceptos: [{ conceptoCodigo: "", cantidad: 1, precioUnitario: 0 }],
+        conceptos: [],
         conceptosSeleccionados: [],
         clienteNuevo: {
           telefonos: [],
@@ -881,6 +891,43 @@ export default function AdvancedBudgetForm({
       "[AdvancedBudgetForm] Cliente nuevo correos:",
       data.clienteNuevo?.correos
     );
+    // Limpieza: remover conceptos sin código o con precios/cantidades inválidas antes de continuar
+    const conceptosOriginales = data.conceptos || [];
+    const conceptosFiltrados = conceptosOriginales.filter(
+      (c) => c.conceptoCodigo && c.conceptoCodigo.trim().length > 0
+    );
+    if (conceptosFiltrados.length !== conceptosOriginales.length) {
+      console.warn(
+        "[AdvancedBudgetForm] Removidos conceptos vacíos antes de enviar:",
+        conceptosOriginales.length - conceptosFiltrados.length
+      );
+    }
+    // Normalizar valores numéricos mínimos
+    const conceptosNormalizados = conceptosFiltrados.map((c) => ({
+      ...c,
+      cantidad: c.cantidad <= 0 ? 1 : c.cantidad,
+      precioUnitario: c.precioUnitario < 0 ? 0 : c.precioUnitario,
+    }));
+    if (conceptosNormalizados.length !== data.conceptos.length) {
+      setValue("conceptos", conceptosNormalizados, { shouldValidate: true });
+      data = { ...data, conceptos: conceptosNormalizados };
+    }
+    // Sincronizar selección con conceptos existentes
+    const codigosValidos = conceptosNormalizados.map((c) => c.conceptoCodigo);
+    const seleccionDepurada = conceptosSeleccionados.filter((c) =>
+      codigosValidos.includes(c)
+    );
+    if (seleccionDepurada.length !== conceptosSeleccionados.length) {
+      console.warn(
+        "[AdvancedBudgetForm] Ajustando conceptosSeleccionados para coincidir con conceptos válidos"
+      );
+      setConceptosSeleccionados(seleccionDepurada);
+      setValue("conceptosSeleccionados", seleccionDepurada, {
+        shouldValidate: true,
+      });
+      data = { ...data, conceptosSeleccionados: seleccionDepurada };
+    }
+
     try {
       let clienteId = data.clienteId;
 
@@ -1692,7 +1739,8 @@ export default function AdvancedBudgetForm({
                           className="text-sm font-medium"
                           style={{ color: "#C0392B" }}
                         >
-                          {errors.areaCodigo.message}
+                          {errors.areaCodigo.message ||
+                            "Debe seleccionar un área válida"}
                         </p>
                       </div>
                     )}
@@ -2101,7 +2149,6 @@ export default function AdvancedBudgetForm({
                           )}
                         </div>
                       )}
-
                     {/* Lista de conceptos con checkboxes */}
                     {conceptosFiltrados && conceptosFiltrados.length > 0 ? (
                       conceptosFiltrados.length > 0 ? (
@@ -2312,11 +2359,66 @@ export default function AdvancedBudgetForm({
                           className="text-sm font-medium"
                           style={{ color: "#C0392B" }}
                         >
-                          {errors.conceptosSeleccionados.message}
+                          {errors.conceptosSeleccionados.message ||
+                            "Debe seleccionar al menos un concepto"}
                         </p>
                       </div>
                     )}
                   </div>
+                  {/* Estado de carga / error de conceptos jerárquicos globales */}
+                  {conceptosLoading && (
+                    <div
+                      className="p-3 rounded-lg border text-sm"
+                      style={{
+                        backgroundColor: "#FFF8E1",
+                        borderColor: "#F39C12",
+                        color: "#8C6D1F",
+                      }}
+                    >
+                      ⏳ Cargando conceptos jerárquicos...
+                    </div>
+                  )}
+                  {conceptosFetching && !conceptosLoading && (
+                    <div
+                      className="p-2 rounded-md border text-xs inline-block"
+                      style={{
+                        backgroundColor: "#F8F9FA",
+                        borderColor: "#E5E7EB",
+                        color: "#6C757D",
+                      }}
+                    >
+                      Actualizando conceptos...
+                    </div>
+                  )}
+                  {conceptosError && (
+                    <div
+                      className="flex items-start space-x-2 p-3 rounded-lg border"
+                      style={{
+                        backgroundColor: "#FEE2E2",
+                        borderColor: "#F87171",
+                      }}
+                    >
+                      <span className="text-lg" style={{ color: "#C0392B" }}>
+                        ⚠️
+                      </span>
+                      <div
+                        className="flex-1 text-sm"
+                        style={{ color: "#C0392B" }}
+                      >
+                        <p className="font-medium mb-1">
+                          No se pudieron cargar los conceptos jerárquicos.
+                        </p>
+                        <p>
+                          {(conceptosError as Error).message ||
+                            "Error desconocido."}
+                        </p>
+                        <p className="mt-1 text-xs opacity-80">
+                          Intenta recargar la página o verifica la API
+                          /api/conceptos-jerarquicos.
+                        </p>
+                      </div>
+                    </div>
+                  )}
                   {/* Conceptos seleccionados con cantidades */}
                   {conceptosSeleccionados.length > 0 && (
                     <div className="space-y-6">
@@ -2345,9 +2447,7 @@ export default function AdvancedBudgetForm({
                         const conceptoEnForm = watch("conceptos")?.find(
                           (c) => c.conceptoCodigo === conceptoCodigo
                         );
-
                         if (!concepto) return null;
-
                         return (
                           <Card
                             key={conceptoCodigo}
@@ -2626,21 +2726,39 @@ export default function AdvancedBudgetForm({
                   )}
                   {errors.conceptos && (
                     <div
-                      className="flex items-center space-x-2 p-3 rounded-lg border"
+                      className="p-4 rounded-lg border space-y-2"
                       style={{
                         backgroundColor: "#FEE2E2",
                         borderColor: "#F87171",
+                        color: "#C0392B",
                       }}
                     >
-                      <span className="text-lg" style={{ color: "#C0392B" }}>
-                        ⚠️
-                      </span>
-                      <p
-                        className="text-sm font-medium"
-                        style={{ color: "#C0392B" }}
-                      >
-                        {errors.conceptos.message}
-                      </p>
+                      <div className="flex items-center space-x-2">
+                        <span className="text-lg">⚠️</span>
+                        <p className="text-sm font-semibold">
+                          {errors.conceptos.message ||
+                            "Revise los conceptos agregados"}
+                        </p>
+                      </div>
+                      {Array.isArray(errors.conceptos) && (
+                        <ul className="text-xs list-disc pl-6 space-y-1">
+                          {errors.conceptos.map((err: any, idx: number) => {
+                            if (!err) return null;
+                            const codigo =
+                              watch("conceptos")?.[idx]?.conceptoCodigo ||
+                              `#${idx + 1}`;
+                            return (
+                              <li key={idx}>
+                                <strong>{codigo}:</strong>{" "}
+                                {err.conceptoCodigo?.message ||
+                                  err.cantidad?.message ||
+                                  err.precioUnitario?.message ||
+                                  "Error desconocido en este concepto"}
+                              </li>
+                            );
+                          })}
+                        </ul>
+                      )}
                     </div>
                   )}
                 </CardContent>
@@ -3029,7 +3147,12 @@ export default function AdvancedBudgetForm({
                   <Button
                     type="button"
                     variant="outline"
-                    onClick={() => reset()}
+                    onClick={() => {
+                      reset();
+                      setConceptosSeleccionados([]);
+                      setValue("conceptosSeleccionados", []);
+                      setValue("conceptos", []);
+                    }}
                     className="h-12 px-6 border-2 rounded-xl transition-all font-semibold"
                     style={{
                       borderColor: "#6C757D",
