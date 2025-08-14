@@ -57,7 +57,7 @@ model Correo {
 model Obra {
   clave        String   @id @db.VarChar(20)
   areaCodigo   String   @db.VarChar(50)
-  contratista  String?  @db.VarChar(50)
+  contratista  String?  @db.VarChar(255)
   estado       Int?     @db.TinyInt
   fechaInicio  DateTime? @db.Timestamp(0) @map("fecha_inicio")
   area         Area     @relation(fields: [areaCodigo], references: [codigo])
@@ -81,6 +81,8 @@ model Presupuesto {
   clienteId         Int?
   // Propietario del presupuesto (usuario que lo creó)
   usuarioId         Int?
+  // Último usuario que modificó el presupuesto
+  ultimoUsuarioId   Int?                 @map("ultimo_usuario_id")
   
   // Datos del contratista
   nombreContratista String?              @db.VarChar(255) @map("nombre_contratista")
@@ -105,15 +107,18 @@ model Presupuesto {
   estado           PresupuestoEstado?   @default(borrador)
   fechaSolicitud   DateTime?            @db.Timestamp(0) @default(now()) @map("fecha_solicitud")
   razonRechazo     String?              @db.Text @map("razon_rechazo")
+  updatedAt        DateTime             @updatedAt @map("updated_at")
   
   // Relaciones
   cliente          Cliente?             @relation(fields: [clienteId], references: [id])
   obra             Obra?                @relation(fields: [claveObra], references: [clave])
-  usuario          Usuario?             @relation(fields: [usuarioId], references: [id])
+  usuario          Usuario?             @relation("UsuarioPresupuestosCreados", fields: [usuarioId], references: [id])
+  ultimoUsuario    Usuario?             @relation("UsuarioPresupuestosUltimaMod", fields: [ultimoUsuarioId], references: [id])
   detalles         PresupuestoDetalle[]
 
   @@index([claveObra], name: "idx_presupuestos_clave_obra")
   @@index([usuarioId], name: "idx_presupuestos_usuario_id")
+  @@index([ultimoUsuarioId], name: "idx_presupuestos_ultimo_usuario_id")
 }
 
 enum PresupuestoEstado {
@@ -160,7 +165,8 @@ model Usuario {
   fechaActualizacion DateTime @updatedAt @map("fecha_actualizacion")
 
   role             Role     @relation(fields: [rolId], references: [id])
-  presupuestos     Presupuesto[]
+  presupuestosCreados     Presupuesto[] @relation("UsuarioPresupuestosCreados")
+  presupuestosUltimaMod   Presupuesto[] @relation("UsuarioPresupuestosUltimaMod")
 
   @@index([rolId], name: "idx_usuario_rol")
   @@index([email], name: "idx_usuario_email")

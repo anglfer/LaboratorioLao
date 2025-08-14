@@ -84,8 +84,10 @@ import {
 } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
+import { useAuth } from "../../dashboard/hooks/useAuth";
 
 export default function BudgetsNew() {
+  const { usuario } = useAuth();
   const [showForm, setShowForm] = useState(false);
   const [editingBudget, setEditingBudget] = useState<any>(null);
   const [selectedBudgets, setSelectedBudgets] = useState<number[]>([]);
@@ -513,6 +515,16 @@ export default function BudgetsNew() {
     }
   };
 
+  // Mostrar auditoría (creador y última modificación) sin romper la tabla
+  const handleShowAudit = (budget: any) => {
+    const creador = budget?.usuario?.nombre || "-";
+    const ultimo = budget?.ultimoUsuario?.nombre || creador || "-";
+    toast({
+      title: "Auditoría del presupuesto",
+      description: `Creado por: ${creador} • Última modificación: ${ultimo}`,
+    });
+  };
+
   const handleSort = (field: string) => {
     if (sortField === field) {
       setSortDirection(sortDirection === "asc" ? "desc" : "asc");
@@ -930,6 +942,7 @@ export default function BudgetsNew() {
                             />
                           </div>
                         </TableHead>
+                        {/* Columna de Usuarios eliminada para no romper el layout; la auditoría se muestra en Acciones */}
                         <TableHead
                           className="cursor-pointer hover:opacity-75 transition-opacity w-32"
                           onClick={() => handleSort("total")}
@@ -999,6 +1012,7 @@ export default function BudgetsNew() {
                               </span>
                             )}
                           </TableCell>
+                          {/* Celda de Usuarios eliminada; se traslada al menú Acciones */}
                           <TableCell>
                             <div>
                               <p
@@ -1159,6 +1173,17 @@ export default function BudgetsNew() {
                                     Acciones
                                   </DropdownMenuLabel>
                                   <DropdownMenuSeparator />
+                                  {usuario?.rol === "admin" && (
+                                    <DropdownMenuItem
+                                      onClick={() => handleShowAudit(budget)}
+                                    >
+                                      <User className="h-4 w-4 mr-2" />
+                                      Ver auditoría
+                                    </DropdownMenuItem>
+                                  )}
+                                  {usuario?.rol === "admin" && (
+                                    <DropdownMenuSeparator />
+                                  )}
                                   <DropdownMenuItem
                                     onClick={() => handleEdit(budget)}
                                   >

@@ -464,7 +464,8 @@ export function registerRoutes(app: Express): Promise<Server> {
       const finalPresupuestoData = {
         ...presupuestoData,
         claveObra: claveObra,
-  usuarioId: sessionUser.id,
+        usuarioId: sessionUser.id,
+        ultimoUsuarioId: sessionUser.id,
       };
 
       console.log(
@@ -551,7 +552,7 @@ export function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Actualizar el presupuesto principal
-      const presupuesto = await storage.updatePresupuesto(id, result.data);
+  const presupuesto = await storage.updatePresupuesto(id, { ...result.data, ultimoUsuarioId: sessionUser.id });
       console.log(
         "[PUT /api/presupuestos/:id] Updated presupuesto:",
         presupuesto.id,
@@ -677,7 +678,9 @@ export function registerRoutes(app: Express): Promise<Server> {
       const detalle = await storage.createPresupuestoDetalle(result.data);
 
       // Recalcular totales después de agregar detalle
-      await storage.recalcularTotalesPresupuesto(presupuestoId);
+  await storage.recalcularTotalesPresupuesto(presupuestoId);
+  // Marcar último modificador del presupuesto
+  await storage.updatePresupuesto(presupuestoId, { ultimoUsuarioId: sessionUser.id });
 
       res.status(201).json(detalle);
     } catch (error: any) {
@@ -718,7 +721,9 @@ export function registerRoutes(app: Express): Promise<Server> {
       );
 
       // Recalcular totales después de actualizar detalle
-      await storage.recalcularTotalesPresupuesto(presupuestoId);
+  await storage.recalcularTotalesPresupuesto(presupuestoId);
+  // Marcar último modificador del presupuesto
+  await storage.updatePresupuesto(presupuestoId, { ultimoUsuarioId: sessionUser.id });
 
       res.json(detalle);
     } catch (error: any) {
@@ -747,7 +752,9 @@ export function registerRoutes(app: Express): Promise<Server> {
       await storage.deletePresupuestoDetalle(detalleId);
 
       // Recalcular totales después de eliminar detalle
-      await storage.recalcularTotalesPresupuesto(presupuestoId);
+  await storage.recalcularTotalesPresupuesto(presupuestoId);
+  // Marcar último modificador del presupuesto
+  await storage.updatePresupuesto(presupuestoId, { ultimoUsuarioId: sessionUser.id });
 
       res.status(204).send();
     } catch (error: any) {

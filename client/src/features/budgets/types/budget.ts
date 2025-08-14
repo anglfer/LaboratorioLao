@@ -20,7 +20,18 @@ export interface Budget {
   razonRechazo?: string; // Nuevo campo para la razón de rechazo
   cliente?: Client;
   obra?: Project;
+  // Usuario que creó el presupuesto
+  usuario?: SimpleUser;
+  // Último usuario que lo modificó
+  ultimoUsuario?: SimpleUser;
   detalles?: BudgetDetail[];
+}
+
+export interface SimpleUser {
+  id: number;
+  nombre: string;
+  apellidos?: string;
+  email: string;
 }
 
 export interface BudgetDetail {

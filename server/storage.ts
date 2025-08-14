@@ -52,6 +52,7 @@ type PresupuestoWithDetails = Prisma.PresupuestoGetPayload<{
       };
     };
   usuario: true,
+  ultimoUsuario: true,
     detalles: {
       include: {
         concepto: true;
@@ -293,7 +294,8 @@ async function getAllPresupuestos(): Promise<PresupuestoWithDetails[]> {
           correos: true,
         },
       },
-      usuario: true,
+  usuario: true,
+  ultimoUsuario: true,
       detalles: {
         include: {
           concepto: true,
@@ -320,6 +322,7 @@ async function getPresupuestoById(id: number): Promise<PresupuestoWithDetails | 
         },
       },
   usuario: true,
+  ultimoUsuario: true,
       detalles: {
         include: {
           concepto: true,
@@ -340,6 +343,7 @@ async function getPresupuestosByObra(claveObra: string) {
       },
   cliente: true,
   usuario: true,
+  ultimoUsuario: true,
       detalles: true,
     },
     orderBy: { fechaSolicitud: "desc" },
@@ -357,6 +361,7 @@ async function getPresupuestosAprobados() {
       },
   cliente: true,
   usuario: true,
+  ultimoUsuario: true,
       detalles: true,
     },
     orderBy: { fechaSolicitud: "desc" },
@@ -378,7 +383,8 @@ async function getPresupuestosByUsuario(usuarioId: number): Promise<PresupuestoW
           correos: true,
         },
       },
-      usuario: true,
+  usuario: true,
+  ultimoUsuario: true,
       detalles: {
         include: { concepto: true },
       },
@@ -405,6 +411,7 @@ async function createPresupuesto(data: {
   porcentajeAnticipo?: number;
   montoAnticipo?: number;
   usuarioId?: number;
+  ultimoUsuarioId?: number;
 }): Promise<Presupuesto> {
   return await prisma.presupuesto.create({
     data: {
@@ -434,6 +441,7 @@ async function updatePresupuesto(
     manejaAnticipo: boolean;
     porcentajeAnticipo: number;
     montoAnticipo: number;
+  ultimoUsuarioId: number;
   }>,
 ): Promise<Presupuesto> {
   return await prisma.presupuesto.update({
