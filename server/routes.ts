@@ -283,6 +283,12 @@ export function registerRoutes(app: Express): Promise<Server> {
   // Presupuesto routes
   app.get("/api/presupuestos", async (req, res) => {
     try {
+      // @ts-ignore
+      const sessionUser = req.session?.user as { id: number; rol: string } | undefined;
+      if (sessionUser && sessionUser.rol !== 'admin') {
+        const presupuestos = await storage.getPresupuestosByUsuario(sessionUser.id);
+        return res.json(presupuestos);
+      }
       const presupuestos = await storage.getAllPresupuestos();
       res.json(presupuestos);
     } catch (error: any) {
@@ -385,6 +391,12 @@ export function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/presupuestos", async (req, res) => {
     try {
+      // Obtener usuario de la sesión
+      // @ts-ignore
+      const sessionUser = req.session?.user as { id: number; rol: string } | undefined;
+      if (!sessionUser) {
+        return res.status(401).json({ message: "No autenticado" });
+      }
       const { conceptos, areaCodigo, ...presupuestoData } = req.body;
       console.log("[POST /api/presupuestos] Request body:", req.body);
 
@@ -452,6 +464,7 @@ export function registerRoutes(app: Express): Promise<Server> {
       const finalPresupuestoData = {
         ...presupuestoData,
         claveObra: claveObra,
+  usuarioId: sessionUser.id,
       };
 
       console.log(
@@ -509,6 +522,21 @@ export function registerRoutes(app: Express): Promise<Server> {
   app.put("/api/presupuestos/:id", async (req, res) => {
     try {
       const id = parseInt(req.params.id);
+      // Obtener usuario de sesión
+      // @ts-ignore
+      const sessionUser = req.session?.user as { id: number; rol: string } | undefined;
+      if (!sessionUser) {
+        return res.status(401).json({ message: "No autenticado" });
+      }
+
+      // Verificar propiedad
+      const existente = await storage.getPresupuestoById(id);
+      if (!existente) return res.status(404).json({ message: "Presupuesto no encontrado" });
+  const esAdmin = sessionUser.rol === 'admin';
+  const ownerId = (existente as any).usuarioId ?? null;
+  if (!esAdmin && ownerId !== sessionUser.id) {
+        return res.status(403).json({ message: "No tienes permiso para modificar este presupuesto" });
+      }
       const { conceptos, areaCodigo, ...presupuestoData } = req.body;
       console.log("[PUT /api/presupuestos/:id] Request body:", req.body);
 
@@ -584,6 +612,21 @@ export function registerRoutes(app: Express): Promise<Server> {
   app.delete("/api/presupuestos/:id", async (req, res) => {
     try {
       const id = parseInt(req.params.id);
+      // Obtener usuario de sesión
+      // @ts-ignore
+      const sessionUser = req.session?.user as { id: number; rol: string } | undefined;
+      if (!sessionUser) {
+        return res.status(401).json({ message: "No autenticado" });
+      }
+
+      // Verificar propiedad
+      const existente = await storage.getPresupuestoById(id);
+      if (!existente) return res.status(404).json({ message: "Presupuesto no encontrado" });
+  const esAdmin = sessionUser.rol === 'admin';
+  const ownerId = (existente as any).usuarioId ?? null;
+  if (!esAdmin && ownerId !== sessionUser.id) {
+        return res.status(403).json({ message: "No tienes permiso para eliminar este presupuesto" });
+      }
       await storage.deletePresupuesto(id);
       res.status(204).send();
     } catch (error: any) {
@@ -605,6 +648,21 @@ export function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/presupuestos/:id/detalles", async (req, res) => {
     try {
       const presupuestoId = parseInt(req.params.id);
+      // Obtener usuario de sesión
+      // @ts-ignore
+      const sessionUser = req.session?.user as { id: number; rol: string } | undefined;
+      if (!sessionUser) {
+        return res.status(401).json({ message: "No autenticado" });
+      }
+
+      // Verificar propiedad del presupuesto
+      const existente = await storage.getPresupuestoById(presupuestoId);
+      if (!existente) return res.status(404).json({ message: "Presupuesto no encontrado" });
+  const esAdmin = sessionUser.rol === 'admin';
+  const ownerId = (existente as any).usuarioId ?? null;
+  if (!esAdmin && ownerId !== sessionUser.id) {
+        return res.status(403).json({ message: "No tienes permiso para modificar este presupuesto" });
+      }
 
       // Agregar presupuestoId al body antes de validar
       const dataToValidate = { ...req.body, presupuestoId };
@@ -631,6 +689,21 @@ export function registerRoutes(app: Express): Promise<Server> {
     try {
       const presupuestoId = parseInt(req.params.id);
       const detalleId = parseInt(req.params.detalleId);
+      // Obtener usuario de sesión
+      // @ts-ignore
+      const sessionUser = req.session?.user as { id: number; rol: string } | undefined;
+      if (!sessionUser) {
+        return res.status(401).json({ message: "No autenticado" });
+      }
+
+      // Verificar propiedad del presupuesto
+      const existente = await storage.getPresupuestoById(presupuestoId);
+      if (!existente) return res.status(404).json({ message: "Presupuesto no encontrado" });
+  const esAdmin = sessionUser.rol === 'admin';
+  const ownerId = (existente as any).usuarioId ?? null;
+  if (!esAdmin && ownerId !== sessionUser.id) {
+        return res.status(403).json({ message: "No tienes permiso para modificar este presupuesto" });
+      }
       const result = insertPresupuestoDetalleSchema
         .partial()
         .safeParse(req.body);
@@ -657,6 +730,20 @@ export function registerRoutes(app: Express): Promise<Server> {
     try {
       const presupuestoId = parseInt(req.params.id);
       const detalleId = parseInt(req.params.detalleId);
+      // Obtener usuario de sesión
+      // @ts-ignore
+      const sessionUser = req.session?.user as { id: number; rol: string } | undefined;
+      if (!sessionUser) {
+        return res.status(401).json({ message: "No autenticado" });
+      }
+
+      // Verificar propiedad del presupuesto
+      const existente = await storage.getPresupuestoById(presupuestoId);
+      if (!existente) return res.status(404).json({ message: "Presupuesto no encontrado" });
+      const esAdmin = sessionUser.rol === 'admin';
+      if (!esAdmin && existente && (existente as any).usuarioId && (existente as any).usuarioId !== sessionUser.id) {
+        return res.status(403).json({ message: "No tienes permiso para modificar este presupuesto" });
+      }
       await storage.deletePresupuestoDetalle(detalleId);
 
       // Recalcular totales después de eliminar detalle
@@ -719,7 +806,7 @@ export function registerRoutes(app: Express): Promise<Server> {
         data: { ultimoAcceso: new Date() }
       });
 
-      // Preparar datos del usuario para respuesta (sin password)
+  // Preparar datos del usuario para respuesta (sin password)
       const userData = {
         id: usuario.id,
         email: usuario.email,
@@ -731,7 +818,11 @@ export function registerRoutes(app: Express): Promise<Server> {
       };
       
       console.log(`[AUTH] Login exitoso para: ${email}`);
-      
+  // Guardar usuario en sesión para control de propiedad
+  // @ts-ignore
+  req.session = req.session || {};
+  // @ts-ignore
+  req.session.user = { id: usuario.id, rol: usuario.role.nombre };
   // Responder con el objeto de usuario directamente (lo espera el frontend)
   return res.status(200).json(userData);
       
@@ -746,6 +837,11 @@ export function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/auth/logout", async (req, res) => {
     try {
+      // @ts-ignore
+      if (req.session) {
+        // @ts-ignore
+        req.session.destroy(() => {});
+      }
       res.json({ message: "Sesión cerrada correctamente" });
     } catch (error: any) {
       res.status(500).json({ message: error.message });

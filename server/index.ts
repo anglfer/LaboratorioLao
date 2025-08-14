@@ -4,6 +4,8 @@ import path from "path";
 import { fileURLToPath } from "url";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
+import session from "express-session";
+import createMemoryStore from "memorystore";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -18,6 +20,22 @@ app.use(cors({
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
+
+// Configurar sesión (simple, para dev). En producción usar un store externo.
+const MemoryStore = createMemoryStore(session);
+app.use(
+  session({
+    secret: process.env.SESSION_SECRET || "dev-secret-change-me",
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+      httpOnly: true,
+      secure: false,
+      maxAge: 1000 * 60 * 60 * 8, // 8 horas
+    },
+    store: new MemoryStore({ checkPeriod: 1000 * 60 * 60 }),
+  })
+);
 
 // Servir imágenes estáticas desde /img
 app.use("/img", express.static(path.join(__dirname, "public/img")));

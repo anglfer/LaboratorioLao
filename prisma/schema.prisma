@@ -79,6 +79,8 @@ model Presupuesto {
   id                Int                  @id @default(autoincrement())
   claveObra         String?              @db.VarChar(20) @map("clave_obra")
   clienteId         Int?
+  // Propietario del presupuesto (usuario que lo creó)
+  usuarioId         Int?
   
   // Datos del contratista
   nombreContratista String?              @db.VarChar(255) @map("nombre_contratista")
@@ -107,9 +109,11 @@ model Presupuesto {
   // Relaciones
   cliente          Cliente?             @relation(fields: [clienteId], references: [id])
   obra             Obra?                @relation(fields: [claveObra], references: [clave])
+  usuario          Usuario?             @relation(fields: [usuarioId], references: [id])
   detalles         PresupuestoDetalle[]
 
   @@index([claveObra], name: "idx_presupuestos_clave_obra")
+  @@index([usuarioId], name: "idx_presupuestos_usuario_id")
 }
 
 enum PresupuestoEstado {
@@ -156,6 +160,7 @@ model Usuario {
   fechaActualizacion DateTime @updatedAt @map("fecha_actualizacion")
 
   role             Role     @relation(fields: [rolId], references: [id])
+  presupuestos     Presupuesto[]
 
   @@index([rolId], name: "idx_usuario_rol")
   @@index([email], name: "idx_usuario_email")

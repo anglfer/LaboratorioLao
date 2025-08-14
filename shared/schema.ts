@@ -92,6 +92,10 @@ export const insertPresupuestoDetalleSchema = z.object({
     .string()
     .min(1, "El código del concepto es requerido")
     .max(50),
+  cantidad: z
+    .number({ required_error: "La cantidad es requerida" })
+    .positive("La cantidad debe ser mayor a cero")
+    .default(1),
   precioUnitario: z
     .number({ required_error: "El precio unitario es requerido" })
     .positive("El precio unitario debe ser mayor a cero"),

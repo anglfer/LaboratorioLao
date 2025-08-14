@@ -51,6 +51,7 @@ type PresupuestoWithDetails = Prisma.PresupuestoGetPayload<{
         correos: true;
       };
     };
+  usuario: true,
     detalles: {
       include: {
         concepto: true;
@@ -292,6 +293,7 @@ async function getAllPresupuestos(): Promise<PresupuestoWithDetails[]> {
           correos: true,
         },
       },
+      usuario: true,
       detalles: {
         include: {
           concepto: true,
@@ -317,6 +319,7 @@ async function getPresupuestoById(id: number): Promise<PresupuestoWithDetails | 
           correos: true,
         },
       },
+  usuario: true,
       detalles: {
         include: {
           concepto: true,
@@ -335,7 +338,8 @@ async function getPresupuestosByObra(claveObra: string) {
           area: true,
         },
       },
-      cliente: true,
+  cliente: true,
+  usuario: true,
       detalles: true,
     },
     orderBy: { fechaSolicitud: "desc" },
@@ -351,8 +355,33 @@ async function getPresupuestosAprobados() {
           area: true,
         },
       },
-      cliente: true,
+  cliente: true,
+  usuario: true,
       detalles: true,
+    },
+    orderBy: { fechaSolicitud: "desc" },
+  });
+}
+
+async function getPresupuestosByUsuario(usuarioId: number): Promise<PresupuestoWithDetails[]> {
+  return await prisma.presupuesto.findMany({
+    where: { usuarioId },
+    include: {
+      obra: {
+        include: {
+          area: true,
+        },
+      },
+      cliente: {
+        include: {
+          telefonos: true,
+          correos: true,
+        },
+      },
+      usuario: true,
+      detalles: {
+        include: { concepto: true },
+      },
     },
     orderBy: { fechaSolicitud: "desc" },
   });
@@ -375,6 +404,7 @@ async function createPresupuesto(data: {
   manejaAnticipo?: boolean;
   porcentajeAnticipo?: number;
   montoAnticipo?: number;
+  usuarioId?: number;
 }): Promise<Presupuesto> {
   return await prisma.presupuesto.create({
     data: {
@@ -664,6 +694,7 @@ const storage = {
   getPresupuestoById,
   getPresupuestosByObra,
   getPresupuestosAprobados,
+  getPresupuestosByUsuario,
   createPresupuesto,
   updatePresupuesto,
   deletePresupuesto,

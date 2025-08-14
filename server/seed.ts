@@ -69,6 +69,13 @@ async function main() {
           rolNombre: "recepcionista",
         },
         {
+          email: "recepcion2@laboratorio.com",
+          nombre: "Recepcionista",
+          apellidos: "Ejemplo",
+          password: "recep123",
+          rolNombre: "recepcionista",
+        },
+        {
           email: "jefe@laboratorio.com",
           nombre: "Jefe",
           apellidos: "Laboratorio",
