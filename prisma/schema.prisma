@@ -145,6 +145,7 @@ enum DetalleEstado {
 // Módulo de autenticación simplificado (solo para presupuestos)
 model Usuario {
   id               Int      @id @default(autoincrement())
+  email            String   @unique @db.VarChar(255)
   nombre           String   @db.VarChar(100)
   apellidos        String   @db.VarChar(100)
   password         String   @db.VarChar(255)
@@ -157,6 +158,7 @@ model Usuario {
   role             Role     @relation(fields: [rolId], references: [id])
 
   @@index([rolId], name: "idx_usuario_rol")
+  @@index([email], name: "idx_usuario_email")
 }
 
 enum RolUsuario {

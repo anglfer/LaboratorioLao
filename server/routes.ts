@@ -6,6 +6,7 @@ import { z } from "zod";
 import path from "path";
 import { fileURLToPath } from "url";
 import { prisma } from "./prisma";
+import bcrypt from "bcryptjs";
 import rutasAreas from './routes-areas.js';
 import rutasConceptos from './routes-conceptos.js';
 import { PDFService } from './pdf-service';
@@ -672,24 +673,74 @@ export function registerRoutes(app: Express): Promise<Server> {
   // Rutas de autenticación básicas
   app.post("/api/auth/login", async (req, res) => {
     try {
-      // TEMPORAL: Retornar usuario mock para pruebas
-      const mockUser = {
-        id: 1,
-        nombre: "Administrador",
-        apellidos: "Sistema",
-        rol: "admin"
+      const { email, password } = req.body;
+      
+      if (!email || !password) {
+        return res.status(400).json({ 
+          success: false, 
+          message: "Email y contraseña son requeridos" 
+        });
+      }
+
+      // Buscar usuario por email con rol incluido
+      const usuario = await prisma.usuario.findUnique({
+        where: { email },
+        include: { role: true }
+      });
+
+      if (!usuario) {
+        return res.status(401).json({ 
+          success: false, 
+          message: "Credenciales incorrectas" 
+        });
+      }
+
+      // Verificar si el usuario está activo
+      if (!usuario.activo) {
+        return res.status(401).json({ 
+          success: false, 
+          message: "Usuario inactivo" 
+        });
+      }
+
+  // Verificar password con bcrypt
+  const passwordMatch = await bcrypt.compare(password, usuario.password);
+
+      if (!passwordMatch) {
+        return res.status(401).json({ 
+          success: false, 
+          message: "Credenciales incorrectas" 
+        });
+      }
+
+      // Actualizar último acceso
+      await prisma.usuario.update({
+        where: { id: usuario.id },
+        data: { ultimoAcceso: new Date() }
+      });
+
+      // Preparar datos del usuario para respuesta (sin password)
+      const userData = {
+        id: usuario.id,
+        email: usuario.email,
+        nombre: usuario.nombre,
+        apellidos: usuario.apellidos,
+        rol: usuario.role.nombre,
+        activo: usuario.activo,
+        fechaCreacion: usuario.fechaCreacion
       };
       
-      console.log('[AUTH] Login temporal exitoso');
+      console.log(`[AUTH] Login exitoso para: ${email}`);
       
-      return res.status(200).json({ 
-        success: true, 
-        user: mockUser 
-      });
+  // Responder con el objeto de usuario directamente (lo espera el frontend)
+  return res.status(200).json(userData);
       
     } catch (error: any) {
       console.error('[AUTH] Error en login:', error);
-      res.status(500).json({ message: "Error interno del servidor" });
+      res.status(500).json({ 
+        success: false, 
+        message: "Error interno del servidor" 
+      });
     }
   });
 
