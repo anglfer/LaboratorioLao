@@ -34,6 +34,7 @@ model Cliente {
   telefonos      Telefono[]
   correos        Correo[]
   presupuestos   Presupuesto[]
+  obras          Obra[]
 }
 
 model Telefono {
@@ -55,15 +56,37 @@ model Correo {
 }
 
 model Obra {
-  clave        String   @id @db.VarChar(20)
-  areaCodigo   String   @db.VarChar(50)
-  contratista  String?  @db.VarChar(255)
-  estado       Int?     @db.TinyInt
-  fechaInicio  DateTime? @db.Timestamp(0) @map("fecha_inicio")
-  area         Area     @relation(fields: [areaCodigo], references: [codigo])
-  presupuestos Presupuesto[]
+  clave                String   @id @db.VarChar(20)
+  areaCodigo           String   @db.VarChar(50)
+  nombre               String   @db.VarChar(255)
+  descripcion          String?  @db.Text
+  responsable          String?  @db.VarChar(255)
+  contacto             String?  @db.VarChar(255)
+  direccion            String?  @db.VarChar(500)
+  contratista          String?  @db.VarChar(255)
+  estado               Int?     @db.TinyInt
+  fechaInicio          DateTime? @db.Timestamp(0) @map("fecha_inicio")
+  fechaFinPrevista     DateTime? @db.Timestamp(0) @map("fecha_fin_prevista")
+  fechaFin             DateTime? @db.Timestamp(0) @map("fecha_fin")
+  presupuestoEstimado  Decimal? @db.Decimal(12,2) @map("presupuesto_estimado")
+  presupuestoTotal     Decimal? @db.Decimal(12,2) @map("presupuesto_total")
+  clienteId            Int?     @map("cliente_id")
+  notas                String?  @db.Text
+  alcance              String?  @db.Text
+  objetivos            String?  @db.Text
+  razonCancelacion     String?  @db.Text @map("razon_cancelacion")
+  fechaCreacion        DateTime @default(now()) @db.DateTime(3) @map("fecha_creacion")
+  fechaActualizacion   DateTime @updatedAt @db.DateTime(3) @map("fecha_actualizacion")
+  creadoPor            String?  @db.VarChar(255) @map("creado_por")
+  actualizadoPor       String?  @db.VarChar(255) @map("actualizado_por")
+  
+  // Relaciones
+  area                 Area     @relation(fields: [areaCodigo], references: [codigo])
+  cliente              Cliente? @relation(fields: [clienteId], references: [id])
+  presupuestos         Presupuesto[]
 
   @@index([areaCodigo], name: "idx_obra_area_codigo")
+  @@index([clienteId], name: "idx_obra_cliente_id")
 }
 
 model ContadorObras {
@@ -84,22 +107,13 @@ model Presupuesto {
   // Último usuario que modificó el presupuesto
   ultimoUsuarioId   Int?                 @map("ultimo_usuario_id")
   
-  // Datos del contratista
-  nombreContratista String?              @db.VarChar(255) @map("nombre_contratista")
-  
-  // Detalles de la obra
-  descripcionObra   String?              @db.Text @map("descripcion_obra")
-  alcance           String?              @db.Text
-  direccion         String?              @db.VarChar(500)
-  contactoResponsable String?           @db.VarChar(255) @map("contacto_responsable")
-  
-  // Totales
+  // Totales financieros (lo único que realmente pertenece al presupuesto)
   iva              Decimal?             @db.Decimal(5,4) @default(0.1600)
   subtotal         Decimal?             @db.Decimal(12,2) @default(0)
   ivaMonto         Decimal?             @db.Decimal(12,2) @default(0) @map("iva_monto")
   total            Decimal?             @db.Decimal(12,2) @default(0)
   
-  // Políticas de pago (solo anticipo)
+  // Políticas de pago
   manejaAnticipo   Boolean?             @default(false) @map("maneja_anticipo")
   porcentajeAnticipo Decimal?           @db.Decimal(5,2) @map("porcentaje_anticipo")
   

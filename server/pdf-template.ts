@@ -1,17 +1,32 @@
 export interface PresupuestoData {
   id: number;
   claveObra?: string | null;
+  
+  // Datos de relaciones
   cliente?: {
     nombre?: string;
     direccion?: string;
     telefonos?: { telefono: string }[];
     correos?: { correo: string }[];
   } | null;
-  nombreContratista?: string | null;
-  contactoResponsable?: string | null;
-  descripcionObra?: string | null;
-  alcance?: string | null;
-  direccion?: string | null;
+  
+  obra?: {
+    clave?: string;
+    nombre?: string;
+    descripcion?: string;
+    responsable?: string;
+    contacto?: string;
+    direccion?: string;
+    contratista?: string;
+    estado?: number;
+    fechaInicio?: string | Date | null;
+    fechaFinPrevista?: string | Date | null;
+    presupuestoEstimado?: number | null;
+    alcance?: string;
+    objetivos?: string;
+  } | null;
+  
+  // Campos del presupuesto (estructura normalizada)
   fechaSolicitud?: string | Date | null;
   estado?: string | null;
   subtotal?: number | null;
@@ -574,7 +589,7 @@ export function generatePresupuestoHTML(
         <div class="header">
             <div class="company-name">LABORATORIO Y CONSULTORÍA LOA S.A. DE C.V.</div>
             <div class="document-title">PROPUESTA DE SERVICIOS DE LABORATORIO</div>
-            <div class="obra-code">CLAVE DE OBRA: ${presupuesto.claveObra || 'SIN ASIGNAR'}</div>
+            <div class="obra-code">CLAVE DE OBRA: ${presupuesto.obra?.clave || presupuesto.claveObra || 'SIN ASIGNAR'}</div>
         </div>
         
         <div class="info-section">
@@ -584,32 +599,38 @@ export function generatePresupuestoHTML(
                     <span class="info-label">Cliente:</span>
                     <span class="info-value">${presupuesto.cliente?.nombre || 'No especificado'}</span>
                 </div>
+                ${presupuesto.cliente?.direccion ? `
                 <div class="info-item">
-                    <span class="info-label">Contratista:</span>
-                    <span class="info-value">${presupuesto.nombreContratista || 'No especificado'}</span>
-                </div>
-                ${presupuesto.contactoResponsable ? `
-                <div class="info-item">
-                    <span class="info-label">Contacto:</span>
-                    <span class="info-value">${presupuesto.contactoResponsable}</span>
-                </div>
-                ` : ''}
-                ${presupuesto.direccion ? `
-                <div class="info-item">
-                    <span class="info-label">Dirección:</span>
-                    <span class="info-value">${presupuesto.direccion}</span>
+                    <span class="info-label">Dirección del Cliente:</span>
+                    <span class="info-value">${presupuesto.cliente.direccion}</span>
                 </div>
                 ` : ''}
                 ${presupuesto.cliente?.telefonos?.length ? `
                 <div class="info-item">
-                    <span class="info-label">Teléfono:</span>
-                    <span class="info-value">${presupuesto.cliente.telefonos[0].telefono}</span>
+                    <span class="info-label">Teléfono${presupuesto.cliente.telefonos.length > 1 ? 's' : ''}:</span>
+                    <span class="info-value">${presupuesto.cliente.telefonos.map(t => t.telefono).join(', ')}</span>
                 </div>
                 ` : ''}
                 ${presupuesto.cliente?.correos?.length ? `
                 <div class="info-item">
-                    <span class="info-label">Email:</span>
-                    <span class="info-value">${presupuesto.cliente.correos[0].correo}</span>
+                    <span class="info-label">Email${presupuesto.cliente.correos.length > 1 ? 's' : ''}:</span>
+                    <span class="info-value">${presupuesto.cliente.correos.map(c => c.correo).join(', ')}</span>
+                </div>
+                ` : ''}
+                <div class="info-item">
+                    <span class="info-label">Contratista:</span>
+                    <span class="info-value">${presupuesto.obra?.contratista || 'No especificado'}</span>
+                </div>
+                ${presupuesto.obra?.contacto ? `
+                <div class="info-item">
+                    <span class="info-label">Contacto de Obra:</span>
+                    <span class="info-value">${presupuesto.obra.contacto}</span>
+                </div>
+                ` : ''}
+                ${presupuesto.obra?.direccion ? `
+                <div class="info-item">
+                    <span class="info-label">Dirección de Obra:</span>
+                    <span class="info-value">${presupuesto.obra.direccion}</span>
                 </div>
                 ` : ''}
             </div>
@@ -617,25 +638,73 @@ export function generatePresupuestoHTML(
             <div class="info-box">
                 <div class="info-title">Datos del Proyecto</div>
                 <div class="info-item">
-                    <span class="info-label">Fecha:</span>
+                    <span class="info-label">Fecha de Solicitud:</span>
                     <span class="info-value">${new Date(presupuesto.fechaSolicitud || new Date()).toLocaleDateString('es-MX')}</span>
                 </div>
-                ${presupuesto.descripcionObra ? `
+                ${presupuesto.obra?.nombre ? `
                 <div class="info-item">
-                    <span class="info-label">Obra:</span>
-                    <span class="info-value">${presupuesto.descripcionObra}</span>
+                    <span class="info-label">Nombre de la Obra:</span>
+                    <span class="info-value">${presupuesto.obra.nombre}</span>
                 </div>
                 ` : ''}
-                ${presupuesto.alcance ? `
+                ${presupuesto.obra?.clave ? `
+                <div class="info-item">
+                    <span class="info-label">Clave de Obra:</span>
+                    <span class="info-value">${presupuesto.obra.clave}</span>
+                </div>
+                ` : ''}
+                ${presupuesto.obra?.descripcion ? `
+                <div class="info-item">
+                    <span class="info-label">Descripción:</span>
+                    <span class="info-value">${presupuesto.obra.descripcion}</span>
+                </div>
+                ` : ''}
+                ${presupuesto.obra?.responsable ? `
+                <div class="info-item">
+                    <span class="info-label">Responsable:</span>
+                    <span class="info-value">${presupuesto.obra.responsable}</span>
+                </div>
+                ` : ''}
+                ${presupuesto.obra?.alcance ? `
                 <div class="info-item">
                     <span class="info-label">Alcance:</span>
-                    <span class="info-value">${presupuesto.alcance}</span>
+                    <span class="info-value">${presupuesto.obra.alcance}</span>
+                </div>
+                ` : ''}
+                ${presupuesto.obra?.objetivos ? `
+                <div class="info-item">
+                    <span class="info-label">Objetivos:</span>
+                    <span class="info-value">${presupuesto.obra.objetivos}</span>
+                </div>
+                ` : ''}
+                ${presupuesto.obra?.fechaInicio ? `
+                <div class="info-item">
+                    <span class="info-label">Fecha de Inicio:</span>
+                    <span class="info-value">${new Date(presupuesto.obra.fechaInicio).toLocaleDateString('es-MX')}</span>
+                </div>
+                ` : ''}
+                ${presupuesto.obra?.fechaFinPrevista ? `
+                <div class="info-item">
+                    <span class="info-label">Fecha Fin Prevista:</span>
+                    <span class="info-value">${new Date(presupuesto.obra.fechaFinPrevista).toLocaleDateString('es-MX')}</span>
+                </div>
+                ` : ''}
+                ${presupuesto.obra?.presupuestoEstimado ? `
+                <div class="info-item">
+                    <span class="info-label">Presupuesto Estimado:</span>
+                    <span class="info-value">$${Number(presupuesto.obra.presupuestoEstimado).toLocaleString('es-MX', { minimumFractionDigits: 2 })}</span>
                 </div>
                 ` : ''}
                 <div class="info-item">
-                    <span class="info-label">Estado:</span>
+                    <span class="info-label">Estado del Presupuesto:</span>
                     <span class="info-value">${(presupuesto.estado || 'borrador').toUpperCase()}</span>
                 </div>
+                ${presupuesto.obra?.estado ? `
+                <div class="info-item">
+                    <span class="info-label">Estado de la Obra:</span>
+                    <span class="info-value">${presupuesto.obra.estado === 1 ? 'ACTIVA' : presupuesto.obra.estado === 0 ? 'INACTIVA' : 'PENDIENTE'}</span>
+                </div>
+                ` : ''}
             </div>
         </div>
         

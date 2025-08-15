@@ -22,7 +22,7 @@ import {
   useEliminarDetalle,
 } from "../hooks/useObras";
 import { Obra } from "../types";
-import { useAuth } from "../../dashboard/hooks/useAuth";
+import { useAuth } from "../../dashboard/contexts/AuthContext";
 import { useToast } from "../../dashboard/hooks/use-toast";
 
 export default function ObrasPage() {

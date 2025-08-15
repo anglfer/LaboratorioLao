@@ -249,10 +249,25 @@ export default function BudgetsNew() {
   // Mutations
   const createMutation = useMutation({
     mutationFn: async (data: any) => {
+      // Normalizar datos para la estructura del backend
+      const normalizedData = {
+        ...data,
+        // Convertir IVA a decimal si viene como porcentaje
+        iva: data.iva > 1 ? data.iva / 100 : data.iva,
+        // Asegurar que los valores monetarios sean números
+        subtotal: parseFloat(data.subtotal?.toString() || '0'),
+        ivaMonto: parseFloat(data.ivaMonto?.toString() || '0'),
+        total: parseFloat(data.total?.toString() || '0'),
+        porcentajeAnticipo: data.porcentajeAnticipo ? parseFloat(data.porcentajeAnticipo?.toString()) : null,
+      };
+
+      console.log('[BudgetsNew] Enviando datos normalizados:', normalizedData);
+
       const response = await fetch("/api/presupuestos", {
         method: "POST",
-        body: JSON.stringify(data),
+        body: JSON.stringify(normalizedData),
         headers: { "Content-Type": "application/json" },
+        credentials: 'include', // Agregar credentials para autenticación
       });
 
       if (!response.ok) {
@@ -288,13 +303,32 @@ export default function BudgetsNew() {
 
   const updateMutation = useMutation({
     mutationFn: async (data: any) => {
+      // Normalizar datos para la estructura del backend
+      const normalizedData = {
+        ...data,
+        // Convertir IVA a decimal si viene como porcentaje
+        iva: data.iva > 1 ? data.iva / 100 : data.iva,
+        // Asegurar que los valores monetarios sean números
+        subtotal: parseFloat(data.subtotal?.toString() || '0'),
+        ivaMonto: parseFloat(data.ivaMonto?.toString() || '0'),
+        total: parseFloat(data.total?.toString() || '0'),
+        porcentajeAnticipo: data.porcentajeAnticipo ? parseFloat(data.porcentajeAnticipo?.toString()) : null,
+      };
+
+      console.log('[BudgetsNew] Actualizando con datos normalizados:', normalizedData);
+
       const response = await fetch(`/api/presupuestos/${editingBudget?.id}`, {
         method: "PUT",
-        body: JSON.stringify(data),
+        body: JSON.stringify(normalizedData),
         headers: { "Content-Type": "application/json" },
+        credentials: 'include', // Agregar credentials para autenticación
       });
       if (!response.ok) {
-        throw new Error("Network response was not ok");
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(
+          errorData.message ||
+            `Error ${response.status}: ${response.statusText}`
+        );
       }
       return response.json();
     },
@@ -321,9 +355,14 @@ export default function BudgetsNew() {
     mutationFn: async (id: number) => {
       const response = await fetch(`/api/presupuestos/${id}`, {
         method: "DELETE",
+        credentials: 'include', // Agregar credentials para autenticación
       });
       if (!response.ok) {
-        throw new Error("Network response was not ok");
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(
+          errorData.message ||
+            `Error ${response.status}: ${response.statusText}`
+        );
       }
     },
     onSuccess: () => {

@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { getDashboardRoute } from "../../features/dashboard/services/dashboardRoutes";
-import { useAuth } from "../../features/dashboard/hooks/useAuth";
+import { useAuth } from "../../features/dashboard/contexts/AuthContext";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import {

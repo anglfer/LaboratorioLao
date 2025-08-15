@@ -73,9 +73,30 @@ export const insertConceptoSchema = z.object({
 });
 
 export const insertObraSchema = z.object({
-  areaCodigo: z.string().min(1, "El código del área es requerido").max(50),
-  contratista: z.string().max(50).optional(),
-  estado: z.number().int().min(0).max(2).optional(),
+  areaCodigo: z.string().min(1, "El código del área es requerido").max(50).optional(),
+  nombre: z.string().min(1, "El nombre de la obra es requerido").max(255),
+  descripcion: z.string().max(500).optional(),
+  responsable: z.string().max(100).optional(),
+  contacto: z.string().max(100).optional(),
+  direccion: z.string().max(255).optional(),
+  contratista: z.string().max(100).optional(),
+  estado: z.number().int().min(0).max(5).optional().default(1),
+  fechaInicio: z.coerce.date().optional(),
+  fechaFinPrevista: z.coerce.date().optional(),
+  fechaFin: z.coerce.date().optional(),
+  presupuestoEstimado: z.number().positive().optional(),
+  presupuestoTotal: z.number().positive().optional(),
+  clienteId: z.number().int().positive().optional(),
+  clienteNuevo: z.object({
+    nombre: z.string().min(1, "El nombre del cliente es requerido").max(255),
+    direccion: z.string().max(255).optional(),
+    telefonos: z.array(z.string().max(20)).optional(),
+    correos: z.array(z.string().email("Email inválido").max(100)).optional(),
+  }).optional(),
+  notas: z.string().max(1000).optional(),
+  alcance: z.string().max(1000).optional(),
+  objetivos: z.string().max(1000).optional(),
+  razonCancelacion: z.string().max(500).optional(),
 });
 
 export const insertPresupuestoSchema = z.object({
@@ -83,7 +104,15 @@ export const insertPresupuestoSchema = z.object({
   clienteId: z.number({ required_error: "El cliente es requerido" }),
   iva: z.number().min(0).max(1).default(0.16),
   estado: presupuestoEstadoEnum.default("borrador"),
-  fechaInicio: z.coerce.date().optional(),
+  manejaAnticipo: z.boolean().optional().default(false),
+  porcentajeAnticipo: z.number().min(0).max(100).optional(),
+  
+  // Datos para crear obra si no existe (campos que antes estaban duplicados en presupuesto)
+  descripcionObra: z.string().max(500).optional(),
+  nombreContratista: z.string().max(100).optional(),
+  alcance: z.string().max(1000).optional(),
+  direccion: z.string().max(255).optional(),
+  contactoResponsable: z.string().max(100).optional(),
 });
 
 export const insertPresupuestoDetalleSchema = z.object({

@@ -18,7 +18,7 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import { cn } from "../lib/utils";
-import { useAuth } from "../../features/dashboard/hooks/useAuth";
+import { useAuth } from "../../features/dashboard/contexts/AuthContext";
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -74,9 +74,10 @@ export default function Layout({ children }: LayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const { usuario, logout } = useAuth();
 
-  const handleLogout = () => {
-    logout();
-    navigate("/"); // Redirige al login tras cerrar sesión
+  const handleLogout = async () => {
+    await logout();
+    // No es necesario navegar manualmente, el Router lo manejará automáticamente
+    // cuando usuario se vuelva null
   };
 
   const getUserInitials = () => {

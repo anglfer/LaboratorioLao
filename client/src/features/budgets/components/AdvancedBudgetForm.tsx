@@ -936,6 +936,7 @@ export default function AdvancedBudgetForm({
         const clienteResponse = await fetch("/api/clientes", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
+          credentials: 'include', // Agregar credentials
           body: JSON.stringify({
             nombre: data.clienteNuevo.nombre,
             direccion: data.clienteNuevo.direccion,
@@ -964,6 +965,7 @@ export default function AdvancedBudgetForm({
               {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
+                credentials: 'include', // Agregar credentials
                 body: JSON.stringify({ telefono: telefonoLimpio }),
               }
             );
@@ -993,6 +995,7 @@ export default function AdvancedBudgetForm({
             const response = await fetch(`/api/clientes/${clienteId}/correos`, {
               method: "POST",
               headers: { "Content-Type": "application/json" },
+              credentials: 'include', // Agregar credentials
               body: JSON.stringify({ correo: correo.trim() }),
             });
             if (!response.ok) {
@@ -1008,45 +1011,38 @@ export default function AdvancedBudgetForm({
         }
       }
 
-      // Generar clave de obra automáticamente
-      const claveResponse = await fetch("/api/obras/generate-clave", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ areaCodigo: data.areaCodigo }),
-      });
-
-      if (!claveResponse.ok) {
-        throw new Error("Error al generar clave de obra");
-      }
-
-      const { claveObra } = await claveResponse.json();
-
-      // Crear presupuesto
+      // Crear presupuesto con estructura normalizada
       const presupuestoData = {
-        claveObra,
-        areaCodigo: data.areaCodigo, // ✅ AGREGAR EL AREACÓDIGO
         clienteId,
-        nombreContratista: data.nombreContratista,
-        descripcionObra: data.descripcionObra,
-        alcance: data.alcance,
-        direccion: data.direccion,
-        contactoResponsable: data.contactoResponsable,
-        manejaAnticipo: data.manejaAnticipo,
-        porcentajeAnticipo: data.porcentajeAnticipo,
-        iva: SYSTEM_CONSTANTS.IVA_RATE,
+        // Solo enviar areaCodigo si se quiere crear una obra automáticamente
+        ...(data.areaCodigo && { areaCodigo: data.areaCodigo }),
+        
+        // Campos de presupuesto (estructura normalizada)
+        iva: SYSTEM_CONSTANTS.IVA_RATE / 100, // Convertir a decimal (0.16)
         subtotal,
         ivaMonto,
         total,
+        manejaAnticipo: data.manejaAnticipo,
+        porcentajeAnticipo: data.porcentajeAnticipo,
         estado: "borrador",
-        fechaSolicitud: new Date().toISOString(),
+        
+        // Campos que van a la obra (si se crea automáticamente)
+        descripcionObra: data.descripcionObra,
+        nombreContratista: data.nombreContratista,
+        alcance: data.alcance,
+        direccion: data.direccion,
+        contactoResponsable: data.contactoResponsable,
+        
+        // Conceptos en el formato que espera el backend
         conceptos: data.conceptos.map((concepto) => ({
-          conceptoCodigo: concepto.conceptoCodigo,
+          conceptoCodigo: concepto.conceptoCodigo, // Mantener coherencia con el backend
           cantidad: concepto.cantidad,
           precioUnitario: concepto.precioUnitario,
           subtotal: concepto.cantidad * concepto.precioUnitario,
         })),
       };
 
+      console.log('[AdvancedBudgetForm] Enviando presupuesto:', presupuestoData);
       onSubmit(presupuestoData);
     } catch (error) {
       console.error("Error al procesar formulario:", error);

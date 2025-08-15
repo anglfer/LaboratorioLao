@@ -14,5 +14,9 @@
       "username": "root",
       "askForPassword": true
     }
-  ]
+  ],
+  "chat.agent.maxRequests": 1000,
+  "chat.agentSessionsViewLocation": "view",
+  "github.copilot.chat.agent.thinkingTool": true,
+  "inlineChat.notebookAgent": true
 }

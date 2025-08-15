@@ -10,8 +10,12 @@ import { BudgetsNew } from "../features/budgets";
 import BudgetPDFPreview from "../features/budgets/pages/BudgetPDFPreview";
 import { SistemaJerarquicoPage } from "../features/concepts";
 import ClientesPage from "../features/clientes/ClientesPage";
+import { ObrasNew } from "../features/obras";
 import NotFound from "./not-found";
-import { useAuth } from "../features/dashboard/hooks/useAuth";
+import {
+  AuthProvider,
+  useAuth,
+} from "../features/dashboard/contexts/AuthContext";
 import { LoginForm } from "../shared/components/LoginForm";
 import { RoleBasedDashboard } from "../features/dashboard/components/RoleBasedDashboard";
 
@@ -36,10 +40,7 @@ function AuthenticatedRouter() {
           path="/admin/usuarios"
           element={<div>Gestión de Usuarios - En desarrollo</div>}
         />
-        <Route
-          path="/admin/obras"
-          element={<div>Gestión de Obras - En desarrollo</div>}
-        />
+        <Route path="/admin/obras" element={<ObrasNew />} />
         <Route path="/admin/clientes" element={<ClientesPage />} />
         <Route
           path="/admin/reportes"
@@ -65,7 +66,10 @@ function AuthenticatedRouter() {
 function Router() {
   const { usuario, isLoading } = useAuth();
 
+  console.log("[App] Router state:", { usuario: usuario?.email, isLoading });
+
   if (isLoading) {
+    console.log("[App] Mostrando spinner de carga...");
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
@@ -74,9 +78,11 @@ function Router() {
   }
 
   if (!usuario) {
+    console.log("[App] Usuario no encontrado, mostrando login...");
     return <LoginForm />;
   }
 
+  console.log("[App] Usuario encontrado, mostrando router autenticado...");
   return <AuthenticatedRouter />;
 }
 
@@ -84,7 +90,9 @@ export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
-        <Router />
+        <AuthProvider>
+          <Router />
+        </AuthProvider>
         <Toaster />
       </TooltipProvider>
     </QueryClientProvider>

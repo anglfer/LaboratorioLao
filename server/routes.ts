@@ -25,6 +25,41 @@ import {
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+// Middleware de autorización para presupuestos
+interface SessionUser {
+  id: number;
+  rol: string;
+}
+
+function requireAuth(req: any): SessionUser {
+  const sessionUser = req.session?.user as SessionUser | undefined;
+  if (!sessionUser) {
+    throw new Error("UNAUTHORIZED");
+  }
+  return sessionUser;
+}
+
+async function requirePresupuestoPermission(
+  presupuestoId: number, 
+  sessionUser: SessionUser, 
+  action: 'read' | 'write'
+): Promise<any> {
+  const presupuesto = await storage.getPresupuestoById(presupuestoId);
+  if (!presupuesto) {
+    throw new Error("NOT_FOUND");
+  }
+
+  const esAdmin = sessionUser.rol === 'admin';
+  const ownerId = (presupuesto as any).usuarioId ?? null;
+  
+  if (!esAdmin && ownerId !== sessionUser.id) {
+    const actionText = action === 'read' ? 'ver' : 'modificar';
+    throw new Error(`No tienes permiso para ${actionText} este presupuesto`);
+  }
+
+  return presupuesto;
+}
+
 export function registerRoutes(app: Express): Promise<Server> {
   const server = createServer(app);
   
@@ -244,6 +279,33 @@ export function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Listar presupuestos ligados a una obra específica
+  app.get("/api/obras/:clave/presupuestos", async (req, res) => {
+    try {
+      const clave = req.params.clave;
+      const sessionUser = requireAuth(req);
+      
+      const obra = await storage.getObraById(clave);
+      if (!obra) {
+        return res.status(404).json({ message: "Obra not found" });
+      }
+      
+      const presupuestos = await storage.getPresupuestosByObra(clave);
+      
+      // Filtrar presupuestos según permisos del usuario
+      const presupuestosFiltrados = sessionUser.rol === 'admin' 
+        ? presupuestos 
+        : presupuestos.filter((p: any) => p.usuarioId === sessionUser.id);
+        
+      res.json(presupuestosFiltrados);
+    } catch (error: any) {
+      if (error.message === "UNAUTHORIZED") {
+        return res.status(401).json({ message: "No autenticado" });
+      }
+      res.status(500).json({ message: error.message });
+    }
+  });
+
   app.post("/api/obras", async (req, res) => {
     try {
       const result = insertObraSchema.safeParse(req.body);
@@ -253,14 +315,101 @@ export function registerRoutes(app: Express): Promise<Server> {
           .json({ message: "Validation error", errors: result.error.errors });
       }
 
+      let clienteId = result.data.clienteId;
+
+      // Si hay clienteNuevo, crear el cliente primero
+      if (result.data.clienteNuevo) {
+        const nuevoCliente = await storage.createCliente({
+          nombre: result.data.clienteNuevo.nombre,
+          direccion: result.data.clienteNuevo.direccion,
+          telefonos: result.data.clienteNuevo.telefonos?.map(telefono => ({ telefono })) || [],
+          correos: result.data.clienteNuevo.correos?.map(correo => ({ correo })) || [],
+        });
+        clienteId = nuevoCliente.id;
+      }
+
+      // Use areaCodigo from request or default to "GEN" (General)
+      const areaCodigo = result.data.areaCodigo || "GEN";
+      
       // Generate clave for obra based on area and year
       const year = new Date().getFullYear();
-      const obras = await storage.getObrasByArea(result.data.areaCodigo);
+      const obras = await storage.getObrasByArea(areaCodigo);
       const nextNumber = obras.length + 1;
-      const clave = `${result.data.areaCodigo}-${year}-${nextNumber.toString().padStart(4, "0")}`;
+      const clave = `${areaCodigo}-${year}-${nextNumber.toString().padStart(4, "0")}`;
 
-      const obra = await storage.createObra({ ...result.data, clave });
+      const obraData = {
+        clave,
+        areaCodigo,
+        nombre: result.data.nombre,
+        descripcion: result.data.descripcion,
+        responsable: result.data.responsable,
+        contacto: result.data.contacto,
+        direccion: result.data.direccion,
+        contratista: result.data.contratista,
+        estado: 1, // Convert string estado to number, default to 1 (iniciada)
+        fechaInicio: result.data.fechaInicio,
+        fechaFinPrevista: result.data.fechaFinPrevista,
+        presupuestoEstimado: result.data.presupuestoEstimado,
+        clienteId,
+        notas: result.data.notas,
+        alcance: result.data.alcance,
+        objetivos: result.data.objetivos,
+      };
+
+      const obra = await storage.createObra(obraData);
       res.status(201).json(obra);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Actualizar una obra existente
+  app.put("/api/obras/:clave", async (req, res) => {
+    try {
+      const clave = req.params.clave;
+      // Validación parcial de los campos de Obra
+      const result = insertObraSchema.partial().safeParse(req.body);
+      if (!result.success) {
+        return res
+          .status(400)
+          .json({ message: "Validation error", errors: result.error.errors });
+      }
+
+      // Verificar existencia
+      const existente = await storage.getObraById(clave);
+      if (!existente) return res.status(404).json({ message: "Obra no encontrada" });
+
+      // Convert estado string to number if provided
+      const updateData = { ...result.data };
+      if (updateData.estado && typeof updateData.estado === 'string') {
+        // Convert string estado to number
+        const estadoMap: { [key: string]: number } = {
+          'planificacion': 0,
+          'iniciada': 1,
+          'en_progreso': 2,
+          'pausada': 3,
+          'completada': 4,
+          'cancelada': 5
+        };
+        updateData.estado = estadoMap[updateData.estado] || 1;
+      }
+
+      const updated = await storage.updateObra(clave, updateData);
+      res.json(updated);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Eliminar una obra
+  app.delete("/api/obras/:clave", async (req, res) => {
+    try {
+      const clave = req.params.clave;
+      const existente = await storage.getObraById(clave);
+      if (!existente) return res.status(404).json({ message: "Obra no encontrada" });
+
+      await storage.deleteObra(clave);
+      res.status(204).send();
     } catch (error: any) {
       res.status(500).json({ message: error.message });
     }
@@ -285,7 +434,11 @@ export function registerRoutes(app: Express): Promise<Server> {
     try {
       // @ts-ignore
       const sessionUser = req.session?.user as { id: number; rol: string } | undefined;
-      if (sessionUser && sessionUser.rol !== 'admin') {
+      if (!sessionUser) {
+        return res.status(401).json({ message: "No autenticado" });
+      }
+      
+      if (sessionUser.rol !== 'admin') {
         const presupuestos = await storage.getPresupuestosByUsuario(sessionUser.id);
         return res.json(presupuestos);
       }
@@ -299,12 +452,20 @@ export function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/presupuestos/:id", async (req, res) => {
     try {
       const id = parseInt(req.params.id);
-      const presupuesto = await storage.getPresupuestoById(id);
-      if (!presupuesto) {
-        return res.status(404).json({ message: "Presupuesto not found" });
-      }
+      const sessionUser = requireAuth(req);
+      
+      const presupuesto = await requirePresupuestoPermission(id, sessionUser, 'read');
       res.json(presupuesto);
     } catch (error: any) {
+      if (error.message === "UNAUTHORIZED") {
+        return res.status(401).json({ message: "No autenticado" });
+      }
+      if (error.message === "NOT_FOUND") {
+        return res.status(404).json({ message: "Presupuesto not found" });
+      }
+      if (error.message.includes("No tienes permiso")) {
+        return res.status(403).json({ message: error.message });
+      }
       res.status(500).json({ message: error.message });
     }
   });
@@ -313,19 +474,36 @@ export function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/presupuestos/:id/preview", async (req, res) => {
     try {
       const id = parseInt(req.params.id);
+      const sessionUser = requireAuth(req);
       console.log(`[GET /api/presupuestos/${id}/preview] Generating HTML preview...`);
       
-      // Obtener presupuesto con todos los datos relacionados
-      const presupuesto = await storage.getPresupuestoById(id);
-      if (!presupuesto) {
-        return res.status(404).json({ message: "Presupuesto no encontrado" });
-      }
+      // Verificar permisos y obtener presupuesto
+      const presupuesto = await requirePresupuestoPermission(id, sessionUser, 'read');
 
       // Obtener detalles del presupuesto
-      const detalles = await storage.getPresupuestoDetalles(id);
-      
+      const detallesRaw = await storage.getPresupuestoDetalles(id);
+      const detalles = detallesRaw.map((d: any) => ({
+        concepto: d.concepto ? {
+          codigo: d.concepto.codigo,
+          descripcion: d.concepto.descripcion,
+          unidad: d.concepto.unidad,
+        } : undefined,
+        conceptoCodigo: d.conceptoCodigo ?? undefined,
+        cantidad: d.cantidad != null ? Number(d.cantidad as any) : undefined,
+        precioUnitario: d.precioUnitario != null ? Number(d.precioUnitario as any) : undefined,
+      }));
+
+      // Adaptar tipos Decimal de Prisma a number para el generador
+      const presForTemplate: any = {
+        ...presupuesto,
+        subtotal: presupuesto.subtotal ? Number(presupuesto.subtotal as any) : 0,
+        ivaMonto: presupuesto.ivaMonto ? Number(presupuesto.ivaMonto as any) : 0,
+        total: presupuesto.total ? Number(presupuesto.total as any) : 0,
+        iva: presupuesto.iva ? Number(presupuesto.iva as any) : undefined,
+      };
+
       // Generar HTML profesional
-      const html = generatePresupuestoHTML(presupuesto, detalles);
+      const html = generatePresupuestoHTML(presForTemplate, detalles);
       
       console.log(`[GET /api/presupuestos/${id}/preview] HTML preview generated successfully`);
       
@@ -335,6 +513,15 @@ export function registerRoutes(app: Express): Promise<Server> {
       
     } catch (error: any) {
       console.error("[GET /api/presupuestos/:id/preview] Error:", error);
+      if (error.message === "UNAUTHORIZED") {
+        return res.status(401).json({ message: "No autenticado" });
+      }
+      if (error.message === "NOT_FOUND") {
+        return res.status(404).json({ message: "Presupuesto no encontrado" });
+      }
+      if (error.message.includes("No tienes permiso")) {
+        return res.status(403).json({ message: error.message });
+      }
       res.status(500).json({ 
         message: error.message,
         details: error.stack?.split('\n').slice(0, 3).join('\n')
@@ -346,19 +533,36 @@ export function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/presupuestos/:id/pdf", async (req, res) => {
     try {
       const id = parseInt(req.params.id);
+      const sessionUser = requireAuth(req);
       console.log(`[GET /api/presupuestos/${id}/pdf] Generating PDF...`);
       
-      // Obtener presupuesto con todos los datos relacionados
-      const presupuesto = await storage.getPresupuestoById(id);
-      if (!presupuesto) {
-        return res.status(404).json({ message: "Presupuesto no encontrado" });
-      }
+      // Verificar permisos y obtener presupuesto
+      const presupuesto = await requirePresupuestoPermission(id, sessionUser, 'read');
 
       // Obtener detalles del presupuesto
-      const detalles = await storage.getPresupuestoDetalles(id);
-      
+      const detallesRaw = await storage.getPresupuestoDetalles(id);
+      const detalles = detallesRaw.map((d: any) => ({
+        concepto: d.concepto ? {
+          codigo: d.concepto.codigo,
+          descripcion: d.concepto.descripcion,
+          unidad: d.concepto.unidad,
+        } : undefined,
+        conceptoCodigo: d.conceptoCodigo ?? undefined,
+        cantidad: d.cantidad != null ? Number(d.cantidad as any) : undefined,
+        precioUnitario: d.precioUnitario != null ? Number(d.precioUnitario as any) : undefined,
+      }));
+
+      // Adaptar tipos Decimal de Prisma a number para el generador
+      const presForTemplate: any = {
+        ...presupuesto,
+        subtotal: presupuesto.subtotal ? Number(presupuesto.subtotal as any) : 0,
+        ivaMonto: presupuesto.ivaMonto ? Number(presupuesto.ivaMonto as any) : 0,
+        total: presupuesto.total ? Number(presupuesto.total as any) : 0,
+        iva: presupuesto.iva ? Number(presupuesto.iva as any) : undefined,
+      };
+
       // Generar HTML profesional
-      const html = generatePresupuestoHTML(presupuesto, detalles);
+      const html = generatePresupuestoHTML(presForTemplate, detalles);
       
       // Validar HTML antes de generar PDF
       if (!PDFService.validateHTML(html)) {
@@ -382,6 +586,15 @@ export function registerRoutes(app: Express): Promise<Server> {
       
     } catch (error: any) {
       console.error("[GET /api/presupuestos/:id/pdf] Error:", error);
+      if (error.message === "UNAUTHORIZED") {
+        return res.status(401).json({ message: "No autenticado" });
+      }
+      if (error.message === "NOT_FOUND") {
+        return res.status(404).json({ message: "Presupuesto no encontrado" });
+      }
+      if (error.message.includes("No tienes permiso")) {
+        return res.status(403).json({ message: error.message });
+      }
       res.status(500).json({ 
         message: error.message,
         details: error.stack?.split('\n').slice(0, 3).join('\n') // Primeras 3 líneas del stack para debugging
@@ -437,6 +650,8 @@ export function registerRoutes(app: Express): Promise<Server> {
             await storage.createObra({
               clave: claveObra,
               areaCodigo: areaCodigo,
+              nombre: presupuestoData.descripcionObra || `Obra ${claveObra}`,
+              descripcion: presupuestoData.descripcionObra,
               contratista: presupuestoData.nombreContratista,
               estado: 1,
             });
@@ -460,9 +675,11 @@ export function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
-      // Preparar datos del presupuesto (sin areaCodigo que no existe en el modelo)
+      // Preparar datos del presupuesto (solo campos que pertenecen al presupuesto)
+      const { descripcionObra, nombreContratista, alcance, direccion, contactoResponsable, ...presupuestoFields } = presupuestoData;
+      
       const finalPresupuestoData = {
-        ...presupuestoData,
+        ...presupuestoFields,
         claveObra: claveObra,
         usuarioId: sessionUser.id,
         ultimoUsuarioId: sessionUser.id,
@@ -523,21 +740,10 @@ export function registerRoutes(app: Express): Promise<Server> {
   app.put("/api/presupuestos/:id", async (req, res) => {
     try {
       const id = parseInt(req.params.id);
-      // Obtener usuario de sesión
-      // @ts-ignore
-      const sessionUser = req.session?.user as { id: number; rol: string } | undefined;
-      if (!sessionUser) {
-        return res.status(401).json({ message: "No autenticado" });
-      }
+      const sessionUser = requireAuth(req);
 
-      // Verificar propiedad
-      const existente = await storage.getPresupuestoById(id);
-      if (!existente) return res.status(404).json({ message: "Presupuesto no encontrado" });
-  const esAdmin = sessionUser.rol === 'admin';
-  const ownerId = (existente as any).usuarioId ?? null;
-  if (!esAdmin && ownerId !== sessionUser.id) {
-        return res.status(403).json({ message: "No tienes permiso para modificar este presupuesto" });
-      }
+      // Verificar permisos del presupuesto
+      await requirePresupuestoPermission(id, sessionUser, 'write');
       const { conceptos, areaCodigo, ...presupuestoData } = req.body;
       console.log("[PUT /api/presupuestos/:id] Request body:", req.body);
 
@@ -606,6 +812,15 @@ export function registerRoutes(app: Express): Promise<Server> {
       res.json(updatedPresupuesto);
     } catch (error: any) {
       console.error("[PUT /api/presupuestos/:id] Error:", error);
+      if (error.message === "UNAUTHORIZED") {
+        return res.status(401).json({ message: "No autenticado" });
+      }
+      if (error.message === "NOT_FOUND") {
+        return res.status(404).json({ message: "Presupuesto no encontrado" });
+      }
+      if (error.message.includes("No tienes permiso")) {
+        return res.status(403).json({ message: error.message });
+      }
       res.status(500).json({ message: error.message });
     }
   });
@@ -613,24 +828,23 @@ export function registerRoutes(app: Express): Promise<Server> {
   app.delete("/api/presupuestos/:id", async (req, res) => {
     try {
       const id = parseInt(req.params.id);
-      // Obtener usuario de sesión
-      // @ts-ignore
-      const sessionUser = req.session?.user as { id: number; rol: string } | undefined;
-      if (!sessionUser) {
-        return res.status(401).json({ message: "No autenticado" });
-      }
+      const sessionUser = requireAuth(req);
 
-      // Verificar propiedad
-      const existente = await storage.getPresupuestoById(id);
-      if (!existente) return res.status(404).json({ message: "Presupuesto no encontrado" });
-  const esAdmin = sessionUser.rol === 'admin';
-  const ownerId = (existente as any).usuarioId ?? null;
-  if (!esAdmin && ownerId !== sessionUser.id) {
-        return res.status(403).json({ message: "No tienes permiso para eliminar este presupuesto" });
-      }
+      // Verificar permisos del presupuesto
+      await requirePresupuestoPermission(id, sessionUser, 'write');
+      
       await storage.deletePresupuesto(id);
       res.status(204).send();
     } catch (error: any) {
+      if (error.message === "UNAUTHORIZED") {
+        return res.status(401).json({ message: "No autenticado" });
+      }
+      if (error.message === "NOT_FOUND") {
+        return res.status(404).json({ message: "Presupuesto no encontrado" });
+      }
+      if (error.message.includes("No tienes permiso")) {
+        return res.status(403).json({ message: error.message });
+      }
       res.status(500).json({ message: error.message });
     }
   });
@@ -649,21 +863,10 @@ export function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/presupuestos/:id/detalles", async (req, res) => {
     try {
       const presupuestoId = parseInt(req.params.id);
-      // Obtener usuario de sesión
-      // @ts-ignore
-      const sessionUser = req.session?.user as { id: number; rol: string } | undefined;
-      if (!sessionUser) {
-        return res.status(401).json({ message: "No autenticado" });
-      }
+      const sessionUser = requireAuth(req);
 
-      // Verificar propiedad del presupuesto
-      const existente = await storage.getPresupuestoById(presupuestoId);
-      if (!existente) return res.status(404).json({ message: "Presupuesto no encontrado" });
-  const esAdmin = sessionUser.rol === 'admin';
-  const ownerId = (existente as any).usuarioId ?? null;
-  if (!esAdmin && ownerId !== sessionUser.id) {
-        return res.status(403).json({ message: "No tienes permiso para modificar este presupuesto" });
-      }
+      // Verificar permisos del presupuesto
+      await requirePresupuestoPermission(presupuestoId, sessionUser, 'write');
 
       // Agregar presupuestoId al body antes de validar
       const dataToValidate = { ...req.body, presupuestoId };
@@ -684,6 +887,15 @@ export function registerRoutes(app: Express): Promise<Server> {
 
       res.status(201).json(detalle);
     } catch (error: any) {
+      if (error.message === "UNAUTHORIZED") {
+        return res.status(401).json({ message: "No autenticado" });
+      }
+      if (error.message === "NOT_FOUND") {
+        return res.status(404).json({ message: "Presupuesto no encontrado" });
+      }
+      if (error.message.includes("No tienes permiso")) {
+        return res.status(403).json({ message: error.message });
+      }
       res.status(500).json({ message: error.message });
     }
   });
@@ -692,21 +904,10 @@ export function registerRoutes(app: Express): Promise<Server> {
     try {
       const presupuestoId = parseInt(req.params.id);
       const detalleId = parseInt(req.params.detalleId);
-      // Obtener usuario de sesión
-      // @ts-ignore
-      const sessionUser = req.session?.user as { id: number; rol: string } | undefined;
-      if (!sessionUser) {
-        return res.status(401).json({ message: "No autenticado" });
-      }
+      const sessionUser = requireAuth(req);
 
-      // Verificar propiedad del presupuesto
-      const existente = await storage.getPresupuestoById(presupuestoId);
-      if (!existente) return res.status(404).json({ message: "Presupuesto no encontrado" });
-  const esAdmin = sessionUser.rol === 'admin';
-  const ownerId = (existente as any).usuarioId ?? null;
-  if (!esAdmin && ownerId !== sessionUser.id) {
-        return res.status(403).json({ message: "No tienes permiso para modificar este presupuesto" });
-      }
+      // Verificar permisos del presupuesto
+      await requirePresupuestoPermission(presupuestoId, sessionUser, 'write');
       const result = insertPresupuestoDetalleSchema
         .partial()
         .safeParse(req.body);
@@ -727,6 +928,15 @@ export function registerRoutes(app: Express): Promise<Server> {
 
       res.json(detalle);
     } catch (error: any) {
+      if (error.message === "UNAUTHORIZED") {
+        return res.status(401).json({ message: "No autenticado" });
+      }
+      if (error.message === "NOT_FOUND") {
+        return res.status(404).json({ message: "Presupuesto no encontrado" });
+      }
+      if (error.message.includes("No tienes permiso")) {
+        return res.status(403).json({ message: error.message });
+      }
       res.status(500).json({ message: error.message });
     }
   });
@@ -735,20 +945,10 @@ export function registerRoutes(app: Express): Promise<Server> {
     try {
       const presupuestoId = parseInt(req.params.id);
       const detalleId = parseInt(req.params.detalleId);
-      // Obtener usuario de sesión
-      // @ts-ignore
-      const sessionUser = req.session?.user as { id: number; rol: string } | undefined;
-      if (!sessionUser) {
-        return res.status(401).json({ message: "No autenticado" });
-      }
+      const sessionUser = requireAuth(req);
 
-      // Verificar propiedad del presupuesto
-      const existente = await storage.getPresupuestoById(presupuestoId);
-      if (!existente) return res.status(404).json({ message: "Presupuesto no encontrado" });
-      const esAdmin = sessionUser.rol === 'admin';
-      if (!esAdmin && existente && (existente as any).usuarioId && (existente as any).usuarioId !== sessionUser.id) {
-        return res.status(403).json({ message: "No tienes permiso para modificar este presupuesto" });
-      }
+      // Verificar permisos del presupuesto
+      await requirePresupuestoPermission(presupuestoId, sessionUser, 'write');
       await storage.deletePresupuestoDetalle(detalleId);
 
       // Recalcular totales después de eliminar detalle
@@ -758,6 +958,15 @@ export function registerRoutes(app: Express): Promise<Server> {
 
       res.status(204).send();
     } catch (error: any) {
+      if (error.message === "UNAUTHORIZED") {
+        return res.status(401).json({ message: "No autenticado" });
+      }
+      if (error.message === "NOT_FOUND") {
+        return res.status(404).json({ message: "Presupuesto no encontrado" });
+      }
+      if (error.message.includes("No tienes permiso")) {
+        return res.status(403).json({ message: error.message });
+      }
       res.status(500).json({ message: error.message });
     }
   });
@@ -847,11 +1056,68 @@ export function registerRoutes(app: Express): Promise<Server> {
       // @ts-ignore
       if (req.session) {
         // @ts-ignore
-        req.session.destroy(() => {});
+        req.session.destroy((err: any) => {
+          if (err) {
+            console.error('Error al destruir sesión:', err);
+            return res.status(500).json({ message: 'Error al cerrar sesión' });
+          }
+          res.json({ message: "Sesión cerrada correctamente" });
+        });
+      } else {
+        res.json({ message: "No había sesión activa" });
       }
-      res.json({ message: "Sesión cerrada correctamente" });
     } catch (error: any) {
+      console.error('Error en logout:', error);
       res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Ruta para verificar sesión actual
+  app.get("/api/auth/me", async (req, res) => {
+    try {
+      // @ts-ignore
+      const sessionUser = req.session?.user;
+      
+      if (!sessionUser) {
+        return res.status(401).json({ 
+          success: false, 
+          message: "No hay sesión activa" 
+        });
+      }
+
+      // Buscar usuario completo en la base de datos
+      const usuario = await prisma.usuario.findUnique({
+        where: { id: sessionUser.id },
+        include: { role: true }
+      });
+
+      if (!usuario || !usuario.activo) {
+        return res.status(401).json({ 
+          success: false, 
+          message: "Usuario no encontrado o inactivo" 
+        });
+      }
+
+      // Preparar datos del usuario para respuesta (sin password)
+      const userData = {
+        id: usuario.id,
+        email: usuario.email,
+        nombre: usuario.nombre,
+        apellidos: usuario.apellidos,
+        rol: usuario.role.nombre,
+        activo: usuario.activo,
+        fechaCreacion: usuario.fechaCreacion
+      };
+      
+      console.log(`[AUTH] Sesión verificada para: ${usuario.email}`);
+      return res.status(200).json(userData);
+      
+    } catch (error: any) {
+      console.error('[AUTH] Error verificando sesión:', error);
+      res.status(500).json({ 
+        success: false, 
+        message: "Error interno del servidor" 
+      });
     }
   });
 

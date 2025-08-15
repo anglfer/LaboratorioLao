@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Test Login</title>
+</head>
+
+<body>
+    <h1>Test Login Debug</h1>
+    <div id="result"></div>
+
+    <script>
+        async function testLogin() {
+            const result = document.getElementById('result');
+
+            try {
+                // 1. Intentar login
+                result.innerHTML += '<p>1. Intentando login...</p>';
+                const loginResponse = await fetch('/api/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify({
+                        email: 'admin@laboratorio.com',
+                        password: 'admin123'
+                    })
+                });
+
+                const loginData = await loginResponse.json();
+                result.innerHTML += `<p>Login response: ${JSON.stringify(loginData)}</p>`;
+
+                // 2. Verificar sesión
+                result.innerHTML += '<p>2. Verificando sesión...</p>';
+                const sessionResponse = await fetch('/api/auth/me', {
+                    method: 'GET',
+                    credentials: 'include'
+                });
+
+                const sessionData = await sessionResponse.json();
+                result.innerHTML += `<p>Session response: ${JSON.stringify(sessionData)}</p>`;
+
+            } catch (error) {
+                result.innerHTML += `<p>Error: ${error.message}</p>`;
+            }
+        }
+
+        // Ejecutar automáticamente
+        testLogin();
+    </script>
+</body>
+
+</html>

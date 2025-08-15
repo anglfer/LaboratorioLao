@@ -250,12 +250,59 @@ async function getObraById(clave: string) {
 
 async function createObra(data: {
   clave: string;
-  areaCodigo: string;
+  areaCodigo?: string;
+  nombre: string;
+  descripcion?: string;
+  responsable?: string;
+  contacto?: string;
+  direccion?: string;
   contratista?: string;
   estado?: number;
+  fechaInicio?: Date;
+  fechaFinPrevista?: Date;
+  fechaFin?: Date;
+  presupuestoEstimado?: number;
+  presupuestoTotal?: number;
+  clienteId?: number;
+  notas?: string;
+  alcance?: string;
+  objetivos?: string;
+  razonCancelacion?: string;
+  creadoPor?: string;
+  actualizadoPor?: string;
 }): Promise<Obra> {
+  const createData: any = {
+    clave: data.clave,
+    areaCodigo: data.areaCodigo,
+    nombre: data.nombre,
+    descripcion: data.descripcion,
+    responsable: data.responsable,
+    contacto: data.contacto,
+    direccion: data.direccion,
+    contratista: data.contratista,
+    estado: data.estado ?? 1,
+    fechaInicio: data.fechaInicio,
+    fechaFinPrevista: data.fechaFinPrevista,
+    fechaFin: data.fechaFin,
+    presupuestoEstimado: data.presupuestoEstimado,
+    presupuestoTotal: data.presupuestoTotal,
+    notas: data.notas,
+    alcance: data.alcance,
+    objetivos: data.objetivos,
+    razonCancelacion: data.razonCancelacion,
+    fechaCreacion: new Date(),
+    fechaActualizacion: new Date(),
+    creadoPor: data.creadoPor,
+    actualizadoPor: data.actualizadoPor,
+  };
+
+  // Solo agregar clienteId si se proporciona
+  if (data.clienteId) {
+    createData.clienteId = data.clienteId;
+  }
+
   return await prisma.obra.create({
-    data,
+    data: createData,
   });
 }
 
@@ -263,13 +310,34 @@ async function updateObra(
   clave: string,
   data: {
     areaCodigo?: string;
+    nombre?: string;
+    descripcion?: string;
+    responsable?: string;
+    contacto?: string;
+    direccion?: string;
     contratista?: string;
     estado?: number;
+    fechaInicio?: Date;
+    fechaFinPrevista?: Date;
+    fechaFin?: Date;
+    presupuestoEstimado?: number;
+    presupuestoTotal?: number;
+    clienteId?: number;
+    notas?: string;
+    alcance?: string;
+    objetivos?: string;
+    razonCancelacion?: string;
+    actualizadoPor?: string;
   },
 ): Promise<Obra> {
+  const updateData: any = {
+    ...data,
+    fechaActualizacion: new Date(),
+  };
+
   return await prisma.obra.update({
     where: { clave },
-    data,
+    data: updateData,
   });
 }
 
@@ -397,11 +465,6 @@ async function createPresupuesto(data: {
   clienteId?: number;
   claveObra?: string;
   fechaSolicitud?: Date;
-  nombreContratista?: string;
-  contactoResponsable?: string;
-  direccion?: string;
-  descripcionObra?: string;
-  alcance?: string;
   subtotal?: number;
   iva?: number;
   ivaMonto?: number;
@@ -409,7 +472,6 @@ async function createPresupuesto(data: {
   estado?: any;
   manejaAnticipo?: boolean;
   porcentajeAnticipo?: number;
-  montoAnticipo?: number;
   usuarioId?: number;
   ultimoUsuarioId?: number;
 }): Promise<Presupuesto> {
@@ -428,11 +490,6 @@ async function updatePresupuesto(
     clienteId: number;
     claveObra: string;
     fechaSolicitud: Date;
-    nombreContratista: string;
-    contactoResponsable: string;
-    direccion: string;
-    descripcionObra: string;
-    alcance: string;
     subtotal: number;
     iva: number;
     ivaMonto: number;
@@ -440,8 +497,7 @@ async function updatePresupuesto(
     estado: any;
     manejaAnticipo: boolean;
     porcentajeAnticipo: number;
-    montoAnticipo: number;
-  ultimoUsuarioId: number;
+    ultimoUsuarioId: number;
   }>,
 ): Promise<Presupuesto> {
   return await prisma.presupuesto.update({
