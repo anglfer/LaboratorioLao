@@ -5,8 +5,10 @@ import {
   useUpdateCliente,
   useDeleteCliente,
 } from "./hooks/useClientes";
-import type { Cliente, Telefono, Correo } from "./lib/types";
+import type { Cliente, Telefono, Correo, DatosFacturacion } from "./lib/types";
+import { MetodoPago, RegimenFiscal, UsoCFDI, TipoPago } from "./lib/types";
 import { Button } from "../../shared/components/ui/button";
+import { useToast } from "../../features/dashboard/hooks/use-toast";
 import {
   User,
   Search,
@@ -17,6 +19,8 @@ import {
   Mail,
   Download,
   Upload,
+  Eye,
+  Building,
 } from "lucide-react";
 import {
   Card,
@@ -39,6 +43,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from "../../shared/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "../../shared/components/ui/select";
 import { ModalImportarClientes } from "./components/ModalImportarClientes";
 
 function ClienteForm({
@@ -52,8 +63,26 @@ function ClienteForm({
   onCancel: () => void;
   loading?: boolean;
 }) {
+  // Estados para información básica
   const [nombre, setNombre] = useState(initialData?.nombre || "");
   const [direccion, setDireccion] = useState(initialData?.direccion || "");
+  const [representanteLegal, setRepresentanteLegal] = useState(
+    initialData?.representanteLegal || ""
+  );
+  const [contactoPagos, setContactoPagos] = useState(
+    initialData?.contactoPagos || ""
+  );
+  const [telefonoPagos, setTelefonoPagos] = useState(
+    initialData?.telefonoPagos || ""
+  );
+  const [metodoPago, setMetodoPago] = useState<MetodoPago>(
+    initialData?.metodoPago || MetodoPago.EFECTIVO
+  );
+  const [correoFacturacion, setCorreoFacturacion] = useState(
+    initialData?.correoFacturacion || ""
+  );
+
+  // Estados para contactos
   const [telefonos, setTelefonos] = useState<Telefono[]>(
     initialData?.telefonos || []
   );
@@ -61,8 +90,21 @@ function ClienteForm({
   const [nuevoTelefono, setNuevoTelefono] = useState("");
   const [nuevoCorreo, setNuevoCorreo] = useState("");
 
+  // Estados para datos de facturación
+  const [rfc, setRfc] = useState(initialData?.datosFacturacion?.rfc || "");
+  const [regimenFiscal, setRegimenFiscal] = useState<RegimenFiscal>(
+    initialData?.datosFacturacion?.regimenFiscal ||
+      RegimenFiscal.PERSONAS_FISICAS_CON_ACTIVIDADES_EMPRESARIALES
+  );
+  const [usoCfdi, setUsoCfdi] = useState<UsoCFDI>(
+    initialData?.datosFacturacion?.usoCfdi || UsoCFDI.GASTOS_EN_GENERAL
+  );
+  const [tipoPago, setTipoPago] = useState<TipoPago>(
+    initialData?.datosFacturacion?.tipoPago || TipoPago.PUE
+  );
+
   const handleAddTelefono = () => {
-    if (nuevoTelefono.trim()) {
+    if (nuevoTelefono.trim() && nuevoTelefono.length === 10) {
       setTelefonos([
         ...telefonos,
         { id: Date.now(), clienteId: 0, telefono: nuevoTelefono },
@@ -70,11 +112,13 @@ function ClienteForm({
       setNuevoTelefono("");
     }
   };
+
   const handleRemoveTelefono = (id: number) =>
     setTelefonos(telefonos.filter((t) => t.id !== id));
 
   const handleAddCorreo = () => {
-    if (nuevoCorreo.trim()) {
+    const emailRegex = /^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+    if (nuevoCorreo.trim() && emailRegex.test(nuevoCorreo)) {
       setCorreos([
         ...correos,
         { id: Date.now(), clienteId: 0, correo: nuevoCorreo },
@@ -82,62 +126,334 @@ function ClienteForm({
       setNuevoCorreo("");
     }
   };
+
   const handleRemoveCorreo = (id: number) =>
     setCorreos(correos.filter((c) => c.id !== id));
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSubmit({ nombre, direccion, telefonos, correos });
+
+    const datosFacturacion = rfc.trim()
+      ? {
+          id: 0, // Será asignado por la base de datos
+          clienteId: 0, // Será asignado por la base de datos
+          rfc,
+          regimenFiscal,
+          usoCfdi,
+          tipoPago,
+        }
+      : undefined;
+
+    onSubmit({
+      nombre,
+      direccion,
+      representanteLegal,
+      contactoPagos,
+      telefonoPagos,
+      metodoPago,
+      correoFacturacion,
+      telefonos,
+      correos,
+      datosFacturacion,
+    });
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Nombre
-          </label>
-          <Input
-            value={nombre}
-            onChange={(e) => setNombre(e.target.value)}
-            required
-            className="text-sm"
-          />
+    <form
+      onSubmit={handleSubmit}
+      className="space-y-6 max-h-[80vh] overflow-y-auto"
+    >
+      {/* Información Básica */}
+      <div className="space-y-4">
+        <h3 className="text-lg font-medium text-gray-900">
+          Información Básica
+        </h3>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Nombre o Razón Social *
+            </label>
+            <Input
+              value={nombre}
+              onChange={(e) => setNombre(e.target.value)}
+              required
+              className="text-sm"
+              placeholder="Nombre del cliente o empresa"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Dirección Fiscal o de Contacto
+            </label>
+            <Input
+              value={direccion}
+              onChange={(e) => setDireccion(e.target.value)}
+              className="text-sm"
+              placeholder="Dirección completa"
+            />
+          </div>
         </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Representante Legal
+            </label>
+            <Input
+              value={representanteLegal}
+              onChange={(e) => setRepresentanteLegal(e.target.value)}
+              className="text-sm"
+              placeholder="Solo si es empresa o persona moral"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Método de Pago
+            </label>
+            <Select
+              value={metodoPago}
+              onValueChange={(value: MetodoPago) => setMetodoPago(value)}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Selecciona método de pago" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={MetodoPago.EFECTIVO}>Efectivo</SelectItem>
+                <SelectItem value={MetodoPago.TRANSFERENCIA}>
+                  Transferencia
+                </SelectItem>
+                <SelectItem value={MetodoPago.CHEQUE}>Cheque</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+      </div>
+
+      {/* Contacto para Pagos */}
+      <div className="space-y-4">
+        <h3 className="text-lg font-medium text-gray-900">
+          Contacto para Seguimiento de Pagos
+        </h3>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Nombre de Contacto
+            </label>
+            <Input
+              value={contactoPagos}
+              onChange={(e) => setContactoPagos(e.target.value)}
+              className="text-sm"
+              placeholder="Persona responsable de pagos"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Teléfono de Contacto
+            </label>
+            <Input
+              value={telefonoPagos}
+              onChange={(e) => {
+                // Solo permitir números
+                const value = e.target.value.replace(/\D/g, "");
+                if (value.length <= 10) {
+                  setTelefonoPagos(value);
+                }
+              }}
+              className="text-sm"
+              placeholder="4771234567 (10 dígitos)"
+              maxLength={10}
+            />
+            {telefonoPagos &&
+              telefonoPagos.length > 0 &&
+              telefonoPagos.length !== 10 && (
+                <p className="text-xs text-red-500 mt-1">
+                  El teléfono debe tener exactamente 10 dígitos
+                </p>
+              )}
+          </div>
+        </div>
+
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
-            Dirección
+            Correo para Facturas
           </label>
           <Input
-            value={direccion}
-            onChange={(e) => setDireccion(e.target.value)}
+            type="email"
+            value={correoFacturacion}
+            onChange={(e) => setCorreoFacturacion(e.target.value)}
             className="text-sm"
+            placeholder="correo@ejemplo.com"
           />
         </div>
       </div>
 
+      {/* Datos de Facturación */}
+      <div className="space-y-4">
+        <h3 className="text-lg font-medium text-gray-900">
+          Datos de Facturación
+        </h3>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              RFC
+            </label>
+            <Input
+              value={rfc}
+              onChange={(e) => setRfc(e.target.value.toUpperCase())}
+              className="text-sm"
+              placeholder="ABC123456789 (3-4 letras + 6 números + 3 caracteres)"
+              maxLength={13}
+            />
+            {rfc &&
+              rfc.length > 0 &&
+              !/^[A-ZÑ&]{3,4}[0-9]{6}[A-Z0-9]{3}$/.test(rfc) && (
+                <p className="text-xs text-red-500 mt-1">
+                  RFC inválido. Formato: ABC123456789 (3-4 letras + 6 números +
+                  3 caracteres)
+                </p>
+              )}
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Régimen Fiscal
+            </label>
+            <Select
+              value={regimenFiscal}
+              onValueChange={(value: RegimenFiscal) => setRegimenFiscal(value)}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Selecciona régimen fiscal" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem
+                  value={
+                    RegimenFiscal.PERSONAS_FISICAS_CON_ACTIVIDADES_EMPRESARIALES
+                  }
+                >
+                  Personas Físicas con Actividades Empresariales
+                </SelectItem>
+                <SelectItem value={RegimenFiscal.PERSONAS_MORALES}>
+                  Personas Morales
+                </SelectItem>
+                <SelectItem
+                  value={RegimenFiscal.REGIMEN_SIMPLIFICADO_DE_CONFIANZA}
+                >
+                  Régimen Simplificado de Confianza
+                </SelectItem>
+                <SelectItem
+                  value={
+                    RegimenFiscal.PERSONAS_FISICAS_CON_ACTIVIDADES_PROFESIONALES
+                  }
+                >
+                  Personas Físicas con Actividades Profesionales
+                </SelectItem>
+                <SelectItem
+                  value={RegimenFiscal.REGIMEN_DE_INCORPORACION_FISCAL}
+                >
+                  Régimen de Incorporación Fiscal
+                </SelectItem>
+                <SelectItem value={RegimenFiscal.OTROS}>Otros</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Uso de CFDI
+            </label>
+            <Select
+              value={usoCfdi}
+              onValueChange={(value: UsoCFDI) => setUsoCfdi(value)}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Selecciona uso de CFDI" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={UsoCFDI.GASTOS_EN_GENERAL}>
+                  Gastos en General
+                </SelectItem>
+                <SelectItem value={UsoCFDI.EQUIPOS_DE_COMPUTO}>
+                  Equipos de Cómputo
+                </SelectItem>
+                <SelectItem value={UsoCFDI.HONORARIOS_MEDICOS}>
+                  Honorarios Médicos
+                </SelectItem>
+                <SelectItem value={UsoCFDI.GASTOS_MEDICOS}>
+                  Gastos Médicos
+                </SelectItem>
+                <SelectItem value={UsoCFDI.INTERESES_REALES}>
+                  Intereses Reales
+                </SelectItem>
+                <SelectItem value={UsoCFDI.DONACIONES}>Donaciones</SelectItem>
+                <SelectItem value={UsoCFDI.OTROS}>Otros</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Tipo de Pago
+            </label>
+            <Select
+              value={tipoPago}
+              onValueChange={(value: TipoPago) => setTipoPago(value)}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Selecciona tipo de pago" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={TipoPago.PUE}>
+                  PUE - Pago en Una Sola Exhibición
+                </SelectItem>
+                <SelectItem value={TipoPago.PPD}>
+                  PPD - Pago en Parcialidades o Diferido
+                </SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+      </div>
+
+      {/* Contactos Adicionales */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
-            Teléfonos
+            Teléfonos Adicionales
           </label>
           <div className="flex gap-2 mb-2">
             <Input
               value={nuevoTelefono}
-              onChange={(e) => setNuevoTelefono(e.target.value)}
-              placeholder="Agregar teléfono"
+              onChange={(e) => {
+                // Solo permitir números
+                const value = e.target.value.replace(/\D/g, "");
+                if (value.length <= 10) {
+                  setNuevoTelefono(value);
+                }
+              }}
+              placeholder="4771234567 (10 dígitos)"
               className="text-sm"
+              maxLength={10}
             />
             <Button
               type="button"
               onClick={handleAddTelefono}
               variant="outline"
               size="sm"
+              disabled={nuevoTelefono.length !== 10}
             >
               <Plus className="h-4 w-4" />
             </Button>
           </div>
-          <div className="space-y-1">
+          <div className="space-y-1 max-h-32 overflow-y-auto">
             {telefonos.map((t) => (
               <div
                 key={t.id}
@@ -149,9 +465,8 @@ function ClienteForm({
                   variant="ghost"
                   size="sm"
                   onClick={() => handleRemoveTelefono(t.id)}
-                  className="h-6 w-6 p-0 text-red-600 hover:text-red-700"
                 >
-                  <Trash2 className="h-3 w-3" />
+                  <Trash2 className="h-4 w-4" />
                 </Button>
               </div>
             ))}
@@ -160,13 +475,14 @@ function ClienteForm({
 
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
-            Correos
+            Correos Adicionales
           </label>
           <div className="flex gap-2 mb-2">
             <Input
+              type="email"
               value={nuevoCorreo}
               onChange={(e) => setNuevoCorreo(e.target.value)}
-              placeholder="Agregar correo"
+              placeholder="correo@ejemplo.com"
               className="text-sm"
             />
             <Button
@@ -174,25 +490,30 @@ function ClienteForm({
               onClick={handleAddCorreo}
               variant="outline"
               size="sm"
+              disabled={
+                !nuevoCorreo.trim() ||
+                !/^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(
+                  nuevoCorreo
+                )
+              }
             >
               <Plus className="h-4 w-4" />
             </Button>
           </div>
-          <div className="space-y-1">
+          <div className="space-y-1 max-h-32 overflow-y-auto">
             {correos.map((c) => (
               <div
                 key={c.id}
                 className="flex items-center justify-between bg-gray-50 rounded px-3 py-2 text-sm"
               >
-                <span className="break-all">{c.correo}</span>
+                <span>{c.correo}</span>
                 <Button
                   type="button"
                   variant="ghost"
                   size="sm"
                   onClick={() => handleRemoveCorreo(c.id)}
-                  className="h-6 w-6 p-0 text-red-600 hover:text-red-700"
                 >
-                  <Trash2 className="h-3 w-3" />
+                  <Trash2 className="h-4 w-4" />
                 </Button>
               </div>
             ))}
@@ -200,12 +521,18 @@ function ClienteForm({
         </div>
       </div>
 
-      <div className="flex gap-2 justify-end pt-4 border-t border-gray-200">
-        <Button type="button" variant="outline" onClick={onCancel} size="sm">
+      {/* Botones */}
+      <div className="flex justify-end gap-2 pt-4 border-t">
+        <Button
+          type="button"
+          variant="outline"
+          onClick={onCancel}
+          disabled={loading}
+        >
           Cancelar
         </Button>
-        <Button type="submit" disabled={loading} size="sm">
-          {loading ? "Guardando..." : "Guardar"}
+        <Button type="submit" disabled={loading}>
+          {loading ? "Guardando..." : "Guardar Cliente"}
         </Button>
       </div>
     </form>
@@ -369,20 +696,24 @@ const procesarTextoPegado = (texto: string): Partial<Cliente>[] => {
         .trim();
 
       // Procesar teléfonos múltiples (soporta tanto ; como ,)
-      const telefonos = telefonosStr
+      const telefonos: Telefono[] = telefonosStr
         ? telefonosStr
             .split(/[;,]/) // Dividir por ; o ,
-            .map((tel) => ({
+            .map((tel, idx) => ({
+              id: Date.now() + idx, // ID temporal
+              clienteId: 0, // Será asignado por la base de datos
               telefono: tel.trim().replace(/\D/g, ""), // Solo números
             }))
             .filter((t) => t.telefono && t.telefono.length >= 10) // Mínimo 10 dígitos
         : [];
 
       // Procesar correos múltiples (soporta tanto ; como ,)
-      const correos = correosStr
+      const correos: Correo[] = correosStr
         ? correosStr
             .split(/[;,]/) // Dividir por ; o ,
-            .map((email) => ({
+            .map((email, idx) => ({
+              id: Date.now() + idx, // ID temporal
+              clienteId: 0, // Será asignado por la base de datos
               correo: email.trim().toLowerCase(),
             }))
             .filter((c) => {
@@ -416,9 +747,11 @@ export default function ClientesPage() {
   const createCliente = useCreateCliente();
   const updateCliente = useUpdateCliente();
   const deleteCliente = useDeleteCliente();
+  const { toast } = useToast();
   const [search, setSearch] = useState("");
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<Cliente | null>(null);
+  const [viewingDetails, setViewingDetails] = useState<Cliente | null>(null);
   const [importing, setImporting] = useState(false);
   const [showImportModal, setShowImportModal] = useState(false);
 
@@ -440,7 +773,15 @@ export default function ClientesPage() {
 
   const handleDelete = (id: number) => {
     if (window.confirm("¿Eliminar este cliente?")) {
-      deleteCliente.mutate(id);
+      deleteCliente.mutate(id, {
+        onSuccess: () => {
+          toast({
+            title: "Cliente eliminado",
+            description: "El cliente se ha eliminado correctamente.",
+          });
+        },
+        onError: handleError,
+      });
     }
   };
 
@@ -482,6 +823,33 @@ export default function ClientesPage() {
   const handleCreateSuccess = () => {
     setShowForm(false);
     setEditing(null);
+    toast({
+      title: "Cliente guardado",
+      description: "El cliente se ha guardado correctamente.",
+    });
+  };
+
+  const handleError = (error: any) => {
+    console.error("Error al guardar cliente:", error);
+
+    // Intentar extraer el mensaje de error más específico
+    let errorMessage = "Error al guardar el cliente";
+
+    if (error?.response?.data?.errors) {
+      // Si hay errores de validación
+      const validationErrors = error.response.data.errors;
+      errorMessage = validationErrors.map((err: any) => err.message).join(", ");
+    } else if (error?.response?.data?.message) {
+      errorMessage = error.response.data.message;
+    } else if (error?.message) {
+      errorMessage = error.message;
+    }
+
+    toast({
+      title: "Error",
+      description: errorMessage,
+      variant: "destructive",
+    });
   };
 
   const handleImportarTexto = async (texto: string) => {
@@ -632,16 +1000,19 @@ export default function ClientesPage() {
                       ID
                     </TableHead>
                     <TableHead className="font-medium text-gray-900 px-4 py-3">
-                      Nombre
+                      Nombre/Razón Social
                     </TableHead>
                     <TableHead className="font-medium text-gray-900 px-4 py-3">
                       Dirección
                     </TableHead>
                     <TableHead className="font-medium text-gray-900 px-4 py-3">
-                      Teléfonos
+                      Contacto Pagos
                     </TableHead>
                     <TableHead className="font-medium text-gray-900 px-4 py-3">
-                      Correos
+                      Método Pago
+                    </TableHead>
+                    <TableHead className="font-medium text-gray-900 px-4 py-3">
+                      RFC
                     </TableHead>
                     <TableHead className="font-medium text-gray-900 px-4 py-3 text-center">
                       Acciones
@@ -660,45 +1031,71 @@ export default function ClientesPage() {
                         {cliente.id}
                       </TableCell>
                       <TableCell className="px-4 py-3 text-sm">
-                        {cliente.nombre || "Sin nombre"}
+                        <div>
+                          {cliente.nombre || "Sin nombre"}
+                          {cliente.representanteLegal && (
+                            <div className="text-xs text-gray-500 mt-1">
+                              Rep. Legal: {cliente.representanteLegal}
+                            </div>
+                          )}
+                        </div>
                       </TableCell>
                       <TableCell className="px-4 py-3 text-sm text-gray-600">
-                        {cliente.direccion || "Sin dirección"}
+                        <div
+                          className="max-w-xs truncate"
+                          title={cliente.direccion || ""}
+                        >
+                          {cliente.direccion || "Sin dirección"}
+                        </div>
                       </TableCell>
                       <TableCell className="px-4 py-3 text-sm">
-                        {cliente.telefonos && cliente.telefonos.length > 0 ? (
-                          <div className="space-y-1">
-                            {cliente.telefonos.map((telefono) => (
-                              <div
-                                key={telefono.id}
-                                className="text-xs text-gray-700"
-                              >
-                                {telefono.telefono}
-                              </div>
-                            ))}
-                          </div>
-                        ) : (
-                          <span className="text-gray-400 text-xs">
-                            Sin teléfonos
-                          </span>
-                        )}
+                        <div>
+                          {cliente.contactoPagos && (
+                            <div className="text-xs text-gray-700">
+                              {cliente.contactoPagos}
+                            </div>
+                          )}
+                          {cliente.telefonoPagos && (
+                            <div className="text-xs text-gray-500">
+                              Tel: {cliente.telefonoPagos}
+                            </div>
+                          )}
+                          {!cliente.contactoPagos && !cliente.telefonoPagos && (
+                            <span className="text-gray-400 text-xs">
+                              Sin contacto
+                            </span>
+                          )}
+                        </div>
                       </TableCell>
                       <TableCell className="px-4 py-3 text-sm">
-                        {cliente.correos && cliente.correos.length > 0 ? (
-                          <div className="space-y-1">
-                            {cliente.correos.map((correo) => (
-                              <div
-                                key={correo.id}
-                                className="text-xs text-gray-700 break-all"
-                              >
-                                {correo.correo}
-                              </div>
-                            ))}
+                        <div>
+                          {cliente.metodoPago && (
+                            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                              {cliente.metodoPago}
+                            </span>
+                          )}
+                          {cliente.correoFacturacion && (
+                            <div
+                              className="text-xs text-gray-500 mt-1 truncate"
+                              title={cliente.correoFacturacion}
+                            >
+                              {cliente.correoFacturacion}
+                            </div>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell className="px-4 py-3 text-sm">
+                        {cliente.datosFacturacion?.rfc ? (
+                          <div>
+                            <div className="font-mono text-xs">
+                              {cliente.datosFacturacion.rfc}
+                            </div>
+                            <div className="text-xs text-gray-500">
+                              {cliente.datosFacturacion.tipoPago}
+                            </div>
                           </div>
                         ) : (
-                          <span className="text-gray-400 text-xs">
-                            Sin correos
-                          </span>
+                          <span className="text-gray-400 text-xs">Sin RFC</span>
                         )}
                       </TableCell>
                       <TableCell className="px-4 py-3">
@@ -706,8 +1103,18 @@ export default function ClientesPage() {
                           <Button
                             size="sm"
                             variant="ghost"
+                            onClick={() => setViewingDetails(cliente)}
+                            className="h-8 w-8 p-0 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                            title="Ver detalles"
+                          >
+                            <Eye className="h-3 w-3" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
                             onClick={() => handleEdit(cliente)}
                             className="h-8 w-8 p-0"
+                            title="Editar"
                           >
                             <Edit className="h-3 w-3" />
                           </Button>
@@ -716,6 +1123,7 @@ export default function ClientesPage() {
                             variant="ghost"
                             onClick={() => handleDelete(cliente.id)}
                             className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
+                            title="Eliminar"
                           >
                             <Trash2 className="h-3 w-3" />
                           </Button>
@@ -747,11 +1155,13 @@ export default function ClientesPage() {
                     { id: editing.id, data },
                     {
                       onSuccess: handleCreateSuccess,
+                      onError: handleError,
                     }
                   );
                 } else {
                   createCliente.mutate(data, {
                     onSuccess: handleCreateSuccess,
+                    onError: handleError,
                   });
                 }
               }}
@@ -769,6 +1179,222 @@ export default function ClientesPage() {
             />
           </div>
         )}
+
+        {/* Modal de detalles del cliente */}
+        <Dialog
+          open={!!viewingDetails}
+          onOpenChange={() => setViewingDetails(null)}
+        >
+          <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Building className="h-5 w-5" />
+                Detalles del Cliente
+              </DialogTitle>
+            </DialogHeader>
+
+            {viewingDetails && (
+              <div className="space-y-6">
+                {/* Información Básica */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-semibold text-gray-900 border-b pb-2">
+                      Información Básica
+                    </h3>
+
+                    <div>
+                      <label className="text-sm font-medium text-gray-600">
+                        Nombre o Razón Social
+                      </label>
+                      <p className="text-sm text-gray-900 mt-1">
+                        {viewingDetails.nombre || "No especificado"}
+                      </p>
+                    </div>
+
+                    <div>
+                      <label className="text-sm font-medium text-gray-600">
+                        Dirección Fiscal
+                      </label>
+                      <p className="text-sm text-gray-900 mt-1">
+                        {viewingDetails.direccion || "No especificado"}
+                      </p>
+                    </div>
+
+                    {viewingDetails.representanteLegal && (
+                      <div>
+                        <label className="text-sm font-medium text-gray-600">
+                          Representante Legal
+                        </label>
+                        <p className="text-sm text-gray-900 mt-1">
+                          {viewingDetails.representanteLegal}
+                        </p>
+                      </div>
+                    )}
+
+                    <div>
+                      <label className="text-sm font-medium text-gray-600">
+                        Método de Pago
+                      </label>
+                      <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 mt-1">
+                        {viewingDetails.metodoPago || "No especificado"}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-semibold text-gray-900 border-b pb-2">
+                      Contacto para Pagos
+                    </h3>
+
+                    <div>
+                      <label className="text-sm font-medium text-gray-600">
+                        Nombre de Contacto
+                      </label>
+                      <p className="text-sm text-gray-900 mt-1">
+                        {viewingDetails.contactoPagos || "No especificado"}
+                      </p>
+                    </div>
+
+                    <div>
+                      <label className="text-sm font-medium text-gray-600">
+                        Teléfono de Contacto
+                      </label>
+                      <p className="text-sm text-gray-900 mt-1">
+                        {viewingDetails.telefonoPagos || "No especificado"}
+                      </p>
+                    </div>
+
+                    <div>
+                      <label className="text-sm font-medium text-gray-600">
+                        Correo para Facturas
+                      </label>
+                      <p className="text-sm text-gray-900 mt-1">
+                        {viewingDetails.correoFacturacion || "No especificado"}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Datos de Facturación */}
+                {viewingDetails.datosFacturacion && (
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-semibold text-gray-900 border-b pb-2">
+                      Datos de Facturación
+                    </h3>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="text-sm font-medium text-gray-600">
+                          RFC
+                        </label>
+                        <p className="text-sm font-mono text-gray-900 mt-1">
+                          {viewingDetails.datosFacturacion.rfc}
+                        </p>
+                      </div>
+
+                      <div>
+                        <label className="text-sm font-medium text-gray-600">
+                          Régimen Fiscal
+                        </label>
+                        <p className="text-sm text-gray-900 mt-1">
+                          {viewingDetails.datosFacturacion.regimenFiscal.replace(
+                            /_/g,
+                            " "
+                          )}
+                        </p>
+                      </div>
+
+                      <div>
+                        <label className="text-sm font-medium text-gray-600">
+                          Uso de CFDI
+                        </label>
+                        <p className="text-sm text-gray-900 mt-1">
+                          {viewingDetails.datosFacturacion.usoCfdi.replace(
+                            /_/g,
+                            " "
+                          )}
+                        </p>
+                      </div>
+
+                      <div>
+                        <label className="text-sm font-medium text-gray-600">
+                          Tipo de Pago
+                        </label>
+                        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 mt-1">
+                          {viewingDetails.datosFacturacion.tipoPago} -{" "}
+                          {viewingDetails.datosFacturacion.tipoPago === "PUE"
+                            ? "Pago en Una Sola Exhibición"
+                            : "Pago en Parcialidades o Diferido"}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Contactos Adicionales */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-900 border-b pb-2">
+                      Teléfonos Adicionales
+                    </h3>
+                    {viewingDetails.telefonos &&
+                    viewingDetails.telefonos.length > 0 ? (
+                      <div className="space-y-2 mt-4">
+                        {viewingDetails.telefonos.map((telefono) => (
+                          <div
+                            key={telefono.id}
+                            className="flex items-center gap-2"
+                          >
+                            <Phone className="h-4 w-4 text-gray-400" />
+                            <span className="text-sm text-gray-900">
+                              {telefono.telefono}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-sm text-gray-500 mt-4">
+                        No hay teléfonos adicionales
+                      </p>
+                    )}
+                  </div>
+
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-900 border-b pb-2">
+                      Correos Adicionales
+                    </h3>
+                    {viewingDetails.correos &&
+                    viewingDetails.correos.length > 0 ? (
+                      <div className="space-y-2 mt-4">
+                        {viewingDetails.correos.map((correo) => (
+                          <div
+                            key={correo.id}
+                            className="flex items-center gap-2"
+                          >
+                            <Mail className="h-4 w-4 text-gray-400" />
+                            <span className="text-sm text-gray-900 break-all">
+                              {correo.correo}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-sm text-gray-500 mt-4">
+                        No hay correos adicionales
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                <div className="flex justify-end pt-4 border-t">
+                  <Button onClick={() => setViewingDetails(null)}>
+                    Cerrar
+                  </Button>
+                </div>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );

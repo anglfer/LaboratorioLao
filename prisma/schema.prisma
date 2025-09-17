@@ -26,15 +26,72 @@ model Area {
 
 
 model Cliente {
-  id             Int       @id @default(autoincrement())
-  nombre         String?   @db.VarChar(255)
-  direccion      String?   @db.VarChar(255)
-  fechaRegistro  DateTime? @db.DateTime @map("fecha_registro")
-  activo         Boolean?  @default(true)
-  telefonos      Telefono[]
-  correos        Correo[]
-  presupuestos   Presupuesto[]
-  obras          Obra[]
+  id                    Int              @id @default(autoincrement())
+  nombre                String?          @db.VarChar(255)  // Nombre o Razón Social
+  direccion             String?          @db.VarChar(500)  // Dirección Fiscal o de Contacto u Oficina
+  representanteLegal    String?          @db.VarChar(255)  // Nombre del Representante Legal (solo si es empresa)
+  contactoPagos         String?          @db.VarChar(255)  // Nombre de Contacto para Seguimiento a Pagos
+  telefonoPagos         String?          @db.VarChar(20)   // Teléfono de Contacto para Seguimiento a Pagos
+  metodoPago            MetodoPago?      @default(EFECTIVO) // Método de Pago
+  correoFacturacion     String?          @db.VarChar(255)  // Correo Electrónico para Envío de Facturas
+  fechaRegistro         DateTime?        @db.DateTime @map("fecha_registro")
+  activo                Boolean?         @default(true)
+  
+  // Relaciones
+  telefonos             Telefono[]
+  correos               Correo[]
+  datosFacturacion      DatosFacturacion?
+  presupuestos          Presupuesto[]
+  obras                 Obra[]
+}
+
+// Enum para métodos de pago
+enum MetodoPago {
+  EFECTIVO
+  TRANSFERENCIA
+  CHEQUE
+}
+
+// Enum para régimen fiscal
+enum RegimenFiscal {
+  PERSONAS_FISICAS_CON_ACTIVIDADES_EMPRESARIALES
+  PERSONAS_MORALES
+  REGIMEN_SIMPLIFICADO_DE_CONFIANZA
+  PERSONAS_FISICAS_CON_ACTIVIDADES_PROFESIONALES
+  REGIMEN_DE_INCORPORACION_FISCAL
+  OTROS
+}
+
+// Enum para uso de CFDI
+enum UsoCFDI {
+  GASTOS_EN_GENERAL
+  EQUIPOS_DE_COMPUTO
+  HONORARIOS_MEDICOS
+  GASTOS_MEDICOS
+  INTERESES_REALES
+  DONACIONES
+  OTROS
+}
+
+// Enum para tipo de pago
+enum TipoPago {
+  PUE  // Pago en Una Sola Exhibición
+  PPD  // Pago en Parcialidades o Diferido
+}
+
+// Tabla normalizada para datos de facturación
+model DatosFacturacion {
+  id            Int           @id @default(autoincrement())
+  clienteId     Int           @unique
+  rfc           String        @db.VarChar(13)   // RFC del cliente
+  regimenFiscal RegimenFiscal                   // Régimen Fiscal
+  usoCfdi       UsoCFDI                         // Uso de CFDI
+  tipoPago      TipoPago      @default(PUE)     // PUE o PPD
+  
+  // Relación con cliente
+  cliente       Cliente       @relation(fields: [clienteId], references: [id], onDelete: Cascade)
+  
+  @@index([clienteId], name: "idx_datos_facturacion_cliente_id")
 }
 
 model Telefono {
@@ -66,14 +123,8 @@ model Obra {
   contratista          String?  @db.VarChar(255)
   estado               Int?     @db.TinyInt
   fechaInicio          DateTime? @db.Timestamp(0) @map("fecha_inicio")
-  fechaFinPrevista     DateTime? @db.Timestamp(0) @map("fecha_fin_prevista")
-  fechaFin             DateTime? @db.Timestamp(0) @map("fecha_fin")
-  presupuestoEstimado  Decimal? @db.Decimal(12,2) @map("presupuesto_estimado")
-  presupuestoTotal     Decimal? @db.Decimal(12,2) @map("presupuesto_total")
   clienteId            Int?     @map("cliente_id")
-  notas                String?  @db.Text
   alcance              String?  @db.Text
-  objetivos            String?  @db.Text
   razonCancelacion     String?  @db.Text @map("razon_cancelacion")
   fechaCreacion        DateTime @default(now()) @db.DateTime(3) @map("fecha_creacion")
   fechaActualizacion   DateTime @updatedAt @db.DateTime(3) @map("fecha_actualizacion")

@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { useForm, useFieldArray } from "react-hook-form";
+import { useForm, useFieldArray, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useQuery } from "@tanstack/react-query";
@@ -40,6 +40,13 @@ import {
   areasJerarquicasService,
   conceptosJerarquicosService,
 } from "../../concepts";
+import {
+  MetodoPago,
+  RegimenFiscal,
+  UsoCFDI,
+  TipoPago,
+} from "../../clientes/lib/types";
+import { useToast } from "../../dashboard/hooks/use-toast";
 
 // Tipos para áreas de presupuesto
 interface AreaPresupuesto {
@@ -63,8 +70,28 @@ const budgetSchema = z
     clienteId: z.number().optional(),
     clienteNuevo: z
       .object({
-        nombre: z.string().optional(),
+        // Información básica
+        nombre: z.string().optional(), // Cambiar a opcional
         direccion: z.string().optional(),
+
+        // Representante legal (opcional)
+        representanteLegal: z.string().optional(),
+
+        // Contacto para pagos (opcional)
+        contactoPagos: z.string().optional(),
+        telefonoPagos: z
+          .string()
+          .regex(/^[0-9]{10}$/, "Teléfono inválido. Debe tener 10 dígitos")
+          .optional()
+          .or(z.literal("")),
+        metodoPago: z.enum(["EFECTIVO", "TRANSFERENCIA", "CHEQUE"]).optional(),
+        correoFacturacion: z
+          .string()
+          .email("Correo de facturación inválido")
+          .optional()
+          .or(z.literal("")),
+
+        // Teléfonos y correos adicionales
         telefonos: z
           .array(z.string())
           .optional()
@@ -85,6 +112,42 @@ const budgetSchema = z
             },
             { message: "Uno o más correos tienen formato inválido" }
           ),
+
+        // Datos de facturación (opcionales)
+        datosFacturacion: z
+          .object({
+            rfc: z
+              .string()
+              .regex(
+                /^[A-ZÑ&]{3,4}[0-9]{6}[A-Z0-9]{3}$/,
+                "RFC inválido. Formato: ABC123456789"
+              )
+              .optional()
+              .or(z.literal("")),
+            regimenFiscal: z
+              .enum([
+                "PERSONAS_FISICAS_CON_ACTIVIDADES_EMPRESARIALES",
+                "PERSONAS_MORALES",
+                "REGIMEN_SIMPLIFICADO_DE_CONFIANZA",
+                "PERSONAS_FISICAS_CON_ACTIVIDADES_PROFESIONALES",
+                "REGIMEN_DE_INCORPORACION_FISCAL",
+                "OTROS",
+              ])
+              .optional(),
+            usoCfdi: z
+              .enum([
+                "GASTOS_EN_GENERAL",
+                "EQUIPOS_DE_COMPUTO",
+                "HONORARIOS_MEDICOS",
+                "GASTOS_MEDICOS",
+                "INTERESES_REALES",
+                "DONACIONES",
+                "OTROS",
+              ])
+              .optional(),
+            tipoPago: z.enum(["PUE", "PPD"]).optional(),
+          })
+          .optional(),
       })
       .optional(),
 
@@ -100,13 +163,13 @@ const budgetSchema = z
       .min(1, "La descripción de la obra es requerida"),
     alcance: z
       .string()
-      .min(10, "El alcance debe ser más específico")
-      .optional(),
+      .min(10, "El alcance debe ser más específico (mínimo 10 caracteres)"),
     direccion: z
       .string()
-      .min(5, "La dirección debe ser más específica")
-      .optional(),
-    contactoResponsable: z.string().optional(),
+      .min(5, "La dirección de la obra es requerida (mínimo 5 caracteres)"),
+    contactoResponsable: z
+      .string()
+      .min(1, "El contacto responsable es requerido"),
     // Conceptos
     areaCodigo: z.string().min(1, "Debe seleccionar un área"),
     conceptosSeleccionados: z
@@ -153,23 +216,18 @@ const budgetSchema = z
   })
   .refine(
     (data) => {
-      // Validar que se tenga un cliente seleccionado O un cliente nuevo con nombre
-      if (data.clienteId) {
-        return true; // Cliente existente seleccionado
-      }
-      if (
-        data.clienteNuevo &&
-        data.clienteNuevo.nombre &&
-        data.clienteNuevo.nombre.trim().length > 0
-      ) {
-        return true; // Cliente nuevo con nombre válido
-      }
-      return false;
+      // Validación condicional: debe tener clienteId O clienteNuevo.nombre
+      const hasClienteId = !!data.clienteId;
+      const hasClienteNuevo = !!(
+        data.clienteNuevo?.nombre && data.clienteNuevo.nombre.trim().length > 0
+      );
+
+      return hasClienteId || hasClienteNuevo;
     },
     {
       message:
-        "Debe seleccionar un cliente existente o crear uno nuevo con nombre",
-      path: ["clienteId"], // Asociar el error al campo clienteId
+        "Debe seleccionar un cliente existente o proporcionar datos del cliente nuevo",
+      path: ["clienteNuevo", "nombre"], // Esto hará que el error aparezca en el campo nombre
     }
   );
 
@@ -210,6 +268,48 @@ const generateAreaCode = (areaName: string): string => {
   }
 };
 
+// Función para validar cada paso antes de avanzar
+const validateStep = async (step: number, getValues: any, trigger: any) => {
+  const values = getValues();
+  console.log(`[validateStep] Validating step ${step}, values:`, values);
+
+  switch (step) {
+    case 1: // Cliente - debe tener clienteId O clienteNuevo.nombre
+      console.log(
+        `[validateStep] Step 1 - clienteId: ${values.clienteId}, clienteNuevo.nombre: ${values.clienteNuevo?.nombre}`
+      );
+      if (values.clienteId) {
+        console.log(
+          "[validateStep] Cliente existente seleccionado, returning true"
+        );
+        return true; // Cliente existente seleccionado
+      } else if (values.clienteNuevo?.nombre) {
+        console.log(
+          "[validateStep] Cliente nuevo detectado, validating clienteNuevo fields"
+        );
+        // Validar solo los campos requeridos del cliente nuevo
+        const clienteNuevoValid = await trigger("clienteNuevo.nombre");
+        return clienteNuevoValid;
+      } else {
+        console.log("[validateStep] No cliente seleccionado, returning false");
+        return false; // No hay cliente seleccionado ni datos del nuevo
+      }
+    case 2: // Contratista
+      return await trigger(["nombreContratista"]);
+    case 3: // Obra
+      return await trigger([
+        "descripcionObra",
+        "alcance",
+        "direccion",
+        "contactoResponsable",
+      ]);
+    case 4: // Conceptos
+      return await trigger(["areaId", "conceptosSeleccionados"]);
+    default:
+      return true;
+  }
+};
+
 export default function AdvancedBudgetForm({
   onSubmit,
   isLoading,
@@ -238,6 +338,7 @@ export default function AdvancedBudgetForm({
   const [clienteNuevo, setClienteNuevo] = useState(false);
   const [copiarDeCliente, setCopiarDeCliente] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
+  const { toast } = useToast();
 
   // Debug: mostrar si estamos en modo edición
   useEffect(() => {
@@ -261,14 +362,29 @@ export default function AdvancedBudgetForm({
     watch,
     control,
     reset,
+    getValues,
+    trigger,
   } = useForm<BudgetFormData>({
     resolver: zodResolver(budgetSchema),
     defaultValues: {
       conceptos: [],
       conceptosSeleccionados: [],
       clienteNuevo: {
+        nombre: "",
+        direccion: "",
+        representanteLegal: "",
+        contactoPagos: "",
+        telefonoPagos: "",
+        metodoPago: "EFECTIVO",
+        correoFacturacion: "",
         telefonos: [],
         correos: [],
+        datosFacturacion: {
+          rfc: "",
+          regimenFiscal: "PERSONAS_MORALES",
+          usoCfdi: "GASTOS_EN_GENERAL",
+          tipoPago: "PUE",
+        },
       },
     },
   });
@@ -698,8 +814,21 @@ export default function AdvancedBudgetForm({
         conceptos: [],
         conceptosSeleccionados: [],
         clienteNuevo: {
+          nombre: "",
+          direccion: "",
+          representanteLegal: "",
+          contactoPagos: "",
+          telefonoPagos: "",
+          metodoPago: "EFECTIVO",
+          correoFacturacion: "",
           telefonos: [],
           correos: [],
+          datosFacturacion: {
+            rfc: "",
+            regimenFiscal: "PERSONAS_MORALES",
+            usoCfdi: "GASTOS_EN_GENERAL",
+            tipoPago: "PUE",
+          },
         },
       });
       setSelectedClienteId(null);
@@ -879,10 +1008,89 @@ export default function AdvancedBudgetForm({
     }) || [];
 
   const handleFormSubmit = async (data: BudgetFormData) => {
+    console.log("[AdvancedBudgetForm] Submit button clicked");
+
+    // Obtener todos los valores del formulario para debug
+    const allFormValues = getValues();
+    console.log("[AdvancedBudgetForm] All form values:", allFormValues);
+
+    // Validación especial para el cliente: si hay clienteId, ignorar errores de clienteNuevo
+    const hasClienteExistente = allFormValues.clienteId;
     console.log(
-      "[AdvancedBudgetForm] handleFormSubmit called with data:",
+      "[AdvancedBudgetForm] Cliente existente ID:",
+      hasClienteExistente
+    );
+
+    if (hasClienteExistente) {
+      console.log(
+        "[AdvancedBudgetForm] Has existing client - proceeding with submission ignoring clienteNuevo errors"
+      );
+
+      // Hay cliente existente, solo verificar errores que NO sean de clienteNuevo
+      const filteredErrors = { ...errors };
+      delete filteredErrors.clienteNuevo; // Ignorar errores de cliente nuevo
+
+      const hasRelevantErrors = Object.keys(filteredErrors).length > 0;
+      console.log(
+        "[AdvancedBudgetForm] Relevant errors (excluding clienteNuevo):",
+        filteredErrors
+      );
+
+      if (hasRelevantErrors) {
+        console.log(
+          "[AdvancedBudgetForm] Form has other validation errors, stopping submission"
+        );
+        toast({
+          title: "Errores de validación",
+          description:
+            "Por favor corrija los errores en el formulario antes de continuar",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Cliente existente y no hay otros errores, proceder
+      console.log(
+        "[AdvancedBudgetForm] Proceeding with existing client, no blocking errors"
+      );
+    } else {
+      // No hay cliente existente, verificar que haya datos de cliente nuevo válidos
+      const hasClienteNuevo = allFormValues.clienteNuevo?.nombre?.trim();
+      if (!hasClienteNuevo) {
+        console.log(
+          "[AdvancedBudgetForm] No existing client and no new client name - stopping submission"
+        );
+        toast({
+          title: "Error de validación",
+          description:
+            "Debe seleccionar un cliente existente o crear uno nuevo con nombre",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Hay datos de cliente nuevo, verificar todos los errores
+      const hasErrors = Object.keys(errors).length > 0;
+      if (hasErrors) {
+        console.log(
+          "[AdvancedBudgetForm] Has validation errors - stopping submission:",
+          errors
+        );
+        toast({
+          title: "Errores de validación",
+          description:
+            "Por favor corrija los errores en el formulario antes de continuar",
+          variant: "destructive",
+        });
+        return;
+      }
+    }
+
+    console.log(
+      "[AdvancedBudgetForm] handleFormSubmit proceeding with data:",
       data
     );
+
     console.log(
       "[AdvancedBudgetForm] Cliente nuevo teléfonos:",
       data.clienteNuevo?.telefonos
@@ -931,84 +1139,64 @@ export default function AdvancedBudgetForm({
     try {
       let clienteId = data.clienteId;
 
-      // Si es cliente nuevo, crearlo primero
-      if (clienteNuevo && data.clienteNuevo) {
+      // Si no hay cliente seleccionado pero hay datos de cliente nuevo, crearlo
+      if (!clienteId && data.clienteNuevo?.nombre?.trim()) {
+        console.log("[AdvancedBudgetForm] Creando cliente nuevo...");
+        // Preparar los datos del cliente nuevo
+        const clienteData = {
+          nombre: data.clienteNuevo.nombre,
+          direccion: data.clienteNuevo.direccion || "",
+          representanteLegal: data.clienteNuevo.representanteLegal || "",
+          contactoPagos: data.clienteNuevo.contactoPagos || "",
+          telefonoPagos: data.clienteNuevo.telefonoPagos || "",
+          metodoPago: data.clienteNuevo.metodoPago || "EFECTIVO",
+          correoFacturacion: data.clienteNuevo.correoFacturacion || "",
+          telefonos: (data.clienteNuevo.telefonos || [])
+            .filter((t) => t && t.trim())
+            .map((t) => ({ telefono: t.trim() })),
+          correos: (data.clienteNuevo.correos || [])
+            .filter((c) => c && c.trim())
+            .map((c) => ({ correo: c.trim() })),
+          datosFacturacion: data.clienteNuevo.datosFacturacion?.rfc
+            ? {
+                rfc: data.clienteNuevo.datosFacturacion.rfc,
+                regimenFiscal:
+                  data.clienteNuevo.datosFacturacion.regimenFiscal ||
+                  "PERSONAS_MORALES",
+                usoCfdi:
+                  data.clienteNuevo.datosFacturacion.usoCfdi ||
+                  "GASTOS_EN_GENERAL",
+                tipoPago: data.clienteNuevo.datosFacturacion.tipoPago || "PUE",
+              }
+            : undefined,
+        };
+
         const clienteResponse = await fetch("/api/clientes", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          credentials: 'include', // Agregar credentials
-          body: JSON.stringify({
-            nombre: data.clienteNuevo.nombre,
-            direccion: data.clienteNuevo.direccion,
-          }),
+          credentials: "include",
+          body: JSON.stringify(clienteData),
         });
+
         if (!clienteResponse.ok) {
-          throw new Error("Error al crear cliente");
+          const errorData = await clienteResponse.json();
+          console.error("Error al crear cliente:", errorData);
+
+          // Extraer mensajes de error específicos
+          let errorMessage = "Error al crear cliente";
+          if (errorData.errors && errorData.errors.length > 0) {
+            errorMessage = errorData.errors
+              .map((err: any) => err.message)
+              .join(", ");
+          } else if (errorData.message) {
+            errorMessage = errorData.message;
+          }
+
+          throw new Error(errorMessage);
         }
+
         const nuevoCliente = await clienteResponse.json();
-        clienteId = nuevoCliente.id; // Agregar teléfonos
-        if (data.clienteNuevo.telefonos) {
-          for (const telefono of data.clienteNuevo.telefonos.filter(
-            (t) => t && t.trim()
-          )) {
-            // Validar formato antes de enviar
-            const telefonoLimpio = telefono.trim();
-            const phoneRegex = /^(?:\+52|52)?[0-9]{10}$/;
-            if (!phoneRegex.test(telefonoLimpio)) {
-              throw new Error(
-                `Formato de teléfono inválido: "${telefonoLimpio}". Debe tener 10 dígitos (ej: 4771234567 o +524771234567)`
-              );
-            }
-
-            const response = await fetch(
-              `/api/clientes/${clienteId}/telefonos`,
-              {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                credentials: 'include', // Agregar credentials
-                body: JSON.stringify({ telefono: telefonoLimpio }),
-              }
-            );
-            if (!response.ok) {
-              const errorData = await response.json();
-              console.error("Error al agregar teléfono:", errorData);
-
-              // Mostrar mensaje específico si es error de validación
-              let errorMessage = "Error desconocido";
-              if (errorData.errors && errorData.errors.length > 0) {
-                // Tomar el primer error de validación
-                errorMessage = errorData.errors[0].message || errorData.message;
-              } else if (errorData.message) {
-                errorMessage = errorData.message;
-              }
-
-              throw new Error(`Error al agregar teléfono: ${errorMessage}`);
-            }
-          }
-        }
-
-        // Agregar correos
-        if (data.clienteNuevo.correos) {
-          for (const correo of data.clienteNuevo.correos.filter(
-            (c) => c && c.trim()
-          )) {
-            const response = await fetch(`/api/clientes/${clienteId}/correos`, {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              credentials: 'include', // Agregar credentials
-              body: JSON.stringify({ correo: correo.trim() }),
-            });
-            if (!response.ok) {
-              const errorData = await response.json();
-              console.error("Error al agregar correo:", errorData);
-              throw new Error(
-                `Error al agregar correo: ${
-                  errorData.message || "Error desconocido"
-                }`
-              );
-            }
-          }
-        }
+        clienteId = nuevoCliente.id;
       }
 
       // Crear presupuesto con estructura normalizada
@@ -1016,7 +1204,7 @@ export default function AdvancedBudgetForm({
         clienteId,
         // Solo enviar areaCodigo si se quiere crear una obra automáticamente
         ...(data.areaCodigo && { areaCodigo: data.areaCodigo }),
-        
+
         // Campos de presupuesto (estructura normalizada)
         iva: SYSTEM_CONSTANTS.IVA_RATE / 100, // Convertir a decimal (0.16)
         subtotal,
@@ -1025,14 +1213,14 @@ export default function AdvancedBudgetForm({
         manejaAnticipo: data.manejaAnticipo,
         porcentajeAnticipo: data.porcentajeAnticipo,
         estado: "borrador",
-        
+
         // Campos que van a la obra (si se crea automáticamente)
         descripcionObra: data.descripcionObra,
         nombreContratista: data.nombreContratista,
         alcance: data.alcance,
         direccion: data.direccion,
         contactoResponsable: data.contactoResponsable,
-        
+
         // Conceptos en el formato que espera el backend
         conceptos: data.conceptos.map((concepto) => ({
           conceptoCodigo: concepto.conceptoCodigo, // Mantener coherencia con el backend
@@ -1042,10 +1230,31 @@ export default function AdvancedBudgetForm({
         })),
       };
 
-      console.log('[AdvancedBudgetForm] Enviando presupuesto:', presupuestoData);
+      console.log(
+        "[AdvancedBudgetForm] Enviando presupuesto:",
+        presupuestoData
+      );
       onSubmit(presupuestoData);
-    } catch (error) {
+
+      // Mostrar mensaje de éxito
+      toast({
+        title: "Presupuesto creado",
+        description: "El presupuesto se ha creado correctamente.",
+      });
+    } catch (error: any) {
       console.error("Error al procesar formulario:", error);
+
+      // Mostrar mensaje de error específico
+      let errorMessage = "Error al crear el presupuesto";
+      if (error?.message) {
+        errorMessage = error.message;
+      }
+
+      toast({
+        title: "Error",
+        description: errorMessage,
+        variant: "destructive",
+      });
     }
   };
   return (
@@ -1209,7 +1418,6 @@ export default function AdvancedBudgetForm({
                       type="button"
                       onClick={() => {
                         setClienteNuevo(false);
-                        setValue("clienteId", undefined);
                         setBusquedaCliente("");
                       }}
                       className={`flex-1 py-2 px-4 rounded-md transition-all font-medium ${
@@ -1291,47 +1499,53 @@ export default function AdvancedBudgetForm({
                         >
                           Seleccionar Cliente
                         </label>
-                        <Select
-                          value={selectedClienteId?.toString()}
-                          onValueChange={(value) => {
-                            const id = parseInt(value);
-                            setValue("clienteId", id);
-                            setSelectedClienteId(id);
-                          }}
-                        >
-                          <SelectTrigger className="h-10">
-                            <SelectValue placeholder="Elegir cliente..." />
-                          </SelectTrigger>
-                          <SelectContent className="max-h-60">
-                            {clientesFiltrados.length > 0 ? (
-                              clientesFiltrados.map((cliente) => (
-                                <SelectItem
-                                  key={cliente.id}
-                                  value={cliente.id.toString()}
-                                >
-                                  <div className="flex items-center justify-between w-full">
-                                    <span className="font-medium">
-                                      {cliente.nombre}
-                                    </span>
-                                    <span
-                                      className="text-xs px-2 py-1 rounded ml-2"
-                                      style={{
-                                        backgroundColor: "#E7F2E0",
-                                        color: "#4F7D2C",
-                                      }}
+                        <Controller
+                          name="clienteId"
+                          control={control}
+                          render={({ field }) => (
+                            <Select
+                              value={field.value?.toString() || ""}
+                              onValueChange={(value) => {
+                                const id = parseInt(value);
+                                field.onChange(id);
+                                setSelectedClienteId(id);
+                              }}
+                            >
+                              <SelectTrigger className="h-10">
+                                <SelectValue placeholder="Elegir cliente..." />
+                              </SelectTrigger>
+                              <SelectContent className="max-h-60">
+                                {clientesFiltrados.length > 0 ? (
+                                  clientesFiltrados.map((cliente) => (
+                                    <SelectItem
+                                      key={cliente.id}
+                                      value={cliente.id.toString()}
                                     >
-                                      {cliente.id}
-                                    </span>
-                                  </div>
-                                </SelectItem>
-                              ))
-                            ) : (
-                              <SelectItem value="none" disabled>
-                                No hay clientes
-                              </SelectItem>
-                            )}
-                          </SelectContent>
-                        </Select>
+                                      <div className="flex items-center justify-between w-full">
+                                        <span className="font-medium">
+                                          {cliente.nombre}
+                                        </span>
+                                        <span
+                                          className="text-xs px-2 py-1 rounded ml-2"
+                                          style={{
+                                            backgroundColor: "#E7F2E0",
+                                            color: "#4F7D2C",
+                                          }}
+                                        >
+                                          {cliente.id}
+                                        </span>
+                                      </div>
+                                    </SelectItem>
+                                  ))
+                                ) : (
+                                  <SelectItem value="none" disabled>
+                                    Sin clientes disponibles
+                                  </SelectItem>
+                                )}
+                              </SelectContent>
+                            </Select>
+                          )}
+                        />
 
                         {errors.clienteId && (
                           <p className="text-xs" style={{ color: "#C0392B" }}>
@@ -1351,75 +1565,403 @@ export default function AdvancedBudgetForm({
                           Registrar Nuevo Cliente
                         </h3>
                         <p className="text-sm" style={{ color: "#6C757D" }}>
-                          Complete la información básica
+                          Complete la información básica del cliente
                         </p>
                       </div>
 
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                          <label
-                            className="text-sm font-medium"
-                            style={{ color: "#2C3E50" }}
-                          >
-                            Nombre *
-                          </label>
-                          <Input
-                            placeholder="Nombre del cliente"
-                            {...register("clienteNuevo.nombre")}
-                            className="h-10"
-                            style={{ borderColor: "#E7F2E0" }}
-                          />
-                          {errors.clienteNuevo?.nombre && (
-                            <p className="text-xs" style={{ color: "#C0392B" }}>
-                              {errors.clienteNuevo.nombre.message}
-                            </p>
-                          )}
-                        </div>
+                      {/* Información Básica */}
+                      <div className="space-y-4">
+                        <h4 className="text-md font-medium text-gray-800 border-b border-gray-200 pb-2">
+                          Información Básica
+                        </h4>
 
-                        <div className="space-y-2">
-                          <label
-                            className="text-sm font-medium"
-                            style={{ color: "#2C3E50" }}
-                          >
-                            Dirección
-                          </label>
-                          <Input
-                            placeholder="Dirección (opcional)"
-                            {...register("clienteNuevo.direccion")}
-                            className="h-10"
-                            style={{ borderColor: "#E7F2E0" }}
-                          />
-                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <label
+                              className="text-sm font-medium"
+                              style={{ color: "#2C3E50" }}
+                            >
+                              Nombre o Razón Social *
+                            </label>
+                            <Input
+                              placeholder="Nombre del cliente o empresa"
+                              {...register("clienteNuevo.nombre")}
+                              className="h-10"
+                              style={{ borderColor: "#E7F2E0" }}
+                            />
+                            {errors.clienteNuevo?.nombre && (
+                              <p
+                                className="text-xs"
+                                style={{ color: "#C0392B" }}
+                              >
+                                {errors.clienteNuevo.nombre.message}
+                              </p>
+                            )}
+                          </div>
 
-                        <div className="space-y-2">
-                          <label
-                            className="text-sm font-medium"
-                            style={{ color: "#2C3E50" }}
-                          >
-                            Teléfono
-                          </label>
-                          <Input
-                            placeholder="Teléfono (opcional)"
-                            {...register("clienteNuevo.telefonos.0")}
-                            className="h-10"
-                            style={{ borderColor: "#E7F2E0" }}
-                          />
-                        </div>
+                          <div className="space-y-2">
+                            <label
+                              className="text-sm font-medium"
+                              style={{ color: "#2C3E50" }}
+                            >
+                              Dirección Fiscal o de Contacto
+                            </label>
+                            <Input
+                              placeholder="Dirección completa (opcional)"
+                              {...register("clienteNuevo.direccion")}
+                              className="h-10"
+                              style={{ borderColor: "#E7F2E0" }}
+                            />
+                          </div>
 
-                        <div className="space-y-2">
-                          <label
-                            className="text-sm font-medium"
-                            style={{ color: "#2C3E50" }}
-                          >
-                            Correo
-                          </label>
-                          <Input
-                            type="email"
-                            placeholder="correo@ejemplo.com (opcional)"
-                            {...register("clienteNuevo.correos.0")}
-                            className="h-10"
-                            style={{ borderColor: "#E7F2E0" }}
-                          />
+                          <div className="space-y-2">
+                            <label
+                              className="text-sm font-medium"
+                              style={{ color: "#2C3E50" }}
+                            >
+                              Representante Legal
+                            </label>
+                            <Input
+                              placeholder="Solo si es empresa (opcional)"
+                              {...register("clienteNuevo.representanteLegal")}
+                              className="h-10"
+                              style={{ borderColor: "#E7F2E0" }}
+                            />
+                          </div>
+
+                          <div className="space-y-2">
+                            <label
+                              className="text-sm font-medium"
+                              style={{ color: "#2C3E50" }}
+                            >
+                              Método de Pago
+                            </label>
+                            <Select
+                              value={
+                                watch("clienteNuevo.metodoPago") || "EFECTIVO"
+                              }
+                              onValueChange={(value: any) =>
+                                setValue("clienteNuevo.metodoPago", value)
+                              }
+                            >
+                              <SelectTrigger
+                                className="h-10"
+                                style={{ borderColor: "#E7F2E0" }}
+                              >
+                                <SelectValue placeholder="Seleccionar método de pago" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="EFECTIVO">
+                                  Efectivo
+                                </SelectItem>
+                                <SelectItem value="TRANSFERENCIA">
+                                  Transferencia
+                                </SelectItem>
+                                <SelectItem value="CHEQUE">Cheque</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Contacto para Pagos */}
+                      <div className="space-y-4">
+                        <h4 className="text-md font-medium text-gray-800 border-b border-gray-200 pb-2">
+                          Contacto para Seguimiento de Pagos
+                        </h4>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <label
+                              className="text-sm font-medium"
+                              style={{ color: "#2C3E50" }}
+                            >
+                              Nombre de Contacto
+                            </label>
+                            <Input
+                              placeholder="Persona responsable de pagos (opcional)"
+                              {...register("clienteNuevo.contactoPagos")}
+                              className="h-10"
+                              style={{ borderColor: "#E7F2E0" }}
+                            />
+                          </div>
+
+                          <div className="space-y-2">
+                            <label
+                              className="text-sm font-medium"
+                              style={{ color: "#2C3E50" }}
+                            >
+                              Teléfono de Contacto
+                            </label>
+                            <Input
+                              placeholder="4771234567 (10 dígitos, opcional)"
+                              {...register("clienteNuevo.telefonoPagos")}
+                              className="h-10"
+                              style={{ borderColor: "#E7F2E0" }}
+                              maxLength={10}
+                              onChange={(e) => {
+                                const value = e.target.value.replace(/\D/g, "");
+                                setValue("clienteNuevo.telefonoPagos", value);
+                              }}
+                            />
+                            {errors.clienteNuevo?.telefonoPagos && (
+                              <p
+                                className="text-xs"
+                                style={{ color: "#C0392B" }}
+                              >
+                                {errors.clienteNuevo.telefonoPagos.message}
+                              </p>
+                            )}
+                          </div>
+
+                          <div className="space-y-2 md:col-span-2">
+                            <label
+                              className="text-sm font-medium"
+                              style={{ color: "#2C3E50" }}
+                            >
+                              Correo para Facturas
+                            </label>
+                            <Input
+                              type="email"
+                              placeholder="facturacion@ejemplo.com (opcional)"
+                              {...register("clienteNuevo.correoFacturacion")}
+                              className="h-10"
+                              style={{ borderColor: "#E7F2E0" }}
+                            />
+                            {errors.clienteNuevo?.correoFacturacion && (
+                              <p
+                                className="text-xs"
+                                style={{ color: "#C0392B" }}
+                              >
+                                {errors.clienteNuevo.correoFacturacion.message}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Teléfonos y Correos Adicionales */}
+                      <div className="space-y-4">
+                        <h4 className="text-md font-medium text-gray-800 border-b border-gray-200 pb-2">
+                          Contactos Adicionales (Opcional)
+                        </h4>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <label
+                              className="text-sm font-medium"
+                              style={{ color: "#2C3E50" }}
+                            >
+                              Teléfono Adicional
+                            </label>
+                            <Input
+                              placeholder="4771234567 (10 dígitos, opcional)"
+                              {...register("clienteNuevo.telefonos.0")}
+                              className="h-10"
+                              style={{ borderColor: "#E7F2E0" }}
+                              maxLength={10}
+                              onChange={(e) => {
+                                const value = e.target.value.replace(/\D/g, "");
+                                setValue("clienteNuevo.telefonos.0", value);
+                              }}
+                            />
+                          </div>
+
+                          <div className="space-y-2">
+                            <label
+                              className="text-sm font-medium"
+                              style={{ color: "#2C3E50" }}
+                            >
+                              Correo Adicional
+                            </label>
+                            <Input
+                              type="email"
+                              placeholder="contacto@ejemplo.com (opcional)"
+                              {...register("clienteNuevo.correos.0")}
+                              className="h-10"
+                              style={{ borderColor: "#E7F2E0" }}
+                            />
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Datos de Facturación */}
+                      <div className="space-y-4">
+                        <h4 className="text-md font-medium text-gray-800 border-b border-gray-200 pb-2">
+                          Datos de Facturación (Opcional)
+                        </h4>
+                        <p className="text-xs text-gray-600">
+                          Solo complete si requiere facturar este presupuesto
+                        </p>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <label
+                              className="text-sm font-medium"
+                              style={{ color: "#2C3E50" }}
+                            >
+                              RFC
+                            </label>
+                            <Input
+                              placeholder="ABC123456789 (opcional)"
+                              {...register("clienteNuevo.datosFacturacion.rfc")}
+                              className="h-10"
+                              style={{ borderColor: "#E7F2E0" }}
+                              maxLength={13}
+                              onChange={(e) => {
+                                const value = e.target.value.toUpperCase();
+                                setValue(
+                                  "clienteNuevo.datosFacturacion.rfc",
+                                  value
+                                );
+                              }}
+                            />
+                            {errors.clienteNuevo?.datosFacturacion?.rfc && (
+                              <p
+                                className="text-xs"
+                                style={{ color: "#C0392B" }}
+                              >
+                                {
+                                  errors.clienteNuevo.datosFacturacion.rfc
+                                    .message
+                                }
+                              </p>
+                            )}
+                          </div>
+
+                          <div className="space-y-2">
+                            <label
+                              className="text-sm font-medium"
+                              style={{ color: "#2C3E50" }}
+                            >
+                              Régimen Fiscal
+                            </label>
+                            <Select
+                              value={
+                                watch(
+                                  "clienteNuevo.datosFacturacion.regimenFiscal"
+                                ) || "PERSONAS_MORALES"
+                              }
+                              onValueChange={(value: any) =>
+                                setValue(
+                                  "clienteNuevo.datosFacturacion.regimenFiscal",
+                                  value
+                                )
+                              }
+                            >
+                              <SelectTrigger
+                                className="h-10"
+                                style={{ borderColor: "#E7F2E0" }}
+                              >
+                                <SelectValue placeholder="Seleccionar régimen fiscal" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="PERSONAS_FISICAS_CON_ACTIVIDADES_EMPRESARIALES">
+                                  Personas Físicas con Actividades Empresariales
+                                </SelectItem>
+                                <SelectItem value="PERSONAS_MORALES">
+                                  Personas Morales
+                                </SelectItem>
+                                <SelectItem value="REGIMEN_SIMPLIFICADO_DE_CONFIANZA">
+                                  Régimen Simplificado de Confianza
+                                </SelectItem>
+                                <SelectItem value="PERSONAS_FISICAS_CON_ACTIVIDADES_PROFESIONALES">
+                                  Personas Físicas con Actividades Profesionales
+                                </SelectItem>
+                                <SelectItem value="REGIMEN_DE_INCORPORACION_FISCAL">
+                                  Régimen de Incorporación Fiscal
+                                </SelectItem>
+                                <SelectItem value="OTROS">Otros</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+
+                          <div className="space-y-2">
+                            <label
+                              className="text-sm font-medium"
+                              style={{ color: "#2C3E50" }}
+                            >
+                              Uso de CFDI
+                            </label>
+                            <Select
+                              value={
+                                watch(
+                                  "clienteNuevo.datosFacturacion.usoCfdi"
+                                ) || "GASTOS_EN_GENERAL"
+                              }
+                              onValueChange={(value: any) =>
+                                setValue(
+                                  "clienteNuevo.datosFacturacion.usoCfdi",
+                                  value
+                                )
+                              }
+                            >
+                              <SelectTrigger
+                                className="h-10"
+                                style={{ borderColor: "#E7F2E0" }}
+                              >
+                                <SelectValue placeholder="Seleccionar uso de CFDI" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="GASTOS_EN_GENERAL">
+                                  Gastos en General
+                                </SelectItem>
+                                <SelectItem value="EQUIPOS_DE_COMPUTO">
+                                  Equipos de Cómputo
+                                </SelectItem>
+                                <SelectItem value="HONORARIOS_MEDICOS">
+                                  Honorarios Médicos
+                                </SelectItem>
+                                <SelectItem value="GASTOS_MEDICOS">
+                                  Gastos Médicos
+                                </SelectItem>
+                                <SelectItem value="INTERESES_REALES">
+                                  Intereses Reales
+                                </SelectItem>
+                                <SelectItem value="DONACIONES">
+                                  Donaciones
+                                </SelectItem>
+                                <SelectItem value="OTROS">Otros</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+
+                          <div className="space-y-2">
+                            <label
+                              className="text-sm font-medium"
+                              style={{ color: "#2C3E50" }}
+                            >
+                              Tipo de Pago
+                            </label>
+                            <Select
+                              value={
+                                watch(
+                                  "clienteNuevo.datosFacturacion.tipoPago"
+                                ) || "PUE"
+                              }
+                              onValueChange={(value: any) =>
+                                setValue(
+                                  "clienteNuevo.datosFacturacion.tipoPago",
+                                  value
+                                )
+                              }
+                            >
+                              <SelectTrigger
+                                className="h-10"
+                                style={{ borderColor: "#E7F2E0" }}
+                              >
+                                <SelectValue placeholder="Seleccionar tipo de pago" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="PUE">
+                                  PUE - Pago en Una Sola Exhibición
+                                </SelectItem>
+                                <SelectItem value="PPD">
+                                  PPD - Pago en Parcialidades o Diferido
+                                </SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -1581,7 +2123,7 @@ export default function AdvancedBudgetForm({
                       htmlFor="alcance"
                       className="text-sm font-medium text-gray-700"
                     >
-                      Alcance del Proyecto
+                      Alcance del Proyecto *
                     </Label>
                     <Textarea
                       id="alcance"
@@ -1603,7 +2145,7 @@ export default function AdvancedBudgetForm({
                         htmlFor="direccion"
                         className="text-sm font-medium text-gray-700"
                       >
-                        Ubicación de la obra
+                        Ubicación de la obra *
                       </Label>
                       <Input
                         id="direccion"
@@ -1622,7 +2164,7 @@ export default function AdvancedBudgetForm({
                         htmlFor="contactoResponsable"
                         className="text-sm font-medium text-gray-700"
                       >
-                        Contacto Responsable
+                        Contacto Responsable *
                       </Label>
                       <Input
                         id="contactoResponsable"
@@ -3120,7 +3662,24 @@ export default function AdvancedBudgetForm({
 
                 <Button
                   type="button"
-                  onClick={() => setCurrentStep(Math.min(5, currentStep + 1))}
+                  onClick={async () => {
+                    // Validar el paso actual antes de avanzar
+                    const isStepValid = await validateStep(
+                      currentStep,
+                      getValues,
+                      trigger
+                    );
+                    if (isStepValid) {
+                      setCurrentStep(Math.min(5, currentStep + 1));
+                    } else {
+                      toast({
+                        title: "Campos obligatorios",
+                        description:
+                          "Por favor, completa todos los campos marcados con asterisco (*) antes de continuar.",
+                        variant: "destructive",
+                      });
+                    }
+                  }}
                   disabled={currentStep === 5}
                   className="flex items-center space-x-2 px-6 py-3 bg-green-600 text-white hover:bg-green-700"
                 >

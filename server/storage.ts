@@ -11,6 +11,11 @@ import type {
   Prisma,
   ConceptosJerarquicos,
   AreasJerarquicas,
+  DatosFacturacion,
+  MetodoPago,
+  RegimenFiscal,
+  UsoCFDI,
+  TipoPago,
 } from "../generated/prisma";
 
 // Clientes con contactos (full)
@@ -20,6 +25,7 @@ async function getAllClientesFull(): Promise<ClienteWithContacts[]> {
       include: {
         telefonos: true,
         correos: true,
+        datosFacturacion: true,
       },
       orderBy: { fechaRegistro: "desc" },
     });
@@ -35,6 +41,7 @@ type ClienteWithContacts = Prisma.ClienteGetPayload<{
   include: {
     telefonos: true;
     correos: true;
+    datosFacturacion: true;
   };
 }>;
 
@@ -102,6 +109,7 @@ async function getAllClientes(): Promise<ClienteWithContacts[]> {
     include: {
       telefonos: true,
       correos: true,
+      datosFacturacion: true,
     },
     orderBy: { fechaRegistro: "desc" },
   });
@@ -113,20 +121,32 @@ async function getClienteById(id: number): Promise<ClienteWithContacts | null> {
     include: {
       telefonos: true,
       correos: true,
+      datosFacturacion: true,
     },
   });
 }
 
 
-// Permite crear cliente con telefonos y correos
+// Permite crear cliente con telefonos, correos y datos de facturación
 async function createCliente(data: {
   nombre: string;
   direccion?: string;
+  representanteLegal?: string;
+  contactoPagos?: string;
+  telefonoPagos?: string;
+  metodoPago?: MetodoPago;
+  correoFacturacion?: string;
   activo?: boolean;
   telefonos?: { telefono: string }[];
   correos?: { correo: string }[];
+  datosFacturacion?: {
+    rfc: string;
+    regimenFiscal: RegimenFiscal;
+    usoCfdi: UsoCFDI;
+    tipoPago: TipoPago;
+  };
 }): Promise<ClienteWithContacts> {
-  const { telefonos, correos, ...clienteData } = data;
+  const { telefonos, correos, datosFacturacion, ...clienteData } = data;
   return await prisma.cliente.create({
     data: {
       ...clienteData,
@@ -136,30 +156,48 @@ async function createCliente(data: {
       correos: correos && correos.length > 0 ? {
         create: correos.map(c => ({ correo: c.correo }))
       } : undefined,
+      datosFacturacion: datosFacturacion ? {
+        create: datosFacturacion
+      } : undefined,
     },
     include: {
       telefonos: true,
       correos: true,
+      datosFacturacion: true,
     }
   });
 }
 
 
-// Permite actualizar cliente y reemplazar telefonos/correos
+// Permite actualizar cliente y reemplazar telefonos/correos/datos de facturación
 async function updateCliente(
   id: number,
   data: {
     nombre?: string;
     direccion?: string;
+    representanteLegal?: string;
+    contactoPagos?: string;
+    telefonoPagos?: string;
+    metodoPago?: MetodoPago;
+    correoFacturacion?: string;
     activo?: boolean;
     telefonos?: { telefono: string }[];
     correos?: { correo: string }[];
+    datosFacturacion?: {
+      rfc: string;
+      regimenFiscal: RegimenFiscal;
+      usoCfdi: UsoCFDI;
+      tipoPago: TipoPago;
+    };
   },
 ): Promise<ClienteWithContacts> {
-  const { telefonos, correos, ...clienteData } = data;
-  // Borra los teléfonos y correos existentes y crea los nuevos
+  const { telefonos, correos, datosFacturacion, ...clienteData } = data;
+  
+  // Borra los teléfonos, correos y datos de facturación existentes
   await prisma.telefono.deleteMany({ where: { clienteId: id } });
   await prisma.correo.deleteMany({ where: { clienteId: id } });
+  await prisma.datosFacturacion.deleteMany({ where: { clienteId: id } });
+  
   return await prisma.cliente.update({
     where: { id },
     data: {
@@ -170,10 +208,14 @@ async function updateCliente(
       correos: correos && correos.length > 0 ? {
         create: correos.map(c => ({ correo: c.correo }))
       } : undefined,
+      datosFacturacion: datosFacturacion ? {
+        create: datosFacturacion
+      } : undefined,
     },
     include: {
       telefonos: true,
       correos: true,
+      datosFacturacion: true,
     }
   });
 }
@@ -213,6 +255,40 @@ async function createCorreo(data: {
 async function deleteCorreo(id: number): Promise<void> {
   await prisma.correo.delete({
     where: { id },
+  });
+}
+
+// Datos de Facturación
+async function createDatosFacturacion(data: {
+  clienteId: number;
+  rfc: string;
+  regimenFiscal: RegimenFiscal;
+  usoCfdi: UsoCFDI;
+  tipoPago: TipoPago;
+}): Promise<DatosFacturacion> {
+  return await prisma.datosFacturacion.create({
+    data,
+  });
+}
+
+async function updateDatosFacturacion(
+  clienteId: number,
+  data: {
+    rfc?: string;
+    regimenFiscal?: RegimenFiscal;
+    usoCfdi?: UsoCFDI;
+    tipoPago?: TipoPago;
+  }
+): Promise<DatosFacturacion> {
+  return await prisma.datosFacturacion.update({
+    where: { clienteId },
+    data,
+  });
+}
+
+async function deleteDatosFacturacion(clienteId: number): Promise<void> {
+  await prisma.datosFacturacion.delete({
+    where: { clienteId },
   });
 }
 
@@ -736,6 +812,11 @@ const storage = {
   createCliente,
   updateCliente,
   deleteCliente,
+
+  // Datos de Facturación
+  createDatosFacturacion,
+  updateDatosFacturacion,
+  deleteDatosFacturacion,
 
   // Telefonos
   createTelefono,

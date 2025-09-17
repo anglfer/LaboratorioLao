@@ -137,11 +137,11 @@ export default function BudgetsNew() {
     let filtered = budgets.filter((budget) => {
       const matchesSearch =
         !searchTerm ||
-        budget.claveObra?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        budget.obra?.clave?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         budget.cliente?.nombre
           ?.toLowerCase()
           .includes(searchTerm.toLowerCase()) ||
-        budget.descripcionObra
+        budget.obra?.descripcion
           ?.toLowerCase()
           .includes(searchTerm.toLowerCase()) ||
         budget.nombreContratista
@@ -166,10 +166,12 @@ export default function BudgetsNew() {
 
     // Sorting
     filtered.sort((a, b) => {
-      let aValue = a[sortField];
-      let bValue = b[sortField];
+      let aValue, bValue;
 
-      if (sortField === "cliente") {
+      if (sortField === "claveObra") {
+        aValue = a.obra?.clave || "";
+        bValue = b.obra?.clave || "";
+      } else if (sortField === "cliente") {
         aValue = a.cliente?.nombre || "";
         bValue = b.cliente?.nombre || "";
       } else if (sortField === "total") {
@@ -179,8 +181,11 @@ export default function BudgetsNew() {
         sortField === "fechaSolicitud" ||
         sortField === "fechaInicio"
       ) {
-        aValue = new Date(aValue).getTime();
-        bValue = new Date(bValue).getTime();
+        aValue = new Date(a[sortField]).getTime();
+        bValue = new Date(b[sortField]).getTime();
+      } else {
+        aValue = a[sortField];
+        bValue = b[sortField];
       }
 
       if (sortDirection === "asc") {
@@ -255,19 +260,21 @@ export default function BudgetsNew() {
         // Convertir IVA a decimal si viene como porcentaje
         iva: data.iva > 1 ? data.iva / 100 : data.iva,
         // Asegurar que los valores monetarios sean números
-        subtotal: parseFloat(data.subtotal?.toString() || '0'),
-        ivaMonto: parseFloat(data.ivaMonto?.toString() || '0'),
-        total: parseFloat(data.total?.toString() || '0'),
-        porcentajeAnticipo: data.porcentajeAnticipo ? parseFloat(data.porcentajeAnticipo?.toString()) : null,
+        subtotal: parseFloat(data.subtotal?.toString() || "0"),
+        ivaMonto: parseFloat(data.ivaMonto?.toString() || "0"),
+        total: parseFloat(data.total?.toString() || "0"),
+        porcentajeAnticipo: data.porcentajeAnticipo
+          ? parseFloat(data.porcentajeAnticipo?.toString())
+          : null,
       };
 
-      console.log('[BudgetsNew] Enviando datos normalizados:', normalizedData);
+      console.log("[BudgetsNew] Enviando datos normalizados:", normalizedData);
 
       const response = await fetch("/api/presupuestos", {
         method: "POST",
         body: JSON.stringify(normalizedData),
         headers: { "Content-Type": "application/json" },
-        credentials: 'include', // Agregar credentials para autenticación
+        credentials: "include", // Agregar credentials para autenticación
       });
 
       if (!response.ok) {
@@ -309,19 +316,24 @@ export default function BudgetsNew() {
         // Convertir IVA a decimal si viene como porcentaje
         iva: data.iva > 1 ? data.iva / 100 : data.iva,
         // Asegurar que los valores monetarios sean números
-        subtotal: parseFloat(data.subtotal?.toString() || '0'),
-        ivaMonto: parseFloat(data.ivaMonto?.toString() || '0'),
-        total: parseFloat(data.total?.toString() || '0'),
-        porcentajeAnticipo: data.porcentajeAnticipo ? parseFloat(data.porcentajeAnticipo?.toString()) : null,
+        subtotal: parseFloat(data.subtotal?.toString() || "0"),
+        ivaMonto: parseFloat(data.ivaMonto?.toString() || "0"),
+        total: parseFloat(data.total?.toString() || "0"),
+        porcentajeAnticipo: data.porcentajeAnticipo
+          ? parseFloat(data.porcentajeAnticipo?.toString())
+          : null,
       };
 
-      console.log('[BudgetsNew] Actualizando con datos normalizados:', normalizedData);
+      console.log(
+        "[BudgetsNew] Actualizando con datos normalizados:",
+        normalizedData
+      );
 
       const response = await fetch(`/api/presupuestos/${editingBudget?.id}`, {
         method: "PUT",
         body: JSON.stringify(normalizedData),
         headers: { "Content-Type": "application/json" },
-        credentials: 'include', // Agregar credentials para autenticación
+        credentials: "include", // Agregar credentials para autenticación
       });
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
@@ -355,7 +367,7 @@ export default function BudgetsNew() {
     mutationFn: async (id: number) => {
       const response = await fetch(`/api/presupuestos/${id}`, {
         method: "DELETE",
-        credentials: 'include', // Agregar credentials para autenticación
+        credentials: "include", // Agregar credentials para autenticación
       });
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
@@ -1039,9 +1051,9 @@ export default function BudgetsNew() {
                             />
                           </TableCell>
                           <TableCell className="font-mono text-sm">
-                            {budget.claveObra ? (
+                            {budget.obra?.clave ? (
                               <span style={{ color: BRAND_COLORS.textPrimary }}>
-                                {budget.claveObra}
+                                {budget.obra.clave}
                               </span>
                             ) : (
                               <span
@@ -1116,10 +1128,10 @@ export default function BudgetsNew() {
                                   WebkitBoxOrient: "vertical" as any,
                                 }}
                               >
-                                {budget.descripcionObra || "Sin descripción"}
+                                {budget.obra?.descripcion || "Sin descripción"}
                               </div>
                               {shouldShowExpandButton(
-                                budget.descripcionObra
+                                budget.obra?.descripcion
                               ) && (
                                 <button
                                   onClick={() => toggleDescription(budget.id)}

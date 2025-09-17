@@ -653,6 +653,11 @@ export function registerRoutes(app: Express): Promise<Server> {
               nombre: presupuestoData.descripcionObra || `Obra ${claveObra}`,
               descripcion: presupuestoData.descripcionObra,
               contratista: presupuestoData.nombreContratista,
+              direccion: presupuestoData.direccion,
+              alcance: presupuestoData.alcance,
+              contacto: presupuestoData.contactoResponsable,
+              responsable: presupuestoData.contactoResponsable,
+              clienteId: presupuestoData.clienteId,
               estado: 1,
             });
             console.log(

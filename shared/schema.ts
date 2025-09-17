@@ -12,19 +12,64 @@ export const presupuestoEstadoEnum = z.enum([
 ]);
 export const detalleEstadoEnum = z.enum(["en_proceso", "hecho"]);
 
+// Enums para cliente
+export const metodoPagoEnum = z.enum([
+  "EFECTIVO",
+  "TRANSFERENCIA", 
+  "CHEQUE"
+]);
+
+export const regimenFiscalEnum = z.enum([
+  "PERSONAS_FISICAS_CON_ACTIVIDADES_EMPRESARIALES",
+  "PERSONAS_MORALES",
+  "REGIMEN_SIMPLIFICADO_DE_CONFIANZA", 
+  "PERSONAS_FISICAS_CON_ACTIVIDADES_PROFESIONALES",
+  "REGIMEN_DE_INCORPORACION_FISCAL",
+  "OTROS"
+]);
+
+export const usoCFDIEnum = z.enum([
+  "GASTOS_EN_GENERAL",
+  "EQUIPOS_DE_COMPUTO",
+  "HONORARIOS_MEDICOS",
+  "GASTOS_MEDICOS",
+  "INTERESES_REALES",
+  "DONACIONES",
+  "OTROS"
+]);
+
+export const tipoPagoEnum = z.enum([
+  "PUE", // Pago en Una Sola Exhibición
+  "PPD"  // Pago en Parcialidades o Diferido
+]);
+
 // Regex patterns
-const phoneRegex = /^(?:\+52|52)?[0-9]{10}$/;
+const phoneRegex = /^[0-9]{10}$/; // Simplificado: solo 10 dígitos
 const emailRegex = /^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+const rfcRegex = /^[A-ZÑ&]{3,4}[0-9]{6}[A-Z0-9]{3}$/; // RFC simplificado: 3-4 letras + 6 números + 3 caracteres
+
+// Schema para datos de facturación
+export const insertDatosFacturacionSchema = z.object({
+  rfc: z.string().regex(rfcRegex, "RFC inválido. Formato: ABC123456789 (3-4 letras + 6 números + 3 caracteres)"),
+  regimenFiscal: regimenFiscalEnum,
+  usoCfdi: usoCFDIEnum,
+  tipoPago: tipoPagoEnum.default("PUE"),
+});
 
 // Insert schemas for validation
 export const insertClienteSchema = z.object({
-  nombre: z.string().min(2, "El nombre del cliente es requerido"),
-  direccion: z.string().optional(),
+  nombre: z.string().min(2, "El nombre o razón social es requerido"),
+  direccion: z.string().optional(), // Dirección Fiscal o de Contacto u Oficina
+  representanteLegal: z.string().optional(), // Nombre del Representante Legal
+  contactoPagos: z.string().optional(), // Nombre de Contacto para Seguimiento a Pagos
+  telefonoPagos: z.string().regex(phoneRegex, "Teléfono inválido. Debe tener 10 dígitos").optional(), // Teléfono de Contacto para Seguimiento a Pagos
+  metodoPago: metodoPagoEnum.default("EFECTIVO"), // Método de Pago
+  correoFacturacion: z.string().regex(emailRegex, "Correo de facturación inválido").optional(), // Correo para Facturas
   activo: z.boolean().default(true),
   telefonos: z.array(z.object({
     telefono: z.string().regex(
       phoneRegex,
-      "El teléfono debe tener 10 dígitos (ej: 4771234567 o +524771234567)",
+      "El teléfono debe tener 10 dígitos (ej: 4771234567)",
     ),
   })).optional().default([]),
   correos: z.array(z.object({
@@ -33,6 +78,7 @@ export const insertClienteSchema = z.object({
       "Debe ser un correo electrónico válido",
     ),
   })).optional().default([]),
+  datosFacturacion: insertDatosFacturacionSchema.optional(), // Datos de facturación opcionales
 });
 
 export const insertTelefonoSchema = z.object({
@@ -41,7 +87,7 @@ export const insertTelefonoSchema = z.object({
     .string()
     .regex(
       phoneRegex,
-      "El teléfono debe tener 10 dígitos (ej: 4771234567 o +524771234567)",
+      "El teléfono debe tener 10 dígitos (ej: 4771234567)",
     ),
 });
 
