@@ -9,6 +9,7 @@ import { prisma } from "./prisma";
 import bcrypt from "bcryptjs";
 import rutasAreas from './routes-areas.js';
 import rutasConceptos from './routes-conceptos.js';
+import rutasProgramacion from './routes-programming.js';
 import { PDFService } from './pdf-service';
 import { generatePresupuestoHTML } from './pdf-template';
 import {
@@ -66,6 +67,9 @@ export function registerRoutes(app: Express): Promise<Server> {
   // Registrar las nuevas rutas jerárquicas
   app.use('/api', rutasAreas);
   app.use('/api', rutasConceptos);
+  
+  // Registrar rutas del módulo de programación
+  app.use('/api', rutasProgramacion);
   
   // Dashboard routes
   app.get("/api/dashboard/stats", async (_req, res) => {

@@ -141,6 +141,7 @@ interface PresupuestoData {
   alcance?: string;
   fechaSolicitud?: string;
   estado?: string;
+  tipoAprobacion?: string;
   subtotal?: number;
   iva?: number;
   ivaMonto?: number;
@@ -461,6 +462,25 @@ const PresupuestoPDF: React.FC<PresupuestoPDFProps> = ({
               {(presupuesto.estado || "borrador").toUpperCase()}
             </span>
           </div>
+          {presupuesto.estado === "aprobado" && presupuesto.tipoAprobacion && (
+            <div style={{ marginBottom: "8px", fontSize: "11px" }}>
+              <span
+                style={{
+                  fontWeight: "bold",
+                  color: "#555",
+                  display: "inline-block",
+                  width: "100px",
+                }}
+              >
+                Tipo Aprobación:
+              </span>
+              <span style={{ color: "#333" }}>
+                {presupuesto.tipoAprobacion === "cliente" 
+                  ? "APROBADO POR EL CLIENTE" 
+                  : "APROBACIÓN INTERNA"}
+              </span>
+            </div>
+          )}
           <div style={{ marginBottom: "8px", fontSize: "11px" }}>
             <span
               style={{

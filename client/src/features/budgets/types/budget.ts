@@ -18,6 +18,7 @@ export interface Budget {
   fechaSolicitud?: Date;
   fechaInicio?: Date;
   razonRechazo?: string; // Nuevo campo para la razón de rechazo
+  tipoAprobacion?: TipoAprobacion; // Nuevo campo para el tipo de aprobación
   cliente?: Client;
   obra?: Project;
   // Usuario que creó el presupuesto
@@ -86,6 +87,9 @@ export type BudgetStatus =
   | "aprobado"
   | "rechazado"
   | "finalizado";
+
+export type TipoAprobacion = "cliente" | "interno";
+
 export type DetailStatus = "en_proceso" | "completado" | "cancelado";
 
 export interface BudgetFormData {

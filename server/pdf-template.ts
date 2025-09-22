@@ -29,6 +29,7 @@ export interface PresupuestoData {
   // Campos del presupuesto (estructura normalizada)
   fechaSolicitud?: string | Date | null;
   estado?: string | null;
+  tipoAprobacion?: string | null;
   subtotal?: number | null;
   iva?: number | null;
   ivaMonto?: number | null;
@@ -699,6 +700,12 @@ export function generatePresupuestoHTML(
                     <span class="info-label">Estado del Presupuesto:</span>
                     <span class="info-value">${(presupuesto.estado || 'borrador').toUpperCase()}</span>
                 </div>
+                ${presupuesto.estado === 'aprobado' && presupuesto.tipoAprobacion ? `
+                <div class="info-item">
+                    <span class="info-label">Tipo de Aprobación:</span>
+                    <span class="info-value">${presupuesto.tipoAprobacion === 'cliente' ? 'APROBADO POR EL CLIENTE' : 'APROBACIÓN INTERNA'}</span>
+                </div>
+                ` : ''}
                 ${presupuesto.obra?.estado ? `
                 <div class="info-item">
                     <span class="info-label">Estado de la Obra:</span>

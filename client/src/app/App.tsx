@@ -11,6 +11,9 @@ import BudgetPDFPreview from "../features/budgets/pages/BudgetPDFPreview";
 import { SistemaJerarquicoPage } from "../features/concepts";
 import ClientesPage from "../features/clientes/ClientesPage";
 import { ObrasNew } from "../features/obras";
+import ProgrammingDashboard from "../features/programming/pages/ProgrammingDashboard";
+import ProgrammingList from "../features/programming/pages/ProgrammingList";
+import ProgrammingNew from "../features/programming/pages/ProgrammingNew";
 import NotFound from "./not-found";
 import {
   AuthProvider,
@@ -50,6 +53,20 @@ function AuthenticatedRouter() {
           path="/admin/configuracion"
           element={<div>Configuración - En desarrollo</div>}
         />
+
+        {/* Rutas del módulo de programación */}
+        <Route path="/programacion" element={<ProgrammingDashboard />} />
+        <Route path="/programacion/lista" element={<ProgrammingList />} />
+        <Route path="/programacion/nueva" element={<ProgrammingNew />} />
+        <Route
+          path="/programacion/:id"
+          element={<div>Ver Programación - En desarrollo</div>}
+        />
+        <Route
+          path="/programacion/:id/editar"
+          element={<div>Editar Programación - En desarrollo</div>}
+        />
+
         {/* Rutas de recepcionista */}
         <Route path="/recepcionista/presupuestos" element={<BudgetsNew />} />
         <Route

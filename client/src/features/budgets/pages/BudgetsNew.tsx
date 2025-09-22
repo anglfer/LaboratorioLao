@@ -27,6 +27,7 @@ import {
 } from "../../../shared/components/ui/dialog";
 import { Input } from "../../../shared/components/ui/input";
 import { Label } from "../../../shared/components/ui/label";
+import ApprovalModal from "../components/ApprovalModal";
 import {
   Select,
   SelectContent,
@@ -85,6 +86,7 @@ import {
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { useAuth } from "../../dashboard/hooks/useAuth";
+import { TipoAprobacion } from "../types/budget";
 
 export default function BudgetsNew() {
   const { usuario } = useAuth();
@@ -107,6 +109,10 @@ export default function BudgetsNew() {
   const [rejectingBudget, setRejectingBudget] = useState<any>(null);
   const [rejectReason, setRejectReason] = useState("");
   const [customRejectReason, setCustomRejectReason] = useState("");
+
+  // Estados para el modal de aprobación
+  const [showApprovalModal, setShowApprovalModal] = useState(false);
+  const [approvingBudget, setApprovingBudget] = useState<any>(null);
 
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -479,6 +485,23 @@ export default function BudgetsNew() {
     setCustomRejectReason("");
   };
 
+  // Funciones para el modal de aprobación
+  const handleOpenApprovalModal = (budget: any) => {
+    setApprovingBudget(budget);
+    setShowApprovalModal(true);
+  };
+
+  const handleConfirmApproval = (tipoAprobacion: TipoAprobacion) => {
+    updateStatusMutation.mutate({
+      id: approvingBudget.id,
+      estado: "aprobado",
+      tipoAprobacion,
+    });
+
+    setShowApprovalModal(false);
+    setApprovingBudget(null);
+  };
+
   const handleExportPDF = async (id: number) => {
     try {
       console.log(`[PDF] Iniciando exportación para presupuesto ${id}`);
@@ -644,14 +667,19 @@ export default function BudgetsNew() {
       id,
       estado,
       razonRechazo,
+      tipoAprobacion,
     }: {
       id: number;
       estado: string;
       razonRechazo?: string;
+      tipoAprobacion?: TipoAprobacion;
     }) => {
       const updateData: any = { estado };
       if (razonRechazo) {
         updateData.razonRechazo = razonRechazo;
+      }
+      if (tipoAprobacion) {
+        updateData.tipoAprobacion = tipoAprobacion;
       }
 
       const response = await fetch(`/api/presupuestos/${id}`, {
@@ -977,6 +1005,18 @@ export default function BudgetsNew() {
                           </div>
                         </TableHead>
                         <TableHead
+                          className="w-32"
+                          style={{ color: BRAND_COLORS.textPrimary }}
+                        >
+                          <div className="flex items-center space-x-1">
+                            <CheckCircle
+                              className="h-4 w-4"
+                              style={{ color: BRAND_COLORS.primary }}
+                            />
+                            <span>Tipo Aprobación</span>
+                          </div>
+                        </TableHead>
+                        <TableHead
                           className="cursor-pointer hover:opacity-75 transition-opacity w-28"
                           onClick={() => handleSort("fechaSolicitud")}
                           style={{ color: BRAND_COLORS.textPrimary }}
@@ -1169,6 +1209,38 @@ export default function BudgetsNew() {
                             className="text-sm"
                             style={{ color: BRAND_COLORS.textSecondary }}
                           >
+                            {budget.estado === "aprobado" && budget.tipoAprobacion ? (
+                              <Badge
+                                variant={budget.tipoAprobacion === "cliente" ? "default" : "secondary"}
+                                className="text-xs"
+                                style={{
+                                  backgroundColor: budget.tipoAprobacion === "cliente" 
+                                    ? "#E3F2FD" : "#F3E5F5",
+                                  color: budget.tipoAprobacion === "cliente" 
+                                    ? "#1976D2" : "#7B1FA2",
+                                  border: `1px solid ${budget.tipoAprobacion === "cliente" 
+                                    ? "#BBDEFB" : "#E1BEE7"}`
+                                }}
+                              >
+                                <div className="flex items-center space-x-1">
+                                  {budget.tipoAprobacion === "cliente" ? (
+                                    <User className="h-3 w-3" />
+                                  ) : (
+                                    <Building className="h-3 w-3" />
+                                  )}
+                                  <span>
+                                    {budget.tipoAprobacion === "cliente" ? "Cliente" : "Interno"}
+                                  </span>
+                                </div>
+                              </Badge>
+                            ) : (
+                              <span className="text-gray-400">-</span>
+                            )}
+                          </TableCell>
+                          <TableCell
+                            className="text-sm"
+                            style={{ color: BRAND_COLORS.textSecondary }}
+                          >
                             {budget.fechaSolicitud
                               ? format(
                                   new Date(budget.fechaSolicitud),
@@ -1258,10 +1330,7 @@ export default function BudgetsNew() {
                                     <>
                                       <DropdownMenuItem
                                         onClick={() =>
-                                          updateStatusMutation.mutate({
-                                            id: budget.id,
-                                            estado: "aprobado",
-                                          })
+                                          handleOpenApprovalModal(budget)
                                         }
                                       >
                                         <CheckCircle className="h-4 w-4 mr-2" />
@@ -1549,6 +1618,15 @@ export default function BudgetsNew() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Modal de Aprobación */}
+      <ApprovalModal
+        isOpen={showApprovalModal}
+        onClose={() => setShowApprovalModal(false)}
+        onConfirm={handleConfirmApproval}
+        budget={approvingBudget}
+        isLoading={updateStatusMutation.isPending}
+      />
     </div>
   );
 }

@@ -135,6 +135,7 @@ model Obra {
   area                 Area     @relation(fields: [areaCodigo], references: [codigo])
   cliente              Cliente? @relation(fields: [clienteId], references: [id])
   presupuestos         Presupuesto[]
+  programaciones       Programacion[]
 
   @@index([areaCodigo], name: "idx_obra_area_codigo")
   @@index([clienteId], name: "idx_obra_cliente_id")
@@ -172,6 +173,7 @@ model Presupuesto {
   estado           PresupuestoEstado?   @default(borrador)
   fechaSolicitud   DateTime?            @db.Timestamp(0) @default(now()) @map("fecha_solicitud")
   razonRechazo     String?              @db.Text @map("razon_rechazo")
+  tipoAprobacion   TipoAprobacion?      @map("tipo_aprobacion")
   updatedAt        DateTime             @updatedAt @map("updated_at")
   
   // Relaciones
@@ -180,6 +182,7 @@ model Presupuesto {
   usuario          Usuario?             @relation("UsuarioPresupuestosCreados", fields: [usuarioId], references: [id])
   ultimoUsuario    Usuario?             @relation("UsuarioPresupuestosUltimaMod", fields: [ultimoUsuarioId], references: [id])
   detalles         PresupuestoDetalle[]
+  programaciones   Programacion[]
 
   @@index([claveObra], name: "idx_presupuestos_clave_obra")
   @@index([usuarioId], name: "idx_presupuestos_usuario_id")
@@ -192,6 +195,11 @@ enum PresupuestoEstado {
   aprobado
   rechazado
   finalizado
+}
+
+enum TipoAprobacion {
+  cliente
+  interno
 }
 
 model PresupuestoDetalle {
@@ -232,6 +240,8 @@ model Usuario {
   role             Role     @relation(fields: [rolId], references: [id])
   presupuestosCreados     Presupuesto[] @relation("UsuarioPresupuestosCreados")
   presupuestosUltimaMod   Presupuesto[] @relation("UsuarioPresupuestosUltimaMod")
+  programacionesCreadas   Programacion[] @relation("UsuarioProgramacionesCreadas")
+  programacionesActualizadas Programacion[] @relation("UsuarioProgramacionesActualizadas")
 
   @@index([rolId], name: "idx_usuario_rol")
   @@index([email], name: "idx_usuario_email")
@@ -282,8 +292,173 @@ model ConceptosJerarquicos {
   
   // Relaciones con presupuestos
   detalles        PresupuestoDetalle[]
+  programacionDetalles ProgramacionDetalle[]
   
   @@index([areaId], name: "idx_conceptos_area_id")
   @@index([codigo], name: "idx_conceptos_codigo")
   @@map("conceptos_jerarquicos")
+}
+
+// ========== MÓDULO DE PROGRAMACIÓN ==========
+
+// Tabla de Brigadistas
+model Brigadista {
+  id                 Int      @id @default(autoincrement())
+  nombre             String   @db.VarChar(100)
+  apellidos          String   @db.VarChar(100)
+  telefono           String?  @db.VarChar(20)
+  email              String?  @db.VarChar(255)
+  activo             Boolean  @default(true)
+  fechaRegistro      DateTime @default(now()) @map("fecha_registro")
+  fechaActualizacion DateTime @updatedAt @map("fecha_actualizacion")
+  
+  // Relaciones
+  programacionesPrincipal  Programacion[] @relation("BrigadistaPrincipal")
+  programacionesApoyo      Programacion[] @relation("BrigadistaApoyo")
+  
+  @@index([activo], name: "idx_brigadista_activo")
+  @@map("brigadistas")
+}
+
+// Tabla de Vehículos
+model Vehiculo {
+  id                 Int      @id @default(autoincrement())
+  clave              String   @unique @db.VarChar(20)
+  marca              String?  @db.VarChar(50)
+  modelo             String?  @db.VarChar(50)
+  año                Int?
+  placas             String?  @db.VarChar(15)
+  activo             Boolean  @default(true)
+  fechaRegistro      DateTime @default(now()) @map("fecha_registro")
+  fechaActualizacion DateTime @updatedAt @map("fecha_actualizacion")
+  
+  // Relaciones
+  programaciones     Programacion[]
+  
+  @@index([activo], name: "idx_vehiculo_activo")
+  @@index([clave], name: "idx_vehiculo_clave")
+  @@map("vehiculos")
+}
+
+// Estados de la programación
+enum EstadoProgramacion {
+  programada
+  en_proceso
+  completada
+  cancelada
+  reprogramada
+}
+
+// Tipos de recolección
+enum TipoRecoleccion {
+  metros_cuadrados
+  metros_cubicos
+  metros_lineales
+  sondeo
+  piezas
+  condensacion
+}
+
+// Tipos de programación
+enum TipoProgramacion {
+  obra_por_visita
+  obra_por_estancia
+}
+
+// Tabla principal de Programaciones
+model Programacion {
+  id                    Int                 @id @default(autoincrement())
+  // Vinculación con presupuesto aprobado
+  presupuestoId         Int                 @map("presupuesto_id")
+  claveObra             String              @db.VarChar(20) @map("clave_obra")
+  
+  // Información temporal
+  fechaProgramada       DateTime            @map("fecha_programada")
+  horaProgramada        String              @db.VarChar(10) @map("hora_programada") // "HH:MM"
+  tipoProgramacion      TipoProgramacion    @map("tipo_programacion")
+  
+  // Información de contacto
+  nombreResidente       String?             @db.VarChar(255) @map("nombre_residente")
+  telefonoResidente     String?             @db.VarChar(20) @map("telefono_residente")
+  observacionesIniciales String?            @db.Text @map("observaciones_iniciales")
+  
+  // Asignación de recursos
+  brigadistaPrincipalId Int                 @map("brigadista_principal_id")
+  brigadistaApoyoId     Int?                @map("brigadista_apoyo_id")
+  vehiculoId            Int                 @map("vehiculo_id")
+  claveEquipo           String?             @db.VarChar(50) @map("clave_equipo")
+  herramientasEspeciales String?           @db.Text @map("herramientas_especiales")
+  
+  // Observaciones y notas
+  observacionesProgramacion String?         @db.Text @map("observaciones_programacion")
+  instruccionesBrigadista   String?         @db.Text @map("instrucciones_brigadista")
+  condicionesEspeciales     String?         @db.Text @map("condiciones_especiales")
+  
+  // Estado y seguimiento
+  estado                EstadoProgramacion  @default(programada)
+  motivoCancelacion     String?             @db.Text @map("motivo_cancelacion")
+  observacionesComplecion String?           @db.Text @map("observaciones_complecion")
+  
+  // Fechas de control
+  fechaCreacion         DateTime            @default(now()) @map("fecha_creacion")
+  fechaActualizacion    DateTime            @updatedAt @map("fecha_actualizacion")
+  fechaInicio           DateTime?           @map("fecha_inicio")
+  fechaComplecion       DateTime?           @map("fecha_complecion")
+  
+  // Usuario que creó la programación
+  creadoPor             Int?                @map("creado_por")
+  actualizadoPor        Int?                @map("actualizado_por")
+  
+  // Relaciones
+  presupuesto           Presupuesto         @relation(fields: [presupuestoId], references: [id])
+  obra                  Obra                @relation(fields: [claveObra], references: [clave])
+  brigadistaPrincipal   Brigadista          @relation("BrigadistaPrincipal", fields: [brigadistaPrincipalId], references: [id])
+  brigadistaApoyo       Brigadista?         @relation("BrigadistaApoyo", fields: [brigadistaApoyoId], references: [id])
+  vehiculo              Vehiculo            @relation(fields: [vehiculoId], references: [id])
+  usuarioCreador        Usuario?            @relation("UsuarioProgramacionesCreadas", fields: [creadoPor], references: [id])
+  usuarioActualizador   Usuario?            @relation("UsuarioProgramacionesActualizadas", fields: [actualizadoPor], references: [id])
+  
+  // Detalles de actividades/conceptos
+  detalles              ProgramacionDetalle[]
+  
+  @@index([presupuestoId], name: "idx_programacion_presupuesto_id")
+  @@index([claveObra], name: "idx_programacion_clave_obra")
+  @@index([estado], name: "idx_programacion_estado")
+  @@index([fechaProgramada], name: "idx_programacion_fecha_programada")
+  @@index([brigadistaPrincipalId], name: "idx_programacion_brigadista_principal")
+  @@index([vehiculoId], name: "idx_programacion_vehiculo")
+  @@map("programaciones")
+}
+
+// Detalles de las actividades/conceptos en cada programación
+model ProgramacionDetalle {
+  id                    Int                 @id @default(autoincrement())
+  programacionId        Int                 @map("programacion_id")
+  conceptoCodigo        String              @db.VarChar(50) @map("concepto_codigo")
+  
+  // Configuración de muestras
+  cantidadMuestras      Int                 @map("cantidad_muestras")
+  tipoRecoleccion       TipoRecoleccion     @map("tipo_recoleccion")
+  distribucionMuestras  String?             @db.Text @map("distribucion_muestras") // JSON o descripción
+  
+  // Resultados (se llena al completar)
+  muestrasObtenidas     Int?                @map("muestras_obtenidas")
+  observaciones         String?             @db.Text
+  
+  // ¿Es un concepto no presupuestado?
+  esNoPresupuestado     Boolean             @default(false) @map("es_no_presupuestado")
+  descripcionConcepto   String?             @db.Text @map("descripcion_concepto") // Solo para conceptos no presupuestados
+  unidadMedida          String?             @db.VarChar(50) @map("unidad_medida") // Solo para conceptos no presupuestados
+  
+  // Fechas
+  fechaCreacion         DateTime            @default(now()) @map("fecha_creacion")
+  fechaActualizacion    DateTime            @updatedAt @map("fecha_actualizacion")
+  
+  // Relaciones
+  programacion          Programacion        @relation(fields: [programacionId], references: [id], onDelete: Cascade)
+  concepto              ConceptosJerarquicos? @relation(fields: [conceptoCodigo], references: [codigo])
+  
+  @@index([programacionId], name: "idx_programacion_detalle_programacion_id")
+  @@index([conceptoCodigo], name: "idx_programacion_detalle_concepto_codigo")
+  @@map("programacion_detalles")
 }

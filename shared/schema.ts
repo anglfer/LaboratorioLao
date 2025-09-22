@@ -10,6 +10,12 @@ export const presupuestoEstadoEnum = z.enum([
   "rechazado",
   "finalizado",
 ]);
+
+export const tipoAprobacionEnum = z.enum([
+  "cliente",
+  "interno"
+]);
+
 export const detalleEstadoEnum = z.enum(["en_proceso", "hecho"]);
 
 // Enums para cliente
@@ -150,6 +156,7 @@ export const insertPresupuestoSchema = z.object({
   clienteId: z.number({ required_error: "El cliente es requerido" }),
   iva: z.number().min(0).max(1).default(0.16),
   estado: presupuestoEstadoEnum.default("borrador"),
+  tipoAprobacion: tipoAprobacionEnum.optional(),
   manejaAnticipo: z.boolean().optional().default(false),
   porcentajeAnticipo: z.number().min(0).max(100).optional(),
   

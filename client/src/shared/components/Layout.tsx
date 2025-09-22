@@ -45,6 +45,7 @@ const navigationByRole: Record<
 const adminNavigation = [
   { name: "Areas y Conceptos", href: "/admin/sistema-jerarquico", icon: Plus },
   { name: "Clientes", href: "/admin/clientes", icon: Users },
+  { name: "Programación", href: "/programacion", icon: Calendar },
 ];
 
 // Helper functions for page titles and descriptions
@@ -64,6 +65,9 @@ function getPageDescription(location: string): string {
     "/brigadista": "Gestión de personal y equipos de trabajo",
     "/admin/sistema-jerarquico": "Gestión jerárquica de áreas y conceptos",
     "/admin/clientes": "Gestión y administración de clientes",
+    "/programacion": "Dashboard de programación de actividades de campo",
+    "/programacion/lista": "Lista y gestión de todas las programaciones",
+    "/programacion/nueva": "Crear nueva programación de actividades",
   };
   return descriptions[location] || "Bienvenido al sistema de gestión";
 }
