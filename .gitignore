@@ -5,3 +5,29 @@ server/public
 vite.config.ts.*
 *.tar.gz
 /generated/prisma
+
+# IDE and editor directories
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Development and testing artifacts
+.openmcp/
+.playwright-mcp/
+cookies.txt
+test-*.js
+test-*.html
+test-*.sh
+*_preview.html
+clear-auth.html
+
+# Documentation files that are testing artifacts
+RESULTADOS_PRUEBAS_ENDPOINTS.md
+SEGURIDAD_PRESUPUESTOS.md
+
+# Temporary files
+*.tmp
+*.temp
+.env.local
+.env.*.local
