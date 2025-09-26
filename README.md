@@ -366,16 +366,6 @@ flowchart TD
 - Pruebas de base de datos
 - Validación de cálculos
 
-### 📊 Archivos de Prueba
-- `test-endpoints.sh` - Script de pruebas de API
-- `test-presupuesto-flow.js` - Pruebas de flujo completo
-- `test-backend-communication.js` - Pruebas de comunicación
-
-## 📚 Documentación Adicional
-
-### 📋 Archivos de Documentación
-- `SEGURIDAD_PRESUPUESTOS.md` - Sistema de permisos detallado
-- `RESULTADOS_PRUEBAS_ENDPOINTS.md` - Resultados de pruebas API
 
 ### 🎓 Guías de Desarrollo
 - Convenciones de código TypeScript
