@@ -153,7 +153,7 @@ const baseBudgetSchema = z.object({
     })
     .positive("El subtotal debe ser mayor a cero"),
   ivaAmount: z
-    .number({w
+    .number({
       required_error: "El monto de IVA es requerido",
       invalid_type_error: "El IVA debe ser un número",
     })
